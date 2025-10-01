@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mes Favoris - Token Scanner Pro</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .favorites-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+        }
+
+        .favorites-title {
+            font-size: 32px;
+            font-weight: 700;
+        }
+
+        .favorites-count {
+            font-size: 18px;
+            color: var(--text-secondary);
+        }
+
+        .favorites-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 8px 16px;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+
+        .search-box input {
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font-size: 14px;
+            flex: 1;
+            outline: none;
+        }
+
+        .search-box input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .sort-controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .sort-btn {
+            padding: 8px 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .sort-btn.active {
+            background: var(--gradient-primary);
+            color: white;
+            border-color: transparent;
+        }
+
+        .favorite-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 16px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .favorite-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+        }
+
+        .favorite-item.safe::before {
+            background: var(--accent-green);
+        }
+
+        .favorite-item.warning::before {
+            background: var(--accent-orange);
+        }
+
+        .favorite-item.danger::before {
+            background: var(--accent-red);
+        }
+
+        .favorite-item:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+            border-color: var(--accent-blue);
+        }
+
+        .favorite-content {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr auto;
+            gap: 24px;
+            align-items: center;
+        }
+
+        .favorite-info {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .favorite-address {
+            font-size: 16px;
+            font-weight: 600;
+            font-family: 'Courier New', monospace;
+        }
+
+        .favorite-date {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .favorite-metrics {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .favorite-notes {
+            position: relative;
+        }
+
+        .notes-display {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-style: italic;
+            cursor: pointer;
+            padding: 8px 12px;
+            background: var(--bg-secondary);
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+        }
+
+        .notes-display:hover {
+            border-color: var(--accent-blue);
+        }
+
+        .notes-display.empty {
+            color: var(--text-secondary);
+            opacity: 0.5;
+        }
+
+        .notes-input {
+            width: 100%;
+            padding: 8px 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--accent-blue);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 13px;
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        .notes-input:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+        }
+
+        .notes-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .favorite-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .no-favorites {
+            text-align: center;
+            padding: 80px 20px;
+        }
+
+        .no-favorites-icon {
+            font-size: 64px;
+            margin-bottom: 24px;
+            opacity: 0.3;
+        }
+
+        @media (max-width: 1024px) {
+            .favorite-content {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+
+            .favorite-metrics {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-content">
+            <div class="logo">
+                <div class="logo-icon">🔍</div>
+                <span>Token Scanner Pro</span>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="window.location.href='/'">
+                    🏠 Accueil
+                </button>
+                <button class="btn btn-icon" onclick="window.location.href='/favorites'" title="Mes favoris">
+                    ⭐
+                </button>
+                <button class="btn btn-icon" onclick="showProfile()" title="Mon profil">
+                    👤
+                </button>
+                <button class="btn btn-secondary" onclick="logout()">
+                    🚪 Déconnexion
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Container -->
+    <div class="container">
+        <!-- Header -->
+        <div class="favorites-header">
+            <div>
+                <h1 class="favorites-title">⭐ Mes Favoris</h1>
+                <p class="favorites-count" id="favoritesCount">Chargement...</p>
+            </div>
+            <div class="favorites-actions">
+                <button class="btn btn-secondary" onclick="clearAllFavorites()">
+                    🗑️ Tout supprimer
+                </button>
+                <button class="btn btn-primary" onclick="exportFavorites()">
+                    📥 Exporter
+                </button>
+            </div>
+        </div>
+
+        <!-- Search -->
+        <div class="search-box">
+            <span>🔍</span>
+            <input type="text" id="searchInput" placeholder="Rechercher par adresse, chaîne..." onkeyup="filterFavorites()">
+        </div>
+
+        <!-- Sort Controls -->
+        <div class="sort-controls">
+            <span style="color: var(--text-secondary); margin-right: 8px;">Trier par:</span>
+            <button class="sort-btn active" data-sort="recent" onclick="sortFavorites('recent')">➕ Récents</button>
+            <button class="sort-btn" data-sort="risk-low" onclick="sortFavorites('risk-low')">✅ Risque faible</button>
+            <button class="sort-btn" data-sort="risk-high" onclick="sortFavorites('risk-high')">⚠️ Risque élevé</button>
+            <button class="sort-btn" data-sort="liquidity" onclick="sortFavorites('liquidity')">💧 Liquidité</button>
+        </div>
+
+        <!-- Favorites List -->
+        <div id="favoritesList">
+            <div class="no-favorites">
+                <div class="no-favorites-icon">⭐</div>
+                <h3 class="empty-title">Aucun favori</h3>
+                <p class="empty-text">Ajoutez des tokens à vos favoris depuis la page d'accueil</p>
+                <button class="btn btn-primary" onclick="window.location.href='/'">
+                    🏠 Retour à l'accueil
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Token Details -->
+    <div class="modal" id="tokenModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title-section">
+                    <h2 class="modal-title" id="modalAddress" style="font-family: 'Courier New', monospace;"></h2>
+                    <span class="chain-badge" id="modalChain"></span>
+                </div>
+                <button class="modal-close" onclick="closeModal()">✕</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        const API_URL = window.location.origin + '/api';
+        let allFavorites = [];
+        let currentSort = 'recent';
+
+        // Vérifier l'authentification
+        window.addEventListener('load', async () => {
+            await checkAuth();
+            await loadFavorites();
+        });
+
+        async function checkAuth() {
+            try {
+                const response = await fetch(`${API_URL}/auth/me`, {
+                    credentials: 'include'
+                });
+                const data = await response.json();
+                
+                if (!data.success) {
+                    alert('Vous devez être connecté pour voir vos favoris');
+                    window.location.href = '/';
+                }
+            } catch (error) {
+                alert('Erreur de connexion');
+                window.location.href = '/';
+            }
+        }
+
+        async function logout() {
+            await fetch(`${API_URL}/auth/logout`, {
+                method: 'POST',
+                credentials: 'include'
+            });
+            window.location.href = '/';
+        }
+
+        function showProfile() {
+            alert('Page profil à venir !');
+        }
+
+        // Charger les favoris
+        async function loadFavorites() {
+            try {
+                const response = await fetch(`${API_URL}/favorites`, {
+                    credentials: 'include'
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    allFavorites = data.favorites;
+                    document.getElementById('favoritesCount').textContent = 
+                        `${allFavorites.length} token${allFavorites.length > 1 ? 's' : ''} favori${allFavorites.length > 1 ? 's' : ''}`;
+                    displayFavorites(allFavorites);
+                } else {
+                    console.error('Erreur chargement favoris');
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+
+        function displayFavorites(favorites) {
+            const container = document.getElementById('favoritesList');
+
+            if (favorites.length === 0) {
+                container.innerHTML = `
+                    <div class="no-favorites">
+                        <div class="no-favorites-icon">⭐</div>
+                        <h3 class="empty-title">Aucun favori</h3>
+                        <p class="empty-text">Ajoutez des tokens à vos favoris depuis la page d'accueil</p>
+                        <button class="btn btn-primary" onclick="window.location.href='/'">
+                            🏠 Retour à l'accueil
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = '';
+
+            favorites.forEach(fav => {
+                const token = fav.token_data;
+                const item = createFavoriteItem(fav, token);
+                container.appendChild(item);
+            });
+        }
+
+        function createFavoriteItem(fav, token) {
+            const div = document.createElement('div');
+            
+            let riskClass = 'safe';
+            if (token.risk_score >= 50) riskClass = 'danger';
+            else if (token.risk_score >= 20) riskClass = 'warning';
+
+            div.className = `favorite-item ${riskClass}`;
+
+            const shortAddr = fav.token_address.substring(0, 8) + '...' + fav.token_address.substring(fav.token_address.length - 6);
+            const addedDate = new Date(fav.added_at).toLocaleDateString('fr-FR');
+
+            div.innerHTML = `
+                <div class="favorite-content">
+                    <div class="favorite-info">
+                        <div class="favorite-address">${shortAddr}</div>
+                        <span class="chain-badge">${fav.token_chain.toUpperCase()}</span>
+                        <div class="favorite-date">Ajouté le ${addedDate}</div>
+                    </div>
+
+                    <div class="favorite-metrics">
+                        <div class="metric">
+                            <div class="metric-label">💧 Liquidité</div>
+                            <div class="metric-value">$${formatNumber(token.market?.liquidity_usd || 0)}</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-label">📊 Volume 24h</div>
+                            <div class="metric-value">$${formatNumber(token.market?.volume_24h || 0)}</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-label">⚠️ Risque</div>
+                            <div class="metric-value">
+                                <span class="risk-badge ${riskClass}">${token.risk_score}/100</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="favorite-notes">
+                        <div class="notes-display ${fav.notes ? '' : 'empty'}" id="notes-display-${fav.id}" onclick="editNotes(${fav.id}, '${fav.token_address}', '${fav.token_chain}', \`${fav.notes || ''}\`)">
+                            ${fav.notes || 'Cliquez pour ajouter une note...'}
+                        </div>
+                    </div>
+
+                    <div class="favorite-actions">
+                        <button class="btn btn-secondary" onclick='openModal(${JSON.stringify(token).replace(/'/g, "&#39;")})'>
+                            👁️ Détails
+                        </button>
+                        <button class="btn btn-secondary" onclick="removeFavorite('${fav.token_address}', '${fav.token_chain}')">
+                            🗑️ Retirer
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            return div;
+        }
+
+        // Éditer les notes
+        function editNotes(id, address, chain, currentNotes) {
+            const display = document.getElementById(`notes-display-${id}`);
+            
+            display.innerHTML = `
+                <textarea class="notes-input" id="notes-input-${id}">${currentNotes}</textarea>
+                <div class="notes-actions">
+                    <button class="btn btn-primary" onclick="saveNotes(${id}, '${address}', '${chain}')">💾 Enregistrer</button>
+                    <button class="btn btn-secondary" onclick="cancelEditNotes(${id}, \`${currentNotes}\`)">❌ Annuler</button>
+                </div>
+            `;
+
+            document.getElementById(`notes-input-${id}`).focus();
+        }
+
+        function cancelEditNotes(id, originalNotes) {
+            const display = document.getElementById(`notes-display-${id}`);
+            display.innerHTML = originalNotes || 'Cliquez pour ajouter une note...';
+            display.className = `notes-display ${originalNotes ? '' : 'empty'}`;
+        }
+
+        async function saveNotes(id, address, chain) {
+            const notes = document.getElementById(`notes-input-${id}`).value;
+
+            try {
+                const response = await fetch(`${API_URL}/favorites/notes`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        token_address: address,
+                        token_chain: chain,
+                        notes: notes
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Recharger les favoris
+                    await loadFavorites();
+                } else {
+                    alert('Erreur lors de la sauvegarde');
+                }
+            } catch (error) {
+                alert('Erreur de connexion');
+            }
+        }
+
+        // Retirer un favori
+        async function removeFavorite(address, chain) {
+            if (!confirm('Êtes-vous sûr de vouloir retirer ce token de vos favoris ?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/favorites/remove`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        token_address: address,
+                        token_chain: chain
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    await loadFavorites();
+                } else {
+                    alert('Erreur lors de la suppression');
+                }
+            } catch (error) {
+                alert('Erreur de connexion');
+            }
+        }
+
+        // Tout supprimer
+        async function clearAllFavorites() {
+            if (!confirm(`Êtes-vous sûr de vouloir supprimer TOUS vos favoris (${allFavorites.length}) ?`)) {
+                return;
+            }
+
+            for (const fav of allFavorites) {
+                await removeFavorite(fav.token_address, fav.token_chain);
+            }
+
+            await loadFavorites();
+        }
+
+        // Filtrer
+        function filterFavorites() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            
+            const filtered = allFavorites.filter(fav => {
+                return fav.token_address.toLowerCase().includes(search) ||
+                       fav.token_chain.toLowerCase().includes(search) ||
+                       (fav.notes && fav.notes.toLowerCase().includes(search));
+            });
+
+            displayFavorites(filtered);
+        }
+
+        // Trier
+        function sortFavorites(sortType) {
+            currentSort = sortType;
+
+            // Mettre à jour les boutons actifs
+            document.querySelectorAll('.sort-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.sort === sortType);
+            });
+
+            let sorted = [...allFavorites];
+
+            switch(sortType) {
+                case 'recent':
+                    sorted.sort((a, b) => new Date(b.added_at) - new Date(a.added_at));
+                    break;
+                case 'risk-low':
+                    sorted.sort((a, b) => a.token_data.risk_score - b.token_data.risk_score);
+                    break;
+                case 'risk-high':
+                    sorted.sort((a, b) => b.token_data.risk_score - a.token_data.risk_score);
+                    break;
+                case 'liquidity':
+                    sorted.sort((a, b) => (b.token_data.market?.liquidity_usd || 0) - (a.token_data.market?.liquidity_usd || 0));
+                    break;
+            }
+
+            displayFavorites(sorted);
+        }
+
+        // Exporter
+        function exportFavorites() {
+            const dataStr = JSON.stringify(allFavorites, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `favoris_${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+        }
+
+        // Modal (réutiliser le code de app.js)
+        function openModal(token) {
+            // Copier la fonction openModal de app.js ici
+            alert('Détails du token - À implémenter');
+        }
+
+        function closeModal() {
+            document.getElementById('tokenModal').classList.remove('active');
+        }
+
+        function formatNumber(num) {
+            if (num >= 1000000000) return (num / 1000000000).toFixed(2) + 'B';
+            if (num >= 1000000) return (num / 1000000).toFixed(2) + 'M';
+            if (num >= 1000) return (num / 1000).toFixed(2) + 'K';
+            return num.toFixed(2);
+        }
+    </script>
+</body>
+</html>

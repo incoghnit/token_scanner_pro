@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Token Scanner Pro</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-content">
+            <div class="logo">
+                <div class="logo-icon">🔍</div>
+                <span>Token Scanner Pro</span>
+            </div>
+            <div class="header-actions">
+                <div id="userSection" style="display: none;">
+                    <div class="user-menu">
+                        <button class="btn btn-icon" onclick="showFavorites()" title="Mes favoris">
+                            ⭐
+                        </button>
+                        <button class="btn btn-icon" onclick="showProfile()" title="Mon profil">
+                            👤
+                        </button>
+                        <button class="btn btn-secondary" onclick="logout()">
+                            🚪 Déconnexion
+                        </button>
+                    </div>
+                </div>
+                <div id="guestSection">
+                    <button class="btn btn-secondary" onclick="showAuthModal('login')">
+                        🔑 Connexion
+                    </button>
+                    <button class="btn btn-primary" onclick="showAuthModal('register')">
+                        ✨ S'inscrire
+                    </button>
+                </div>
+                <button class="btn btn-primary" id="startScanBtn">
+                    ▶️ Nouveau Scan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Container -->
+    <div class="container">
+        <!-- Stats Grid -->
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <div class="stat-header">
+                    <span class="stat-label">Total Analysés</span>
+                    <div class="stat-icon">📊</div>
+                </div>
+                <div class="stat-value" id="totalTokens">0</div>
+                <div class="stat-change">Dernier scan</div>
+            </div>
+
+            <div class="stat-card success">
+                <div class="stat-header">
+                    <span class="stat-label">Tokens Sûrs</span>
+                    <div class="stat-icon">✅</div>
+                </div>
+                <div class="stat-value" id="safeTokens" style="color: var(--accent-green);">0</div>
+                <div class="stat-change">Score < 50</div>
+            </div>
+
+            <div class="stat-card danger">
+                <div class="stat-header">
+                    <span class="stat-label">Tokens Dangereux</span>
+                    <div class="stat-icon">⚠️</div>
+                </div>
+                <div class="stat-value" id="dangerTokens" style="color: var(--accent-red);">0</div>
+                <div class="stat-change">Score ≥ 50</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <span class="stat-label">Score Moyen</span>
+                    <div class="stat-icon">📈</div>
+                </div>
+                <div class="stat-value" id="avgRisk">0</div>
+                <div class="stat-change">Risque global</div>
+            </div>
+        </div>
+
+        <!-- Progress Section -->
+        <div class="progress-section" id="progressSection">
+            <div class="progress-header">
+                <span class="progress-title">Analyse en cours...</span>
+                <span class="progress-percentage" id="progressPercentage">0%</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-text" id="progressText">Initialisation...</div>
+        </div>
+
+        <!-- Section Header -->
+        <div class="section-header">
+            <h2 class="section-title">Tokens Analysés</h2>
+            <div class="filters">
+                <button class="filter-btn active" data-filter="all">Tous</button>
+                <button class="filter-btn" data-filter="safe">Sûrs</button>
+                <button class="filter-btn" data-filter="danger">Dangereux</button>
+            </div>
+        </div>
+
+        <!-- Tokens Grid -->
+        <div class="tokens-grid" id="tokensGrid">
+            <div class="empty-state">
+                <div class="empty-icon">🔍</div>
+                <h3 class="empty-title">Aucun token analysé</h3>
+                <p class="empty-text">Lancez un nouveau scan pour analyser les derniers tokens du marché</p>
+                <button class="btn btn-primary" onclick="document.getElementById('startScanBtn').click()">
+                    ▶️ Démarrer le scan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Auth -->
+    <div class="modal" id="authModal">
+        <div class="modal-content small">
+            <div class="modal-header">
+                <div class="modal-title-section">
+                    <h2 class="modal-title">Authentification</h2>
+                </div>
+                <button class="modal-close" onclick="closeAuthModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="login">Connexion</button>
+                    <button class="tab-btn" data-tab="register">Inscription</button>
+                </div>
+
+                <div id="authAlert"></div>
+
+                <!-- Login Tab -->
+                <div class="tab-content active" id="loginTab">
+                    <form id="loginForm" onsubmit="handleLogin(event)">
+                        <div class="form-group">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-input" id="loginEmail" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Mot de passe</label>
+                            <input type="password" class="form-input" id="loginPassword" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width: 100%;">
+                            Se connecter
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Register Tab -->
+                <div class="tab-content" id="registerTab">
+                    <form id="registerForm" onsubmit="handleRegister(event)">
+                        <div class="form-group">
+                            <label class="form-label">Nom d'utilisateur</label>
+                            <input type="text" class="form-input" id="registerUsername" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-input" id="registerEmail" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Mot de passe</label>
+                            <input type="password" class="form-input" id="registerPassword" required minlength="6">
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width: 100%;">
+                            Créer un compte
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Token Details -->
+    <div class="modal" id="tokenModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title-section">
+                    <h2 class="modal-title" id="modalAddress" style="font-family: 'Courier New', monospace;"></h2>
+                    <span class="chain-badge" id="modalChain"></span>
+                </div>
+                <button class="modal-close" onclick="closeModal()">✕</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

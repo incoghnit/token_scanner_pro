@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Token Scanner Pro</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .admin-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px;
+            margin-bottom: 40px;
+            border-radius: 16px;
+        }
+
+        .admin-title {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .admin-subtitle {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .users-table {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .table-header {
+            background: var(--bg-secondary);
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .table-title {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .table-search {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .search-input {
+            padding: 8px 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 14px;
+            min-width: 250px;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            padding: 16px 24px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        td {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 14px;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover {
+            background: var(--bg-hover);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--gradient-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .user-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .user-name {
+            font-weight: 600;
+        }
+
+        .user-email {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge.admin {
+            background: rgba(255, 152, 0, 0.15);
+            border: 1px solid rgba(255, 152, 0, 0.3);
+            color: var(--accent-orange);
+        }
+
+        .badge.user {
+            background: rgba(74, 144, 226, 0.15);
+            border: 1px solid rgba(74, 144, 226, 0.3);
+            color: var(--accent-blue);
+        }
+
+        .badge.premium {
+            background: rgba(255, 215, 0, 0.15);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            color: #FFD700;
+        }
+
+        .badge.active {
+            background: rgba(76, 175, 80, 0.15);
+            border: 1px solid rgba(76, 175, 80, 0.3);
+            color: var(--accent-green);
+        }
+
+        .badge.inactive {
+            background: rgba(244, 67, 54, 0.15);
+            border: 1px solid rgba(244, 67, 54, 0.3);
+            color: var(--accent-red);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 6px;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            padding: 24px;
+        }
+
+        .pagination-info {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .logs-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            margin-top: 24px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .log-item {
+            padding: 12px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 13px;
+        }
+
+        .log-item:last-child {
+            border-bottom: none;
+        }
+
+        .log-time {
+            color: var(--text-secondary);
+            font-size: 11px;
+        }
+
+        .tabs-container {
+            margin-bottom: 24px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-content">
+            <div class="logo">
+                <div class="logo-icon">🔍</div>
+                <span>Token Scanner Pro</span>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="window.location.href='/'">
+                    🏠 Accueil
+                </button>
+                <button class="btn btn-secondary" onclick="logout()">
+                    🚪 Déconnexion
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Container -->
+    <div class="container">
+        <!-- Admin Header -->
+        <div class="admin-header">
+            <h1 class="admin-title">🛡️ Dashboard Admin</h1>
+            <p class="admin-subtitle">Gestion des utilisateurs et du système</p>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid active" id="statsGrid">
+            <div class="stat-card">
+                <div class="stat-header">
+                    <span class="stat-label">Total Utilisateurs</span>
+                    <div class="stat-icon">👥</div>
+                </div>
+                <div class="stat-value" id="totalUsers">-</div>
+                <div class="stat-change" id="newUsersToday">-</div>
+            </div>
+
+            <div class="stat-card success">
+                <div class="stat-header">
+                    <span class="stat-label">Utilisateurs Actifs</span>
+                    <div class="stat-icon">✅</div>
+                </div>
+                <div class="stat-value" id="activeUsers" style="color: var(--accent-green);">-</div>
+                <div class="stat-change">En ligne</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <span class="stat-label">Utilisateurs Premium</span>
+                    <div class="stat-icon">💎</div>
+                </div>
+                <div class="stat-value" id="premiumUsers" style="color: #FFD700;">-</div>
+                <div class="stat-change">Abonnés</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <span class="stat-label">Total Scans</span>
+                    <div class="stat-icon">🔍</div>
+                </div>
+                <div class="stat-value" id="totalScans">-</div>
+                <div class="stat-change">Analyses effectuées</div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs-container">
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="users">👥 Utilisateurs</button>
+                <button class="tab-btn" data-tab="logs">📋 Logs Admin</button>
+            </div>
+        </div>
+
+        <!-- Users Tab -->
+        <div class="tab-content active" id="usersTab">
+            <!-- Users Table -->
+            <div class="users-table">
+                <div class="table-header">
+                    <h3 class="table-title">Liste des utilisateurs</h3>
+                    <div class="table-search">
+                        <input type="text" class="search-input" id="searchUsers" placeholder="Rechercher un utilisateur..." onkeyup="filterUsers()">
+                        <button class="btn btn-secondary btn-small" onclick="refreshUsers()">
+                            🔄 Actualiser
+                        </button>
+                    </div>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Utilisateur</th>
+                            <th>Rôle</th>
+                            <th>Statut</th>
+                            <th>Scans</th>
+                            <th>Inscription</th>
+                            <th>Dernière Connexion</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody">
+                        <tr>
+                            <td colspan="7" style="text-align: center; padding: 40px;">
+                                <div class="spinner"></div> Chargement...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="pagination" id="pagination"></div>
+            </div>
+        </div>
+
+        <!-- Logs Tab -->
+        <div class="tab-content" id="logsTab">
+            <div class="logs-container" id="logsContainer">
+                <div style="text-align: center; padding: 40px;">
+                    <div class="spinner"></div> Chargement des logs...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = window.location.origin + '/api';
+        let allUsers = [];
+        let currentPage = 1;
+
+        window.addEventListener('load', async () => {
+            await loadStats();
+            await loadUsers();
+        });
+
+        // Tabs
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tab = btn.dataset.tab;
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById(tab + 'Tab').classList.add('active');
+                
+                if (tab === 'logs') {
+                    loadLogs();
+                }
+            });
+        });
+
+        async function logout() {
+            await fetch(`${API_URL}/auth/logout`, {
+                method: 'POST',
+                credentials: 'include'
+            });
+            window.location.href = '/';
+        }
+
+        async function loadStats() {
+            try {
+                const response = await fetch(`${API_URL}/admin/stats`, {
+                    credentials: 'include'
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    const stats = data.stats;
+                    document.getElementById('totalUsers').textContent = stats.total_users;
+                    document.getElementById('activeUsers').textContent = stats.active_users;
+                    document.getElementById('premiumUsers').textContent = stats.premium_users;
+                    document.getElementById('totalScans').textContent = stats.total_scans;
+                    document.getElementById('newUsersToday').textContent = `+${stats.new_users_today} aujourd'hui`;
+                }
+            } catch (error) {
+                console.error('Erreur chargement stats:', error);
+            }
+        }
+
+        async function loadUsers(page = 1) {
+            try {
+                const response = await fetch(`${API_URL}/admin/users?page=${page}`, {
+                    credentials: 'include'
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    allUsers = data.users;
+                    currentPage = page;
+                    displayUsers(allUsers);
+                    displayPagination(data.page, data.pages, data.total);
+                } else {
+                    if (data.error && data.error.includes('Admin requis')) {
+                        alert('Accès non autorisé');
+                        window.location.href = '/';
+                    }
+                }
+            } catch (error) {
+                console.error('Erreur chargement utilisateurs:', error);
+                alert('Erreur de chargement');
+            }
+        }
+
+        function displayUsers(users) {
+            const tbody = document.getElementById('usersTableBody');
+
+            if (users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px;">Aucun utilisateur trouvé</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = users.map(user => {
+                const initials = user.username.substring(0, 2).toUpperCase();
+                const createdDate = new Date(user.created_at).toLocaleDateString('fr-FR');
+                const lastLogin = user.last_login ? new Date(user.last_login).toLocaleString('fr-FR') : 'Jamais';
+
+                return `
+                    <tr>
+                        <td>
+                            <div class="user-info">
+                                <div class="user-avatar">${initials}</div>
+                                <div class="user-details">
+                                    <span class="user-name">${user.username}</span>
+                                    <span class="user-email">${user.email}</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge ${user.role}">${user.role === 'admin' ? '🛡️ Admin' : '👤 User'}</span>
+                            ${user.is_premium ? '<span class="badge premium">💎 Premium</span>' : ''}
+                        </td>
+                        <td>
+                            <span class="badge ${user.is_active ? 'active' : 'inactive'}">
+                                ${user.is_active ? '✅ Actif' : '❌ Inactif'}
+                            </span>
+                        </td>
+                        <td>${user.scan_count}</td>
+                        <td>${createdDate}</td>
+                        <td>${lastLogin}</td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn btn-secondary btn-small" onclick="toggleUserStatus(${user.id})" title="Activer/Désactiver">
+                                    ${user.is_active ? '🔒' : '🔓'}
+                                </button>
+                                <button class="btn btn-secondary btn-small" onclick="togglePremium(${user.id})" title="Premium">
+                                    💎
+                                </button>
+                                <button class="btn btn-secondary btn-small" onclick="changeRole(${user.id}, '${user.role}')" title="Changer rôle">
+                                    ⚙️
+                                </button>
+                                <button class="btn btn-secondary btn-small" onclick="deleteUser(${user.id}, '${user.username}')" title="Supprimer">
+                                    🗑️
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function displayPagination(page, pages, total) {
+            const container = document.getElementById('pagination');
+            
+            if (pages <= 1) {
+                container.innerHTML = '';
+                return;
+            }
+
+            let html = '<div class="pagination-info">Page ' + page + ' sur ' + pages + ' (' + total + ' utilisateurs)</div>';
+            
+            if (page > 1) {
+                html += '<button class="btn btn-secondary btn-small" onclick="loadUsers(' + (page - 1) + ')">← Précédent</button>';
+            }
+            
+            if (page < pages) {
+                html += '<button class="btn btn-secondary btn-small" onclick="loadUsers(' + (page + 1) + ')">Suivant →</button>';
+            }
+            
+            container.innerHTML = html;
+        }
+
+        function filterUsers() {
+            const search = document.getElementById('searchUsers').value.toLowerCase();
+            const filtered = allUsers.filter(user => {
+                return user.username.toLowerCase().includes(search) ||
+                       user.email.toLowerCase().includes(search);
+            });
+            displayUsers(filtered);
+        }
+
+        async function refreshUsers() {
+            await loadUsers(currentPage);
+        }
+
+        async function toggleUserStatus(userId) {
+            if (!confirm('Êtes-vous sûr de vouloir changer le statut de cet utilisateur ?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/admin/user/${userId}/toggle-status`, {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    await loadUsers(currentPage);
+                } else {
+                    alert('Erreur: ' + (data.error || 'Erreur inconnue'));
+                }
+            } catch (error) {
+                alert('Erreur de connexion');
+            }
+        }
+
+        async function togglePremium(userId) {
+            if (!confirm('Êtes-vous sûr de vouloir changer le statut premium ?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/admin/user/${userId}/toggle-premium`, {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    await loadUsers(currentPage);
+                } else {
+                    alert('Erreur: ' + (data.error || 'Erreur inconnue'));
+                }
+            } catch (error) {
+                alert('Erreur de connexion');
+            }
+        }
+
+        async function changeRole(userId, currentRole) {
+            const newRole = currentRole === 'admin' ? 'user' : 'admin';
+            
+            if (!confirm(`Êtes-vous sûr de vouloir changer le rôle vers "${newRole}" ?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/admin/user/${userId}/role`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ role: newRole })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    await loadUsers(currentPage);
+                } else {
+                    alert('Erreur: ' + (data.error || 'Erreur inconnue'));
+                }
+            } catch (error) {
+                alert('Erreur de connexion');
+            }
+        }
+
+        async function deleteUser(userId, username) {
+            if (!confirm(`⚠️ ATTENTION ⚠️\n\nÊtes-vous VRAIMENT sûr de vouloir supprimer l'utilisateur "${username}" ?\n\nCette action est IRRÉVERSIBLE et supprimera :\n- Le compte utilisateur\n- Tous ses favoris\n- Tout son historique\n\nTapez "SUPPRIMER" pour confirmer`)) {
+                return;
+            }
+
+            const confirmation = prompt('Tapez "SUPPRIMER" pour confirmer :');
+            if (confirmation !== 'SUPPRIMER') {
+                alert('Suppression annulée');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/admin/user/${userId}/delete`, {
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('Utilisateur supprimé avec succès');
+                    await loadUsers(currentPage);
+                    await loadStats();
+                } else {
+                    alert('Erreur: ' + (data.error || 'Erreur inconnue'));
+                }
+            } catch (error) {
+                alert('Erreur de connexion');
+            }
+        }
+
+        async function loadLogs() {
+            try {
+                const response = await fetch(`${API_URL}/admin/logs`, {
+                    credentials: 'include'
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    displayLogs(data.logs);
+                }
+            } catch (error) {
+                console.error('Erreur chargement logs:', error);
+            }
+        }
+
+        function displayLogs(logs) {
+            const container = document.getElementById('logsContainer');
+
+            if (logs.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 40px;">Aucun log disponible</div>';
+                return;
+            }
+
+            container.innerHTML = logs.map(log => {
+                const date = new Date(log.timestamp).toLocaleString('fr-FR');
+                return `
+                    <div class="log-item">
+                        <div><strong>${log.admin_username}</strong> - ${log.action}</div>
+                        ${log.target_username ? `<div>Cible: ${log.target_username}</div>` : ''}
+                        ${log.details ? `<div>Détails: ${log.details}</div>` : ''}
+                        <div class="log-time">${date} - IP: ${log.ip_address}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+    </script>
+</body>
+</html>
