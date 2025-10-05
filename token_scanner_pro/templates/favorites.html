@@ -844,14 +844,281 @@
             link.click();
         }
 
-        // Modal
+        // Modal détails du token (copié depuis app.js)
         function openModal(token) {
-            alert('Modal détaillée - Utilisez la même que dans app.js');
+            const modal = document.getElementById('tokenModal');
+            const modalBody = document.getElementById('modalBody');
+
+            document.getElementById('modalAddress').textContent = token.address;
+            document.getElementById('modalChain').textContent = token.chain;
+
+            let riskClass = 'safe';
+            let riskLabel = 'Sûr';
+            if (token.risk_score >= 50) {
+                riskClass = 'danger';
+                riskLabel = 'Dangereux';
+            } else if (token.risk_score >= 20) {
+                riskClass = 'warning';
+                riskLabel = 'Modéré';
+            }
+
+            // Icon dans le modal
+            const iconHtml = token.icon 
+                ? `<img src="${token.icon}" alt="${token.chain}" style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid var(--border-color);" onerror="this.style.display='none'">`
+                : '';
+
+            modalBody.innerHTML = `
+                ${iconHtml ? `<div style="text-align: center; margin-bottom: 24px;">${iconHtml}</div>` : ''}
+                
+                <div class="detail-section">
+                    <div class="detail-section-title">🎯 Score de Risque</div>
+                    <div class="detail-grid">
+                        <div class="detail-item" style="grid-column: span 2;">
+                            <div class="detail-label">Score Total</div>
+                            <div class="detail-value">
+                                <span class="risk-badge ${riskClass}" style="font-size: 24px;">
+                                    ${token.risk_score}/100 - ${riskLabel}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <div class="detail-section-title">💹 Données de Marché</div>
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <div class="detail-label">Prix USD</div>
+                            <div class="detail-value">${token.market.price_usd ? token.market.price_usd.toFixed(8) : 'N/A'}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Variation 24h</div>
+                            <div class="detail-value" style="color: ${token.market.price_change_24h >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'}">
+                                ${token.market.price_change_24h ? token.market.price_change_24h.toFixed(2) : '0'}%
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Liquidité USD</div>
+                            <div class="detail-value">${formatNumber(token.market.liquidity_usd || 0)}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Volume 24h</div>
+                            <div class="detail-value">${formatNumber(token.market.volume_24h || 0)}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Market Cap</div>
+                            <div class="detail-value">${formatNumber(token.market.market_cap || 0)}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Transactions 24h</div>
+                            <div class="detail-value">
+                                <span style="color: var(--accent-green);">↑${token.market.txns_24h_buys || 0}</span> / 
+                                <span style="color: var(--accent-red);">↓${token.market.txns_24h_sells || 0}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <div class="detail-section-title">🔒 Analyse de Sécurité</div>
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <div class="detail-label">Honeypot</div>
+                            <div class="detail-value" style="color: ${token.security.is_honeypot ? 'var(--accent-red)' : 'var(--accent-green)'}">
+                                ${token.security.is_honeypot ? '⚠️ OUI' : '✅ NON'}
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Code Open Source</div>
+                            <div class="detail-value" style="color: ${token.security.is_open_source ? 'var(--accent-green)' : 'var(--accent-orange)'}">
+                                ${token.security.is_open_source ? '✅ OUI' : '⚠️ NON'}
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Mintable</div>
+                            <div class="detail-value" style="color: ${token.security.is_mintable ? 'var(--accent-orange)' : 'var(--accent-green)'}">
+                                ${token.security.is_mintable ? '⚠️ OUI' : '✅ NON'}
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Propriétaire Caché</div>
+                            <div class="detail-value" style="color: ${token.security.hidden_owner ? 'var(--accent-red)' : 'var(--accent-green)'}">
+                                ${token.security.hidden_owner ? '⚠️ OUI' : '✅ NON'}
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Taxe Achat</div>
+                            <div class="detail-value" style="color: ${token.security.buy_tax > 10 ? 'var(--accent-red)' : 'var(--accent-green)'}">
+                                ${token.security.buy_tax || 0}%
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Taxe Vente</div>
+                            <div class="detail-value" style="color: ${token.security.sell_tax > 10 ? 'var(--accent-red)' : 'var(--accent-green)'}">
+                                ${token.security.sell_tax || 0}%
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Holders</div>
+                            <div class="detail-value">${token.security.holder_count || 'N/A'}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Destructible</div>
+                            <div class="detail-value" style="color: ${token.security.selfdestruct ? 'var(--accent-red)' : 'var(--accent-green)'}">
+                                ${token.security.selfdestruct ? '⚠️ OUI' : '✅ NON'}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                ${token.warnings && token.warnings.length > 0 ? `
+                <div class="detail-section">
+                    <div class="detail-section-title">⚠️ Alertes Détectées (${token.warnings.length})</div>
+                    <div class="warning-list">
+                        ${token.warnings.map(w => `
+                            <div class="warning-item">
+                                <span class="warning-icon">⚠️</span>
+                                <span>${w}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                ` : ''}
+
+                ${token.twitter ? `
+                <div class="detail-section">
+                    <div class="detail-section-title">🐦 Analyse Twitter</div>
+                    <div class="twitter-section">
+                        <div class="detail-item" style="margin-bottom: 16px;">
+                            <div class="detail-label">Compte Twitter</div>
+                            <div class="detail-value">
+                                <a href="${token.twitter}" target="_blank" style="color: var(--accent-blue); text-decoration: none;">
+                                    ${token.twitter}
+                                </a>
+                            </div>
+                        </div>
+                        
+                        ${token.social_score > 0 ? `
+                        <div class="detail-item" style="margin-bottom: 16px;">
+                            <div class="detail-label">Score Social Global</div>
+                            <div class="detail-value">
+                                <span class="risk-badge ${token.social_score >= 60 ? 'safe' : token.social_score >= 30 ? 'warning' : 'danger'}">
+                                    ${token.social_score}/100
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="twitter-stats">
+                            <div class="twitter-stat">
+                                <div class="twitter-stat-value">${formatNumber(token.social_details.followers || 0)}</div>
+                                <div class="twitter-stat-label">Followers</div>
+                            </div>
+                            <div class="twitter-stat">
+                                <div class="twitter-stat-value">${formatNumber(token.social_details.following || 0)}</div>
+                                <div class="twitter-stat-label">Following</div>
+                            </div>
+                            <div class="twitter-stat">
+                                <div class="twitter-stat-value">${formatNumber(token.social_details.tweets || 0)}</div>
+                                <div class="twitter-stat-label">Tweets</div>
+                            </div>
+                        </div>
+
+                        <div class="detail-grid" style="margin-top: 16px;">
+                            <div class="detail-item">
+                                <div class="detail-label">Évaluation Followers</div>
+                                <div class="detail-value">${token.social_details.followers_score || 'N/A'}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Ratio F/F</div>
+                                <div class="detail-value">${token.social_details.ratio_score || 'N/A'}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Activité</div>
+                                <div class="detail-value">${token.social_details.activity_score || 'N/A'}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Vérifié</div>
+                                <div class="detail-value">${token.social_details.verified || 'Non'}</div>
+                            </div>
+                        </div>
+
+                        ${token.twitter_data && token.twitter_data.bio ? `
+                        <div class="detail-item" style="margin-top: 16px;">
+                            <div class="detail-label">Bio</div>
+                            <div class="detail-value" style="font-size: 14px; line-height: 1.6;">
+                                ${token.twitter_data.bio}
+                            </div>
+                        </div>
+                        ` : ''}
+                        ` : '<p style="color: var(--text-secondary);">Données Twitter non disponibles</p>'}
+                    </div>
+                </div>
+                ` : ''}
+
+                ${token.description && token.description !== 'N/A' ? `
+                <div class="detail-section">
+                    <div class="detail-section-title">📝 Description</div>
+                    <div class="detail-item">
+                        <div class="detail-value" style="font-size: 14px; line-height: 1.8;">
+                            ${token.description}
+                        </div>
+                    </div>
+                </div>
+                ` : ''}
+
+                <div class="detail-section">
+                    <div class="detail-section-title">🔗 Liens</div>
+                    <div class="detail-grid">
+                        ${token.url ? `
+                        <div class="detail-item">
+                            <div class="detail-label">DexScreener</div>
+                            <div class="detail-value">
+                                <a href="${token.url}" target="_blank" style="color: var(--accent-blue); text-decoration: none;">
+                                    Voir sur DexScreener →
+                                </a>
+                            </div>
+                        </div>
+                        ` : ''}
+                        <div class="detail-item">
+                            <div class="detail-label">Adresse Contrat</div>
+                            <div class="detail-value" style="font-family: 'Courier New', monospace; font-size: 12px; word-break: break-all;">
+                                ${token.address}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <div class="detail-item">
+                        <div class="detail-label">Analysé le</div>
+                        <div class="detail-value" style="font-size: 14px;">
+                            ${new Date(token.timestamp).toLocaleString('fr-FR')}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            modal.classList.add('active');
         }
 
         function closeModal() {
             document.getElementById('tokenModal').classList.remove('active');
         }
+
+        // Fermer modal au clic extérieur et ESC
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('tokenModal').addEventListener('click', (e) => {
+                if (e.target.id === 'tokenModal') {
+                    closeModal();
+                }
+            });
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    closeModal();
+                }
+            });
+        });
 
         function formatNumber(num) {
             if (num >= 1000000000) return (num / 1000000000).toFixed(2) + 'B';
