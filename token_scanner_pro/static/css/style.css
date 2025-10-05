@@ -60,6 +60,7 @@ body {
     font-weight: 700;
     background: var(--gradient-primary);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
@@ -299,6 +300,8 @@ body {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 16px;
 }
 
 .section-title {
@@ -306,9 +309,56 @@ body {
     font-weight: 700;
 }
 
+/* Timestamp Badge */
+.timestamp-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.live-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: rgba(76, 175, 80, 0.15);
+    border: 1px solid rgba(76, 175, 80, 0.3);
+    border-radius: 8px;
+    font-size: 12px;
+    color: var(--accent-green);
+    font-weight: 600;
+}
+
+.live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent-green);
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.5;
+        transform: scale(0.8);
+    }
+}
+
 .filters {
     display: flex;
     gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
 }
 
 .filter-btn {
@@ -328,12 +378,68 @@ body {
     border-color: transparent;
 }
 
+/* View Switcher */
+.view-switcher {
+    display: flex;
+    gap: 4px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 4px;
+}
+
+.view-btn {
+    padding: 6px 12px;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.view-btn.active {
+    background: var(--gradient-primary);
+    color: white;
+}
+
+/* Search Box */
+.search-box {
+    display: flex;
+    align-items: center;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 8px 16px;
+    gap: 8px;
+    min-width: 300px;
+}
+
+.search-box input {
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    font-size: 14px;
+    flex: 1;
+    outline: none;
+}
+
+.search-box input::placeholder {
+    color: var(--text-secondary);
+}
+
 /* Tokens Grid */
 .tokens-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
     gap: 24px;
     margin-bottom: 40px;
+    transition: all 0.3s ease;
+}
+
+.tokens-grid.list-view {
+    grid-template-columns: 1fr;
 }
 
 .token-card {
@@ -383,13 +489,48 @@ body {
 
 .token-address-section {
     flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Token Icon */
+.token-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid var(--border-color);
+    background: var(--bg-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.token-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.token-icon-placeholder {
+    font-size: 24px;
+}
+
+.token-info {
+    flex: 1;
+    min-width: 0;
 }
 
 .token-address {
     font-size: 16px;
     font-weight: 600;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
     font-family: 'Courier New', monospace;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .chain-badge {
@@ -437,11 +578,60 @@ body {
     color: var(--accent-red);
 }
 
+/* Risk Circle Progress */
+.risk-circle {
+    width: 60px;
+    height: 60px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.risk-circle svg {
+    transform: rotate(-90deg);
+}
+
+.risk-circle-bg {
+    fill: none;
+    stroke: var(--bg-secondary);
+    stroke-width: 6;
+}
+
+.risk-circle-progress {
+    fill: none;
+    stroke-width: 6;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.5s ease;
+}
+
+.risk-circle-progress.safe {
+    stroke: var(--accent-green);
+}
+
+.risk-circle-progress.warning {
+    stroke: var(--accent-orange);
+}
+
+.risk-circle-progress.danger {
+    stroke: var(--accent-red);
+}
+
+.risk-circle-text {
+    position: absolute;
+    font-size: 14px;
+    font-weight: 700;
+}
+
 .token-metrics {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 12px;
     margin-top: 16px;
+}
+
+.tokens-grid.list-view .token-metrics {
+    grid-template-columns: repeat(4, 1fr);
 }
 
 .metric {
@@ -460,6 +650,20 @@ body {
 .metric-value {
     font-size: 16px;
     font-weight: 600;
+}
+
+/* List View Specific */
+.tokens-grid.list-view .token-card {
+    padding: 20px;
+}
+
+.tokens-grid.list-view .token-header {
+    margin-bottom: 20px;
+}
+
+.tokens-grid.list-view .token-icon {
+    width: 56px;
+    height: 56px;
 }
 
 /* Modal */
@@ -792,5 +996,19 @@ body {
         margin: 0;
         border-radius: 0;
         max-height: 100vh;
+    }
+
+    .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .filters {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .search-box {
+        min-width: 100%;
     }
 }

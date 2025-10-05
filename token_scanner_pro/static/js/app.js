@@ -1,9 +1,11 @@
 const API_URL = window.location.origin + '/api';
 let scanInterval = null;
 let currentFilter = 'all';
+let currentView = 'grid'; // 'grid' ou 'list'
 let allTokens = [];
 let currentUser = null;
 let userFavorites = new Set();
+let lastScanTimestamp = null;
 
 // Initialisation
 window.addEventListener('load', async () => {
@@ -23,6 +25,15 @@ async function checkAuth() {
             currentUser = data.user;
             updateUI(true);
             await loadFavorites();
+            
+            // Afficher le lien admin si admin
+            if (data.user.is_admin) {
+                const adminBtn = document.createElement('button');
+                adminBtn.className = 'btn btn-secondary';
+                adminBtn.innerHTML = '🛡️ Admin';
+                adminBtn.onclick = () => window.location.href = '/admin';
+                document.getElementById('userSection').querySelector('.user-menu').prepend(adminBtn);
+            }
         } else {
             updateUI(false);
         }
@@ -88,6 +99,8 @@ async function handleLogin(e) {
             closeAuthModal();
             await loadFavorites();
             console.log('Connexion réussie !');
+            // Recharger la page pour afficher le bouton admin si nécessaire
+            window.location.reload();
         } else {
             document.getElementById('authAlert').innerHTML = 
                 `<div class="alert error">❌ ${data.error}</div>`;
@@ -139,6 +152,7 @@ async function logout() {
         userFavorites.clear();
         updateUI(false);
         console.log('Déconnexion réussie');
+        window.location.reload();
     } catch (error) {
         console.error('Erreur déconnexion:', error);
     }
@@ -210,41 +224,79 @@ async function toggleFavorite(token, event) {
 // Scan
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('startScanBtn').addEventListener('click', async () => {
-        const btn = document.getElementById('startScanBtn');
-        
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner"></span> Scan en cours...';
+        await startNewScan();
+    });
 
-        const progressSection = document.getElementById('progressSection');
-        progressSection.classList.add('active');
-
-        try {
-            const response = await fetch(`${API_URL}/scan/start`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ 
-                    max_tokens: 10,
-                    nitter_url: 'http://192.168.1.19:8080'
-                })
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                startProgressTracking();
+    // View Switcher
+    document.querySelectorAll('.view-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            currentView = btn.dataset.view;
+            document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            const grid = document.getElementById('tokensGrid');
+            if (currentView === 'list') {
+                grid.classList.add('list-view');
             } else {
-                alert('Erreur: ' + data.error);
-                btn.disabled = false;
-                btn.innerHTML = '▶️ Nouveau Scan';
+                grid.classList.remove('list-view');
             }
-        } catch (error) {
-            alert('Erreur de connexion au serveur');
+        });
+    });
+
+    // Search
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            filterTokens(e.target.value);
+        });
+    }
+
+    // Filtres
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentFilter = btn.dataset.filter;
+            displayTokens(allTokens);
+        });
+    });
+});
+
+async function startNewScan() {
+    const btn = document.getElementById('startScanBtn');
+    
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Scan en cours...';
+
+    const progressSection = document.getElementById('progressSection');
+    progressSection.classList.add('active');
+
+    try {
+        const response = await fetch(`${API_URL}/scan/start`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ 
+                max_tokens: 10,
+                nitter_url: 'http://192.168.1.19:8080'
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            startProgressTracking();
+        } else {
+            alert('Erreur: ' + data.error);
             btn.disabled = false;
             btn.innerHTML = '▶️ Nouveau Scan';
         }
-    });
-});
+    } catch (error) {
+        alert('Erreur de connexion au serveur');
+        btn.disabled = false;
+        btn.innerHTML = '▶️ Nouveau Scan';
+    }
+}
 
 function startProgressTracking() {
     scanInterval = setInterval(async () => {
@@ -279,6 +331,10 @@ async function loadResults() {
         if (!data.success) return;
 
         allTokens = data.results;
+        lastScanTimestamp = data.last_scan_timestamp;
+
+        // Afficher le timestamp
+        updateTimestampDisplay();
 
         document.getElementById('statsGrid').classList.add('active');
         document.getElementById('totalTokens').textContent = data.total_analyzed;
@@ -294,6 +350,29 @@ async function loadResults() {
     }
 }
 
+function updateTimestampDisplay() {
+    const timestampContainer = document.getElementById('timestampContainer');
+    if (!timestampContainer || !lastScanTimestamp) return;
+
+    const date = new Date(lastScanTimestamp);
+    const timeStr = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const dateStr = date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+    timestampContainer.innerHTML = `
+        <div class="live-badge">
+            <span class="live-dot"></span>
+            <span>Analyse en temps réel</span>
+        </div>
+        <div class="timestamp-badge">
+            <span>🕐</span>
+            <span>Dernière analyse: ${timeStr} • ${dateStr}</span>
+        </div>
+        <button class="btn btn-secondary" onclick="startNewScan()" title="Actualiser l'analyse">
+            🔄 Actualiser
+        </button>
+    `;
+}
+
 async function loadPreviousResults() {
     try {
         const response = await fetch(`${API_URL}/scan/results`);
@@ -303,6 +382,20 @@ async function loadPreviousResults() {
     } catch (error) {
         console.log('Aucun résultat précédent');
     }
+}
+
+function filterTokens(searchQuery) {
+    if (!searchQuery) {
+        displayTokens(allTokens);
+        return;
+    }
+
+    const filtered = allTokens.filter(token => 
+        token.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        token.chain.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    displayTokens(filtered);
 }
 
 function displayTokens(tokens) {
@@ -338,17 +431,38 @@ function createTokenCard(token) {
     const key = `${token.address}-${token.chain}`;
     const isFavorite = userFavorites.has(key);
 
+    // Icon HTML
+    const iconHtml = token.icon 
+        ? `<div class="token-icon"><img src="${token.icon}" alt="${token.chain}" onerror="this.parentElement.innerHTML='<span class=\\'token-icon-placeholder\\'>🪙</span>'"></div>`
+        : `<div class="token-icon"><span class="token-icon-placeholder">🪙</span></div>`;
+
+    // Créer le cercle de progression du risque
+    const circumference = 2 * Math.PI * 24; // rayon 24
+    const offset = circumference - (token.risk_score / 100) * circumference;
+
     card.innerHTML = `
         <div class="token-header">
             <div class="token-address-section">
-                <div class="token-address">${shortAddr}</div>
-                <span class="chain-badge">${token.chain}</span>
+                ${iconHtml}
+                <div class="token-info">
+                    <div class="token-address">${shortAddr}</div>
+                    <span class="chain-badge">${token.chain}</span>
+                </div>
             </div>
             <div class="token-actions">
                 <button class="btn-icon ${isFavorite ? 'active' : ''}" title="${isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}">
                     ${isFavorite ? '⭐' : '☆'}
                 </button>
-                <div class="risk-badge ${riskClass}">${token.risk_score}/100</div>
+                <div class="risk-circle">
+                    <svg width="60" height="60">
+                        <circle class="risk-circle-bg" cx="30" cy="30" r="24"></circle>
+                        <circle class="risk-circle-progress ${riskClass}" 
+                                cx="30" cy="30" r="24"
+                                stroke-dasharray="${circumference}"
+                                stroke-dashoffset="${offset}"></circle>
+                    </svg>
+                    <div class="risk-circle-text">${token.risk_score}</div>
+                </div>
             </div>
         </div>
         <div class="token-metrics">
@@ -368,6 +482,29 @@ function createTokenCard(token) {
                 <div class="metric-label">🐦 Score Social</div>
                 <div class="metric-value">${token.social_score || 0}/100</div>
             </div>
+            ${currentView === 'list' ? `
+            <div class="metric">
+                <div class="metric-label">👥 Holders</div>
+                <div class="metric-value">${token.security.holder_count || 'N/A'}</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">💸 Prix USD</div>
+                <div class="metric-value">$${token.market.price_usd ? token.market.price_usd.toFixed(8) : 'N/A'}</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">📈 Change 24h</div>
+                <div class="metric-value" style="color: ${token.market.price_change_24h >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'}">
+                    ${token.market.price_change_24h ? token.market.price_change_24h.toFixed(2) : '0'}%
+                </div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">🔒 Sécurité</div>
+                <div class="metric-value">
+                    ${token.security.is_honeypot ? '⚠️' : '✅'} 
+                    ${token.security.is_open_source ? '✅' : '⚠️'}
+                </div>
+            </div>
+            ` : ''}
         </div>
     `;
 
@@ -403,7 +540,14 @@ function openModal(token) {
         riskLabel = 'Modéré';
     }
 
+    // Icon dans le modal
+    const iconHtml = token.icon 
+        ? `<img src="${token.icon}" alt="${token.chain}" style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid var(--border-color);" onerror="this.style.display='none'">`
+        : '';
+
     modalBody.innerHTML = `
+        ${iconHtml ? `<div style="text-align: center; margin-bottom: 24px;">${iconHtml}</div>` : ''}
+        
         <div class="detail-section">
             <div class="detail-section-title">🎯 Score de Risque</div>
             <div class="detail-grid">
@@ -652,16 +796,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Escape') {
             closeModal();
         }
-    });
-
-    // Filtres
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            currentFilter = btn.dataset.filter;
-            displayTokens(allTokens);
-        });
     });
 });
 

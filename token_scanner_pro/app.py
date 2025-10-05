@@ -1,6 +1,7 @@
 """
 Serveur Flask pour l'interface web du Token Scanner
 Avec système d'authentification et favoris
+Version améliorée avec recherche et timestamps
 """
 
 from flask import Flask, render_template, jsonify, request, session
@@ -22,6 +23,7 @@ db = Database()
 scanner = None
 scan_in_progress = False
 current_scan_results = None
+last_scan_timestamp = None
 
 # ==================== DÉCORATEURS (DOIVENT ÊTRE DÉFINIS EN PREMIER) ====================
 
@@ -76,6 +78,14 @@ def admin_page():
 def get_admin_stats():
     """Récupère les statistiques globales"""
     stats = db.get_global_stats()
+    
+    # Ajouter les stats de scans
+    all_users = db.get_all_users()
+    total_scans = sum(user.get('scan_count', 0) for user in all_users)
+    
+    stats['total_scans'] = total_scans
+    stats['new_users_today'] = 0  # À implémenter si besoin
+    
     return jsonify({
         "success": True,
         "stats": stats
@@ -258,7 +268,6 @@ def login():
         }), 400
     
     user = db.verify_password_with_email(email, password)
-
     
     if user:
         session['user_id'] = user['id']
@@ -274,7 +283,8 @@ def login():
                 "id": user['id'],
                 "username": user['username'],
                 "email": user['email'],
-                "is_premium": user['is_premium']
+                "is_premium": user['is_premium'],
+                "is_admin": user.get('role') == 'admin'
             }
         })
     else:
@@ -313,6 +323,7 @@ def get_current_user():
                 "username": user['username'],
                 "email": user['email'],
                 "is_premium": user['is_premium'],
+                "is_admin": user.get('role') == 'admin',
                 "scan_count": user['scan_count']
             }
         })
@@ -534,7 +545,7 @@ def get_config():
 @app.route('/api/scan/start', methods=['POST'])
 def start_scan():
     """Démarre un nouveau scan"""
-    global scanner, scan_in_progress, current_scan_results
+    global scanner, scan_in_progress, current_scan_results, last_scan_timestamp
     
     if scan_in_progress:
         return jsonify({
@@ -559,11 +570,12 @@ def start_scan():
         }), 400
     
     def run_scan():
-        global scanner, scan_in_progress, current_scan_results
+        global scanner, scan_in_progress, current_scan_results, last_scan_timestamp
         try:
             scanner = TokenScanner(nitter_url=nitter_url)
             current_scan_results = scanner.scan_tokens(max_tokens=max_tokens)
             scan_in_progress = False
+            last_scan_timestamp = datetime.now().isoformat()
             
             # Sauvegarder dans l'historique si connecté
             if user_id and current_scan_results.get('success'):
@@ -619,8 +631,8 @@ def get_progress():
 
 @app.route('/api/scan/results', methods=['GET'])
 def get_results():
-    """Récupère les résultats du dernier scan"""
-    global current_scan_results
+    """Récupère les résultats du dernier scan avec timestamp"""
+    global current_scan_results, last_scan_timestamp
     
     if current_scan_results is None:
         return jsonify({
@@ -628,7 +640,45 @@ def get_results():
             "error": "Aucun résultat disponible"
         }), 404
     
-    return jsonify(current_scan_results)
+    # Ajouter le timestamp de la dernière analyse
+    results_with_timestamp = current_scan_results.copy()
+    results_with_timestamp['last_scan_timestamp'] = last_scan_timestamp
+    
+    return jsonify(results_with_timestamp)
+
+@app.route('/api/scan/search', methods=['POST'])
+def search_token():
+    """Recherche un token par adresse dans les résultats actuels"""
+    global current_scan_results
+    
+    if current_scan_results is None or not current_scan_results.get('success'):
+        return jsonify({
+            "success": False,
+            "error": "Aucun résultat de scan disponible"
+        }), 404
+    
+    data = request.json
+    search_query = data.get('query', '').lower()
+    
+    if not search_query:
+        return jsonify({
+            "success": False,
+            "error": "Requête de recherche vide"
+        }), 400
+    
+    # Rechercher dans les résultats
+    results = current_scan_results.get('results', [])
+    filtered_results = [
+        token for token in results
+        if search_query in token.get('address', '').lower()
+        or search_query in token.get('chain', '').lower()
+    ]
+    
+    return jsonify({
+        "success": True,
+        "results": filtered_results,
+        "count": len(filtered_results)
+    })
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
@@ -637,7 +687,8 @@ def health_check():
         "status": "ok",
         "timestamp": datetime.now().isoformat(),
         "scan_in_progress": scan_in_progress,
-        "authenticated": session.get('user_id') is not None
+        "authenticated": session.get('user_id') is not None,
+        "last_scan": last_scan_timestamp
     })
 
 # Gestion des erreurs
@@ -672,6 +723,8 @@ if __name__ == '__main__':
     ║   ✅ Système de comptes activé                             ║
     ║   ✅ Favoris activés                                       ║
     ║   ✅ Historique activé                                     ║
+    ║   ✅ Recherche activée                                     ║
+    ║   ✅ Icons tokens activés                                  ║
     ╚════════════════════════════════════════════════════════════╝
     """)
     

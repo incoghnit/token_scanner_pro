@@ -1,6 +1,7 @@
 """
 Module de scanning de tokens crypto
 Optimisé pour utilisation avec interface web
+Version améliorée avec récupération des icons
 """
 
 import requests
@@ -186,7 +187,7 @@ class TokenScanner:
         return score, details
     
     def fetch_latest_tokens(self) -> List[Dict]:
-        """Récupère les derniers tokens listés sur DexScreener"""
+        """Récupère les derniers tokens listés sur DexScreener avec leurs icons"""
         try:
             response = requests.get(self.dexscreener_profiles_api, timeout=15)
             
@@ -209,10 +210,14 @@ class TokenScanner:
                             twitter = link.get('url')
                             break
                     
+                    # Récupération de l'icon
+                    icon_url = token.get('icon', '')
+                    
                     filtered_tokens.append({
                         'address': token.get('tokenAddress'),
                         'chain': chain,
                         'url': token.get('url'),
+                        'icon': icon_url,  # Ajout de l'icon
                         'description': token.get('description', 'N/A'),
                         'twitter': twitter,
                         'links': links
@@ -356,6 +361,7 @@ class TokenScanner:
         """Analyse complète d'un token"""
         address = token_info['address']
         chain = token_info['chain']
+        icon = token_info.get('icon', '')
         
         market = self.get_market_data(address)
         time.sleep(0.5)
@@ -383,6 +389,7 @@ class TokenScanner:
             "address": address,
             "chain": chain,
             "url": token_info.get('url'),
+            "icon": icon,  # Ajout de l'icon dans les résultats
             "description": token_info.get('description'),
             "twitter": token_info.get('twitter'),
             "twitter_data": twitter_data,

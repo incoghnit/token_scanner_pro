@@ -6,136 +6,276 @@
     <title>Admin Dashboard - Token Scanner Pro</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <style>
-        .admin-header {
+        /* Admin Header */
+        .admin-hero {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 40px;
+            padding: 50px 40px;
             margin-bottom: 40px;
-            border-radius: 16px;
-        }
-
-        .admin-title {
-            font-size: 36px;
-            font-weight: 700;
-            margin-bottom: 8px;
-        }
-
-        .admin-subtitle {
-            font-size: 16px;
-            opacity: 0.9;
-        }
-
-        .users-table {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
+            border-radius: 24px;
+            position: relative;
             overflow: hidden;
         }
 
-        .table-header {
+        .admin-hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 400px;
+            height: 400px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 50%;
+        }
+
+        .admin-hero-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .admin-title {
+            font-size: 48px;
+            font-weight: 900;
+            margin-bottom: 12px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .admin-subtitle {
+            font-size: 18px;
+            opacity: 0.9;
+            margin-bottom: 32px;
+        }
+
+        .quick-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 20px;
+        }
+
+        .quick-stat {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 16px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .quick-stat:hover {
+            background: rgba(255,255,255,0.15);
+            transform: translateY(-4px);
+        }
+
+        .quick-stat-value {
+            font-size: 36px;
+            font-weight: 800;
+            margin-bottom: 8px;
+        }
+
+        .quick-stat-label {
+            font-size: 13px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Tabs */
+        .admin-tabs {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 32px;
+            background: var(--bg-card);
+            padding: 8px;
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+        }
+
+        .admin-tab {
+            flex: 1;
+            padding: 16px 24px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .admin-tab.active {
+            background: var(--gradient-primary);
+            color: white;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .admin-tab:hover:not(.active) {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        /* Users Table */
+        .users-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        .users-header {
             background: var(--bg-secondary);
-            padding: 20px 24px;
+            padding: 24px 32px;
             border-bottom: 1px solid var(--border-color);
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
-        .table-title {
-            font-size: 20px;
+        .users-title {
+            font-size: 24px;
             font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
 
-        .table-search {
+        .users-controls {
             display: flex;
             gap: 12px;
             align-items: center;
         }
 
+        .search-box {
+            position: relative;
+            min-width: 300px;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 16px;
+            color: var(--text-secondary);
+        }
+
         .search-input {
-            padding: 8px 16px;
+            width: 100%;
+            padding: 12px 16px 12px 48px;
             background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
             color: var(--text-primary);
             font-size: 14px;
-            min-width: 250px;
+            transition: all 0.3s ease;
         }
 
         .search-input:focus {
             outline: none;
             border-color: var(--accent-blue);
+            box-shadow: 0 0 0 4px rgba(74, 144, 226, 0.1);
         }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
+        /* User Cards */
+        .users-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 24px;
+            padding: 32px;
         }
 
-        th {
-            text-align: left;
-            padding: 16px 24px;
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+        .user-card {
             background: var(--bg-secondary);
-            border-bottom: 1px solid var(--border-color);
+            border: 2px solid var(--border-color);
+            border-radius: 20px;
+            padding: 24px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
         }
 
-        td {
-            padding: 20px 24px;
-            border-bottom: 1px solid var(--border-color);
-            font-size: 14px;
+        .user-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gradient-primary);
         }
 
-        tr:last-child td {
-            border-bottom: none;
+        .user-card.admin::before {
+            background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
         }
 
-        tr:hover {
-            background: var(--bg-hover);
+        .user-card.inactive {
+            opacity: 0.6;
         }
 
-        .user-info {
+        .user-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--accent-blue);
+        }
+
+        .user-header {
             display: flex;
-            align-items: center;
-            gap: 12px;
+            align-items: start;
+            gap: 16px;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
         }
 
         .user-avatar {
-            width: 40px;
-            height: 40px;
+            width: 64px;
+            height: 64px;
             border-radius: 50%;
             background: var(--gradient-primary);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: 700;
-            font-size: 16px;
+            font-size: 28px;
+            font-weight: 800;
+            box-shadow: var(--shadow-md);
         }
 
-        .user-details {
-            display: flex;
-            flex-direction: column;
+        .user-avatar.admin {
+            background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+        }
+
+        .user-info {
+            flex: 1;
         }
 
         .user-name {
-            font-weight: 600;
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 4px;
         }
 
         .user-email {
-            font-size: 12px;
+            font-size: 13px;
             color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .user-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
         }
 
         .badge {
-            display: inline-block;
             padding: 4px 12px;
             border-radius: 12px;
             font-size: 11px;
             font-weight: 600;
             text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .badge.admin {
@@ -153,7 +293,7 @@
         .badge.premium {
             background: rgba(255, 215, 0, 0.15);
             border: 1px solid rgba(255, 215, 0, 0.3);
-            color: #FFD700;
+            color: var(--accent-yellow);
         }
 
         .badge.active {
@@ -168,23 +308,157 @@
             color: var(--accent-red);
         }
 
-        .action-buttons {
+        .user-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .user-stat {
+            text-align: center;
+            padding: 12px;
+            background: var(--bg-card);
+            border-radius: 12px;
+        }
+
+        .user-stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .user-stat-label {
+            font-size: 10px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        .user-meta {
             display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 20px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .user-meta-item {
+            display: flex;
+            align-items: center;
             gap: 8px;
         }
 
-        .btn-small {
-            padding: 6px 12px;
-            font-size: 12px;
-            border-radius: 6px;
+        .user-actions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
         }
 
+        .user-action-btn {
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .user-action-btn:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent-blue);
+            transform: translateY(-2px);
+        }
+
+        .user-action-btn.danger:hover {
+            background: rgba(244, 67, 54, 0.1);
+            border-color: var(--accent-red);
+            color: var(--accent-red);
+        }
+
+        /* Logs Section */
+        .logs-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 32px;
+        }
+
+        .logs-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .logs-title {
+            font-size: 24px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .log-item {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .log-item:hover {
+            border-color: var(--accent-blue);
+            transform: translateX(4px);
+        }
+
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .log-admin {
+            font-weight: 700;
+            color: var(--accent-blue);
+        }
+
+        .log-time {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .log-action {
+            display: inline-block;
+            padding: 3px 10px;
+            background: rgba(74, 144, 226, 0.15);
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .log-details {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        /* Pagination */
         .pagination {
             display: flex;
             justify-content: center;
             align-items: center;
             gap: 12px;
             padding: 24px;
+            border-top: 1px solid var(--border-color);
         }
 
         .pagination-info {
@@ -192,33 +466,65 @@
             font-size: 14px;
         }
 
-        .logs-container {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 24px;
-            margin-top: 24px;
-            max-height: 400px;
-            overflow-y: auto;
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
         }
 
-        .log-item {
-            padding: 12px;
-            border-bottom: 1px solid var(--border-color);
-            font-size: 13px;
-        }
-
-        .log-item:last-child {
-            border-bottom: none;
-        }
-
-        .log-time {
-            color: var(--text-secondary);
-            font-size: 11px;
-        }
-
-        .tabs-container {
+        .empty-icon {
+            font-size: 80px;
             margin-bottom: 24px;
+            opacity: 0.3;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 80px 20px;
+        }
+
+        .spinner-large {
+            width: 64px;
+            height: 64px;
+            border: 4px solid rgba(74, 144, 226, 0.2);
+            border-top-color: var(--accent-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 24px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .users-grid {
+                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            }
+
+            .quick-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .admin-title {
+                font-size: 32px;
+            }
+
+            .users-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .admin-tabs {
+                flex-direction: column;
+            }
+
+            .admin-tab {
+                width: 100%;
+            }
         }
     </style>
 </head>
@@ -243,103 +549,108 @@
 
     <!-- Container -->
     <div class="container">
-        <!-- Admin Header -->
-        <div class="admin-header">
-            <h1 class="admin-title">🛡️ Dashboard Admin</h1>
-            <p class="admin-subtitle">Gestion des utilisateurs et du système</p>
-        </div>
-
-        <!-- Stats Grid -->
-        <div class="stats-grid active" id="statsGrid">
-            <div class="stat-card">
-                <div class="stat-header">
-                    <span class="stat-label">Total Utilisateurs</span>
-                    <div class="stat-icon">👥</div>
+        <!-- Admin Hero -->
+        <div class="admin-hero">
+            <div class="admin-hero-content">
+                <h1 class="admin-title">🛡️ Dashboard Admin</h1>
+                <p class="admin-subtitle">Gestion complète des utilisateurs et monitoring système</p>
+                
+                <div class="quick-stats">
+                    <div class="quick-stat">
+                        <div class="quick-stat-value" id="statTotalUsers">0</div>
+                        <div class="quick-stat-label">Total Utilisateurs</div>
+                    </div>
+                    <div class="quick-stat">
+                        <div class="quick-stat-value" id="statActiveUsers">0</div>
+                        <div class="quick-stat-label">Utilisateurs Actifs</div>
+                    </div>
+                    <div class="quick-stat">
+                        <div class="quick-stat-value" id="statPremiumUsers">0</div>
+                        <div class="quick-stat-label">Comptes Premium</div>
+                    </div>
+                    <div class="quick-stat">
+                        <div class="quick-stat-value" id="statAdminUsers">0</div>
+                        <div class="quick-stat-label">Administrateurs</div>
+                    </div>
                 </div>
-                <div class="stat-value" id="totalUsers">-</div>
-                <div class="stat-change" id="newUsersToday">-</div>
-            </div>
-
-            <div class="stat-card success">
-                <div class="stat-header">
-                    <span class="stat-label">Utilisateurs Actifs</span>
-                    <div class="stat-icon">✅</div>
-                </div>
-                <div class="stat-value" id="activeUsers" style="color: var(--accent-green);">-</div>
-                <div class="stat-change">En ligne</div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-header">
-                    <span class="stat-label">Utilisateurs Premium</span>
-                    <div class="stat-icon">💎</div>
-                </div>
-                <div class="stat-value" id="premiumUsers" style="color: #FFD700;">-</div>
-                <div class="stat-change">Abonnés</div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-header">
-                    <span class="stat-label">Total Scans</span>
-                    <div class="stat-icon">🔍</div>
-                </div>
-                <div class="stat-value" id="totalScans">-</div>
-                <div class="stat-change">Analyses effectuées</div>
             </div>
         </div>
 
         <!-- Tabs -->
-        <div class="tabs-container">
-            <div class="tabs">
-                <button class="tab-btn active" data-tab="users">👥 Utilisateurs</button>
-                <button class="tab-btn" data-tab="logs">📋 Logs Admin</button>
-            </div>
+        <div class="admin-tabs">
+            <button class="admin-tab active" data-tab="users">
+                <span>👥</span>
+                <span>Utilisateurs</span>
+            </button>
+            <button class="admin-tab" data-tab="logs">
+                <span>📋</span>
+                <span>Logs Admin</span>
+            </button>
+            <button class="admin-tab" data-tab="stats">
+                <span>📊</span>
+                <span>Statistiques</span>
+            </button>
         </div>
 
-        <!-- Users Tab -->
-        <div class="tab-content active" id="usersTab">
-            <!-- Users Table -->
-            <div class="users-table">
-                <div class="table-header">
-                    <h3 class="table-title">Liste des utilisateurs</h3>
-                    <div class="table-search">
-                        <input type="text" class="search-input" id="searchUsers" placeholder="Rechercher un utilisateur..." onkeyup="filterUsers()">
-                        <button class="btn btn-secondary btn-small" onclick="refreshUsers()">
+        <!-- Tab Content -->
+        <div id="tabContent">
+            <!-- Users Tab -->
+            <div class="tab-pane active" id="usersPane">
+                <div class="users-section">
+                    <div class="users-header">
+                        <h3 class="users-title">
+                            <span>👥</span>
+                            <span>Liste des utilisateurs</span>
+                        </h3>
+                        <div class="users-controls">
+                            <div class="search-box">
+                                <span class="search-icon">🔍</span>
+                                <input type="text" class="search-input" id="searchUsers" placeholder="Rechercher un utilisateur...">
+                            </div>
+                            <button class="btn btn-secondary" onclick="refreshUsers()">
+                                🔄 Actualiser
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="users-grid" id="usersGrid">
+                        <div class="loading">
+                            <div class="spinner-large"></div>
+                            <p>Chargement des utilisateurs...</p>
+                        </div>
+                    </div>
+
+                    <div class="pagination" id="pagination"></div>
+                </div>
+            </div>
+
+            <!-- Logs Tab -->
+            <div class="tab-pane" id="logsPane" style="display: none;">
+                <div class="logs-section">
+                    <div class="logs-header">
+                        <h3 class="logs-title">
+                            <span>📋</span>
+                            <span>Logs administrateur</span>
+                        </h3>
+                        <button class="btn btn-secondary" onclick="loadLogs()">
                             🔄 Actualiser
                         </button>
                     </div>
+
+                    <div id="logsContainer">
+                        <div class="loading">
+                            <div class="spinner-large"></div>
+                            <p>Chargement des logs...</p>
+                        </div>
+                    </div>
                 </div>
-
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Utilisateur</th>
-                            <th>Rôle</th>
-                            <th>Statut</th>
-                            <th>Scans</th>
-                            <th>Inscription</th>
-                            <th>Dernière Connexion</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="usersTableBody">
-                        <tr>
-                            <td colspan="7" style="text-align: center; padding: 40px;">
-                                <div class="spinner"></div> Chargement...
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <div class="pagination" id="pagination"></div>
             </div>
-        </div>
 
-        <!-- Logs Tab -->
-        <div class="tab-content" id="logsTab">
-            <div class="logs-container" id="logsContainer">
-                <div style="text-align: center; padding: 40px;">
-                    <div class="spinner"></div> Chargement des logs...
+            <!-- Stats Tab -->
+            <div class="tab-pane" id="statsPane" style="display: none;">
+                <div class="stats-section">
+                    <h3 style="font-size: 24px; margin-bottom: 24px;">📊 Statistiques détaillées</h3>
+                    <p style="color: var(--text-secondary);">Statistiques avancées à venir...</p>
                 </div>
             </div>
         </div>
@@ -350,25 +661,48 @@
         let allUsers = [];
         let currentPage = 1;
 
+        // Initialisation
         window.addEventListener('load', async () => {
             await loadStats();
             await loadUsers();
+            initializeTabs();
+            initializeSearch();
         });
 
-        // Tabs
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const tab = btn.dataset.tab;
-                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                btn.classList.add('active');
-                document.getElementById(tab + 'Tab').classList.add('active');
-                
-                if (tab === 'logs') {
-                    loadLogs();
-                }
+        function initializeTabs() {
+            document.querySelectorAll('.admin-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const tabName = tab.dataset.tab;
+                    
+                    // Update tabs
+                    document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    
+                    // Update panes
+                    document.querySelectorAll('.tab-pane').forEach(pane => {
+                        pane.style.display = 'none';
+                    });
+                    document.getElementById(tabName + 'Pane').style.display = 'block';
+                    
+                    // Load content if needed
+                    if (tabName === 'logs') {
+                        loadLogs();
+                    }
+                });
             });
-        });
+        }
+
+        function initializeSearch() {
+            const searchInput = document.getElementById('searchUsers');
+            let debounceTimer;
+            
+            searchInput.addEventListener('input', (e) => {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => {
+                    filterUsers(e.target.value);
+                }, 300);
+            });
+        }
 
         async function logout() {
             await fetch(`${API_URL}/auth/logout`, {
@@ -387,20 +721,19 @@
 
                 if (data.success) {
                     const stats = data.stats;
-                    document.getElementById('totalUsers').textContent = stats.total_users;
-                    document.getElementById('activeUsers').textContent = stats.active_users;
-                    document.getElementById('premiumUsers').textContent = stats.premium_users;
-                    document.getElementById('totalScans').textContent = stats.total_scans;
-                    document.getElementById('newUsersToday').textContent = `+${stats.new_users_today} aujourd'hui`;
+                    document.getElementById('statTotalUsers').textContent = stats.total_users;
+                    document.getElementById('statActiveUsers').textContent = stats.active_users;
+                    document.getElementById('statPremiumUsers').textContent = stats.premium_users;
+                    document.getElementById('statAdminUsers').textContent = stats.admin_users;
                 }
             } catch (error) {
-                console.error('Erreur chargement stats:', error);
+                console.error('Erreur stats:', error);
             }
         }
 
         async function loadUsers(page = 1) {
             try {
-                const response = await fetch(`${API_URL}/admin/users?page=${page}`, {
+                const response = await fetch(`${API_URL}/admin/users?page=${page}&limit=50`, {
                     credentials: 'include'
                 });
                 const data = await response.json();
@@ -411,72 +744,134 @@
                     displayUsers(allUsers);
                     displayPagination(data.page, data.pages, data.total);
                 } else {
-                    if (data.error && data.error.includes('Admin requis')) {
+                    if (data.error?.includes('Admin requis')) {
                         alert('Accès non autorisé');
                         window.location.href = '/';
                     }
                 }
             } catch (error) {
-                console.error('Erreur chargement utilisateurs:', error);
-                alert('Erreur de chargement');
+                console.error('Erreur chargement users:', error);
             }
         }
 
         function displayUsers(users) {
-            const tbody = document.getElementById('usersTableBody');
+            const grid = document.getElementById('usersGrid');
 
             if (users.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px;">Aucun utilisateur trouvé</td></tr>';
+                grid.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">👥</div>
+                        <h3 class="empty-title">Aucun utilisateur trouvé</h3>
+                        <p class="empty-text">Essayez de modifier votre recherche</p>
+                    </div>
+                `;
                 return;
             }
 
-            tbody.innerHTML = users.map(user => {
-                const initials = user.username.substring(0, 2).toUpperCase();
-                const createdDate = new Date(user.created_at).toLocaleDateString('fr-FR');
-                const lastLogin = user.last_login ? new Date(user.last_login).toLocaleString('fr-FR') : 'Jamais';
+            grid.innerHTML = '';
 
-                return `
-                    <tr>
-                        <td>
-                            <div class="user-info">
-                                <div class="user-avatar">${initials}</div>
-                                <div class="user-details">
-                                    <span class="user-name">${user.username}</span>
-                                    <span class="user-email">${user.email}</span>
-                                </div>
-                            </div>
-                        </td>
-                        <td>
+            users.forEach(user => {
+                const card = createUserCard(user);
+                grid.appendChild(card);
+            });
+        }
+
+        function createUserCard(user) {
+            const div = document.createElement('div');
+            const initials = user.username.substring(0, 2).toUpperCase();
+            const createdDate = new Date(user.created_at).toLocaleDateString('fr-FR', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric'
+            });
+            const lastLogin = user.last_login ? 
+                new Date(user.last_login).toLocaleDateString('fr-FR', {
+                    day: 'numeric',
+                    month: 'short',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                }) : 'Jamais';
+
+            div.className = `user-card ${user.role === 'admin' ? 'admin' : ''} ${!user.is_active ? 'inactive' : ''}`;
+
+            div.innerHTML = `
+                <div class="user-header">
+                    <div class="user-avatar ${user.role === 'admin' ? 'admin' : ''}">
+                        ${initials}
+                    </div>
+                    <div class="user-info">
+                        <div class="user-name">${user.username}</div>
+                        <div class="user-email">${user.email}</div>
+                        <div class="user-badges">
                             <span class="badge ${user.role}">${user.role === 'admin' ? '🛡️ Admin' : '👤 User'}</span>
-                            ${user.is_premium ? '<span class="badge premium">💎 Premium</span>' : ''}
-                        </td>
-                        <td>
                             <span class="badge ${user.is_active ? 'active' : 'inactive'}">
                                 ${user.is_active ? '✅ Actif' : '❌ Inactif'}
                             </span>
-                        </td>
-                        <td>${user.scan_count}</td>
-                        <td>${createdDate}</td>
-                        <td>${lastLogin}</td>
-                        <td>
-                            <div class="action-buttons">
-                                <button class="btn btn-secondary btn-small" onclick="toggleUserStatus(${user.id})" title="Activer/Désactiver">
-                                    ${user.is_active ? '🔒' : '🔓'}
-                                </button>
-                                <button class="btn btn-secondary btn-small" onclick="togglePremium(${user.id})" title="Premium">
-                                    💎
-                                </button>
-                                <button class="btn btn-secondary btn-small" onclick="changeRole(${user.id}, '${user.role}')" title="Changer rôle">
-                                    ⚙️
-                                </button>
-                                <button class="btn btn-secondary btn-small" onclick="deleteUser(${user.id}, '${user.username}')" title="Supprimer">
-                                    🗑️
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
+                            ${user.is_premium ? '<span class="badge premium">💎 Premium</span>' : ''}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="user-stats">
+                    <div class="user-stat">
+                        <div class="user-stat-value">${user.scan_count || 0}</div>
+                        <div class="user-stat-label">Scans</div>
+                    </div>
+                    <div class="user-stat">
+                        <div class="user-stat-value">0</div>
+                        <div class="user-stat-label">Favoris</div>
+                    </div>
+                    <div class="user-stat">
+                        <div class="user-stat-value">${Math.floor((new Date() - new Date(user.created_at)) / (1000 * 60 * 60 * 24))}j</div>
+                        <div class="user-stat-label">Ancienneté</div>
+                    </div>
+                </div>
+
+                <div class="user-meta">
+                    <div class="user-meta-item">
+                        <span>📅</span>
+                        <span>Inscrit le ${createdDate}</span>
+                    </div>
+                    <div class="user-meta-item">
+                        <span>🔑</span>
+                        <span>Dernière connexion: ${lastLogin}</span>
+                    </div>
+                </div>
+
+                <div class="user-actions">
+                    <button class="user-action-btn" onclick="toggleUserStatus(${user.id})" title="Activer/Désactiver">
+                        ${user.is_active ? '🔒' : '🔓'} ${user.is_active ? 'Désactiver' : 'Activer'}
+                    </button>
+                    <button class="user-action-btn" onclick="togglePremium(${user.id})" title="Premium">
+                        💎 ${user.is_premium ? 'Retirer' : 'Donner'} Premium
+                    </button>
+                    <button class="user-action-btn" onclick="changeRole(${user.id}, '${user.role}')" title="Changer rôle">
+                        ⚙️ ${user.role === 'admin' ? 'Mettre User' : 'Mettre Admin'}
+                    </button>
+                    <button class="user-action-btn danger" onclick="deleteUser(${user.id}, '${user.username}')" title="Supprimer">
+                        🗑️ Supprimer
+                    </button>
+                </div>
+            `;
+
+            return div;
+        }
+
+        function filterUsers(searchTerm) {
+            const term = searchTerm.toLowerCase().trim();
+            
+            if (!term) {
+                displayUsers(allUsers);
+                return;
+            }
+
+            const filtered = allUsers.filter(user => {
+                return user.username.toLowerCase().includes(term) ||
+                       user.email.toLowerCase().includes(term) ||
+                       user.role.toLowerCase().includes(term);
+            });
+
+            displayUsers(filtered);
         }
 
         function displayPagination(page, pages, total) {
@@ -487,36 +882,26 @@
                 return;
             }
 
-            let html = '<div class="pagination-info">Page ' + page + ' sur ' + pages + ' (' + total + ' utilisateurs)</div>';
+            let html = `<div class="pagination-info">Page ${page} sur ${pages} (${total} utilisateurs)</div>`;
             
             if (page > 1) {
-                html += '<button class="btn btn-secondary btn-small" onclick="loadUsers(' + (page - 1) + ')">← Précédent</button>';
+                html += `<button class="btn btn-secondary" onclick="loadUsers(${page - 1})">← Précédent</button>`;
             }
             
             if (page < pages) {
-                html += '<button class="btn btn-secondary btn-small" onclick="loadUsers(' + (page + 1) + ')">Suivant →</button>';
+                html += `<button class="btn btn-secondary" onclick="loadUsers(${page + 1})">Suivant →</button>`;
             }
             
             container.innerHTML = html;
         }
 
-        function filterUsers() {
-            const search = document.getElementById('searchUsers').value.toLowerCase();
-            const filtered = allUsers.filter(user => {
-                return user.username.toLowerCase().includes(search) ||
-                       user.email.toLowerCase().includes(search);
-            });
-            displayUsers(filtered);
-        }
-
         async function refreshUsers() {
             await loadUsers(currentPage);
+            await loadStats();
         }
 
         async function toggleUserStatus(userId) {
-            if (!confirm('Êtes-vous sûr de vouloir changer le statut de cet utilisateur ?')) {
-                return;
-            }
+            if (!confirm('Changer le statut de cet utilisateur ?')) return;
 
             try {
                 const response = await fetch(`${API_URL}/admin/user/${userId}/toggle-status`, {
@@ -526,9 +911,7 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    await loadUsers(currentPage);
-                } else {
-                    alert('Erreur: ' + (data.error || 'Erreur inconnue'));
+                    await refreshUsers();
                 }
             } catch (error) {
                 alert('Erreur de connexion');
@@ -536,9 +919,7 @@
         }
 
         async function togglePremium(userId) {
-            if (!confirm('Êtes-vous sûr de vouloir changer le statut premium ?')) {
-                return;
-            }
+            if (!confirm('Changer le statut premium ?')) return;
 
             try {
                 const response = await fetch(`${API_URL}/admin/user/${userId}/toggle-premium`, {
@@ -548,9 +929,7 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    await loadUsers(currentPage);
-                } else {
-                    alert('Erreur: ' + (data.error || 'Erreur inconnue'));
+                    await refreshUsers();
                 }
             } catch (error) {
                 alert('Erreur de connexion');
@@ -560,9 +939,7 @@
         async function changeRole(userId, currentRole) {
             const newRole = currentRole === 'admin' ? 'user' : 'admin';
             
-            if (!confirm(`Êtes-vous sûr de vouloir changer le rôle vers "${newRole}" ?`)) {
-                return;
-            }
+            if (!confirm(`Changer le rôle vers "${newRole}" ?`)) return;
 
             try {
                 const response = await fetch(`${API_URL}/admin/user/${userId}/role`, {
@@ -574,9 +951,7 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    await loadUsers(currentPage);
-                } else {
-                    alert('Erreur: ' + (data.error || 'Erreur inconnue'));
+                    await refreshUsers();
                 }
             } catch (error) {
                 alert('Erreur de connexion');
@@ -584,7 +959,7 @@
         }
 
         async function deleteUser(userId, username) {
-            if (!confirm(`⚠️ ATTENTION ⚠️\n\nÊtes-vous VRAIMENT sûr de vouloir supprimer l'utilisateur "${username}" ?\n\nCette action est IRRÉVERSIBLE et supprimera :\n- Le compte utilisateur\n- Tous ses favoris\n- Tout son historique\n\nTapez "SUPPRIMER" pour confirmer`)) {
+            if (!confirm(`⚠️ ATTENTION ⚠️\n\nSupprimer l'utilisateur "${username}" ?\n\nCette action est IRRÉVERSIBLE !`)) {
                 return;
             }
 
@@ -603,8 +978,7 @@
 
                 if (data.success) {
                     alert('Utilisateur supprimé avec succès');
-                    await loadUsers(currentPage);
-                    await loadStats();
+                    await refreshUsers();
                 } else {
                     alert('Erreur: ' + (data.error || 'Erreur inconnue'));
                 }
@@ -615,7 +989,7 @@
 
         async function loadLogs() {
             try {
-                const response = await fetch(`${API_URL}/admin/logs`, {
+                const response = await fetch(`${API_URL}/admin/logs?limit=50`, {
                     credentials: 'include'
                 });
                 const data = await response.json();
@@ -624,7 +998,7 @@
                     displayLogs(data.logs);
                 }
             } catch (error) {
-                console.error('Erreur chargement logs:', error);
+                console.error('Erreur logs:', error);
             }
         }
 
@@ -632,18 +1006,27 @@
             const container = document.getElementById('logsContainer');
 
             if (logs.length === 0) {
-                container.innerHTML = '<div style="text-align: center; padding: 40px;">Aucun log disponible</div>';
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">📋</div>
+                        <h3 class="empty-title">Aucun log</h3>
+                        <p class="empty-text">Aucune action administrative enregistrée</p>
+                    </div>
+                `;
                 return;
             }
 
             container.innerHTML = logs.map(log => {
-                const date = new Date(log.timestamp).toLocaleString('fr-FR');
+                const date = new Date(log.created_at).toLocaleString('fr-FR');
                 return `
                     <div class="log-item">
-                        <div><strong>${log.admin_username}</strong> - ${log.action}</div>
-                        ${log.target_username ? `<div>Cible: ${log.target_username}</div>` : ''}
-                        ${log.details ? `<div>Détails: ${log.details}</div>` : ''}
-                        <div class="log-time">${date} - IP: ${log.ip_address}</div>
+                        <div class="log-header">
+                            <span class="log-admin">👤 ${log.admin_username}</span>
+                            <span class="log-time">📅 ${date}</span>
+                        </div>
+                        <div class="log-action">${log.action}</div>
+                        ${log.details ? `<div class="log-details">${log.details}</div>` : ''}
+                        ${log.ip_address ? `<div class="log-details">📍 IP: ${log.ip_address}</div>` : ''}
                     </div>
                 `;
             }).join('');

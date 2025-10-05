@@ -96,13 +96,34 @@
             <div class="progress-text" id="progressText">Initialisation...</div>
         </div>
 
+        <!-- Timestamp Section -->
+        <div id="timestampContainer" style="display: flex; justify-content: center; align-items: center; gap: 16px; margin-bottom: 32px; flex-wrap: wrap;"></div>
+
         <!-- Section Header -->
         <div class="section-header">
             <h2 class="section-title">Tokens Analysés</h2>
+            
             <div class="filters">
+                <!-- Search Box -->
+                <div class="search-box">
+                    <span>🔍</span>
+                    <input type="text" id="searchInput" placeholder="Rechercher par adresse...">
+                </div>
+
+                <!-- View Switcher -->
+                <div class="view-switcher">
+                    <button class="view-btn active" data-view="grid">
+                        <span>⊞</span> Grille
+                    </button>
+                    <button class="view-btn" data-view="list">
+                        <span>☰</span> Liste
+                    </button>
+                </div>
+
+                <!-- Filter Buttons -->
                 <button class="filter-btn active" data-filter="all">Tous</button>
-                <button class="filter-btn" data-filter="safe">Sûrs</button>
-                <button class="filter-btn" data-filter="danger">Dangereux</button>
+                <button class="filter-btn" data-filter="safe">✅ Sûrs</button>
+                <button class="filter-btn" data-filter="danger">⚠️ Dangereux</button>
             </div>
         </div>
 
