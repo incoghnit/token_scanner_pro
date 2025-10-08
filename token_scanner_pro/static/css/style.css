@@ -1,3 +1,5 @@
+/* ==================== RESET & VARIABLES ==================== */
+
 * {
     margin: 0;
     padding: 0;
@@ -17,8 +19,10 @@
     --accent-red: #F44336;
     --accent-orange: #FF9800;
     --accent-yellow: #FFD700;
+    --accent-purple: #9C27B0;
     --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     --gradient-success: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+    --gradient-danger: linear-gradient(135deg, #F44336 0%, #E91E63 100%);
     --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
     --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
     --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
@@ -32,7 +36,8 @@ body {
     overflow-x: hidden;
 }
 
-/* Header */
+/* ==================== HEADER ==================== */
+
 .header {
     background: var(--bg-secondary);
     border-bottom: 1px solid var(--border-color);
@@ -60,6 +65,7 @@ body {
     font-weight: 700;
     background: var(--gradient-primary);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
@@ -86,7 +92,8 @@ body {
     gap: 8px;
 }
 
-/* Buttons */
+/* ==================== BUTTONS ==================== */
+
 .btn {
     padding: 8px 16px;
     border-radius: 6px;
@@ -152,14 +159,16 @@ body {
     color: var(--bg-primary);
 }
 
-/* Container */
+/* ==================== CONTAINER ==================== */
+
 .container {
     max-width: 1400px;
     margin: 0 auto;
     padding: 40px;
 }
 
-/* Stats Grid */
+/* ==================== STATS GRID ==================== */
+
 .stats-grid {
     display: none;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -202,7 +211,7 @@ body {
 }
 
 .stat-card.danger::before {
-    background: linear-gradient(135deg, #F44336 0%, #E91E63 100%);
+    background: var(--gradient-danger);
 }
 
 .stat-header {
@@ -242,7 +251,8 @@ body {
     color: var(--text-secondary);
 }
 
-/* Progress */
+/* ==================== PROGRESS ==================== */
+
 .progress-section {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
@@ -293,12 +303,15 @@ body {
     color: var(--text-secondary);
 }
 
-/* Section Header */
+/* ==================== SECTION HEADER ==================== */
+
 .section-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 16px;
 }
 
 .section-title {
@@ -306,9 +319,59 @@ body {
     font-weight: 700;
 }
 
+/* ==================== TIMESTAMP & BADGES ==================== */
+
+.timestamp-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.live-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: rgba(76, 175, 80, 0.15);
+    border: 1px solid rgba(76, 175, 80, 0.3);
+    border-radius: 8px;
+    font-size: 12px;
+    color: var(--accent-green);
+    font-weight: 600;
+}
+
+.live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent-green);
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.5;
+        transform: scale(0.8);
+    }
+}
+
+/* ==================== FILTERS ==================== */
+
 .filters {
     display: flex;
     gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
 }
 
 .filter-btn {
@@ -328,13 +391,78 @@ body {
     border-color: transparent;
 }
 
-/* Tokens Grid */
+.filter-btn:hover {
+    transform: translateY(-2px);
+}
+
+/* ==================== VIEW SWITCHER ==================== */
+
+.view-switcher {
+    display: flex;
+    gap: 4px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 4px;
+}
+
+.view-btn {
+    padding: 6px 12px;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.view-btn.active {
+    background: var(--gradient-primary);
+    color: white;
+}
+
+/* ==================== SEARCH BOX ==================== */
+
+.search-box {
+    display: flex;
+    align-items: center;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 8px 16px;
+    gap: 8px;
+    min-width: 300px;
+}
+
+.search-box input {
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    font-size: 14px;
+    flex: 1;
+    outline: none;
+}
+
+.search-box input::placeholder {
+    color: var(--text-secondary);
+}
+
+/* ==================== TOKENS GRID ==================== */
+
 .tokens-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
     gap: 24px;
     margin-bottom: 40px;
+    transition: all 0.3s ease;
 }
+
+.tokens-grid.list-view {
+    grid-template-columns: 1fr;
+}
+
+/* ==================== TOKEN CARD ==================== */
 
 .token-card {
     background: var(--bg-card);
@@ -383,13 +511,49 @@ body {
 
 .token-address-section {
     flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* ==================== TOKEN ICON ==================== */
+
+.token-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid var(--border-color);
+    background: var(--bg-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.token-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.token-icon-placeholder {
+    font-size: 24px;
+}
+
+.token-info {
+    flex: 1;
+    min-width: 0;
 }
 
 .token-address {
     font-size: 16px;
     font-weight: 600;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
     font-family: 'Courier New', monospace;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .chain-badge {
@@ -402,7 +566,74 @@ body {
     text-transform: uppercase;
     font-weight: 600;
     color: var(--accent-blue);
+    margin-right: 8px;
 }
+
+/* ==================== 🆕 PUMP & DUMP BADGES ==================== */
+
+.pump-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    animation: pulseBadge 2s ease-in-out infinite;
+    margin-top: 4px;
+}
+
+@keyframes pulseBadge {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.9;
+        transform: scale(1.02);
+    }
+}
+
+.pump-badge.pump-critical {
+    background: rgba(244, 67, 54, 0.2);
+    border: 1px solid rgba(244, 67, 54, 0.5);
+    color: #ff6b6b;
+    box-shadow: 0 0 10px rgba(244, 67, 54, 0.3);
+}
+
+.pump-badge.pump-high {
+    background: rgba(255, 152, 0, 0.2);
+    border: 1px solid rgba(255, 152, 0, 0.5);
+    color: #ffa726;
+}
+
+.pump-badge.pump-medium {
+    background: rgba(255, 193, 7, 0.2);
+    border: 1px solid rgba(255, 193, 7, 0.5);
+    color: #ffd54f;
+}
+
+.pump-badge.pump-low {
+    background: rgba(156, 39, 176, 0.2);
+    border: 1px solid rgba(156, 39, 176, 0.5);
+    color: var(--accent-purple);
+}
+
+.pump-badge.pump-safe {
+    background: rgba(76, 175, 80, 0.2);
+    border: 1px solid rgba(76, 175, 80, 0.5);
+    color: var(--accent-green);
+}
+
+.pump-badge.pump-unknown {
+    background: rgba(158, 158, 158, 0.2);
+    border: 1px solid rgba(158, 158, 158, 0.5);
+    color: var(--text-secondary);
+}
+
+/* ==================== TOKEN ACTIONS ==================== */
 
 .token-actions {
     display: flex;
@@ -437,11 +668,63 @@ body {
     color: var(--accent-red);
 }
 
+/* ==================== RISK CIRCLE PROGRESS ==================== */
+
+.risk-circle {
+    width: 60px;
+    height: 60px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.risk-circle svg {
+    transform: rotate(-90deg);
+}
+
+.risk-circle-bg {
+    fill: none;
+    stroke: var(--bg-secondary);
+    stroke-width: 6;
+}
+
+.risk-circle-progress {
+    fill: none;
+    stroke-width: 6;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.5s ease;
+}
+
+.risk-circle-progress.safe {
+    stroke: var(--accent-green);
+}
+
+.risk-circle-progress.warning {
+    stroke: var(--accent-orange);
+}
+
+.risk-circle-progress.danger {
+    stroke: var(--accent-red);
+}
+
+.risk-circle-text {
+    position: absolute;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+/* ==================== TOKEN METRICS ==================== */
+
 .token-metrics {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 12px;
     margin-top: 16px;
+}
+
+.tokens-grid.list-view .token-metrics {
+    grid-template-columns: repeat(4, 1fr);
 }
 
 .metric {
@@ -462,7 +745,23 @@ body {
     font-weight: 600;
 }
 
-/* Modal */
+/* ==================== LIST VIEW SPECIFIC ==================== */
+
+.tokens-grid.list-view .token-card {
+    padding: 20px;
+}
+
+.tokens-grid.list-view .token-header {
+    margin-bottom: 20px;
+}
+
+.tokens-grid.list-view .token-icon {
+    width: 56px;
+    height: 56px;
+}
+
+/* ==================== MODAL ==================== */
+
 .modal {
     display: none;
     position: fixed;
@@ -551,7 +850,8 @@ body {
     padding: 32px;
 }
 
-/* Form */
+/* ==================== FORM ==================== */
+
 .form-group {
     margin-bottom: 20px;
 }
@@ -581,7 +881,8 @@ body {
     box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
 }
 
-/* Tabs */
+/* ==================== TABS ==================== */
+
 .tabs {
     display: flex;
     gap: 8px;
@@ -614,7 +915,8 @@ body {
     display: block;
 }
 
-/* Empty State */
+/* ==================== EMPTY STATE ==================== */
+
 .empty-state {
     text-align: center;
     padding: 80px 20px;
@@ -638,7 +940,8 @@ body {
     margin-bottom: 24px;
 }
 
-/* Alert */
+/* ==================== ALERT ==================== */
+
 .alert {
     padding: 16px;
     border-radius: 8px;
@@ -666,7 +969,8 @@ body {
     color: var(--accent-blue);
 }
 
-/* Spinner */
+/* ==================== SPINNER ==================== */
+
 .spinner {
     display: inline-block;
     width: 16px;
@@ -681,7 +985,8 @@ body {
     to { transform: rotate(360deg); }
 }
 
-/* Detail Section */
+/* ==================== DETAIL SECTION ==================== */
+
 .detail-section {
     margin-bottom: 32px;
 }
@@ -722,7 +1027,8 @@ body {
     font-weight: 600;
 }
 
-/* Warning List */
+/* ==================== WARNING LIST ==================== */
+
 .warning-list {
     display: flex;
     flex-direction: column;
@@ -744,7 +1050,201 @@ body {
     font-size: 20px;
 }
 
-/* Twitter Section */
+/* 🆕 PUMP WARNING STYLE */
+.warning-item.pump-warning {
+    background: rgba(255, 152, 0, 0.1);
+    border: 1px solid rgba(255, 152, 0, 0.4);
+    color: var(--accent-orange);
+    animation: warningPulse 2s ease-in-out infinite;
+}
+
+@keyframes warningPulse {
+    0%, 100% {
+        box-shadow: 0 0 0 rgba(255, 152, 0, 0);
+    }
+    50% {
+        box-shadow: 0 0 20px rgba(255, 152, 0, 0.3);
+    }
+}
+
+/* ==================== 🆕 PUMP & DUMP SECTION DANS LE MODAL ==================== */
+
+.pump-dump-section {
+    background: linear-gradient(135deg, rgba(244, 67, 54, 0.05) 0%, rgba(255, 152, 0, 0.05) 100%);
+    border: 2px solid rgba(255, 152, 0, 0.3) !important;
+    border-radius: 16px !important;
+    padding: 24px !important;
+}
+
+.pump-dump-section .detail-section-title {
+    color: var(--accent-orange);
+    font-size: 22px;
+    margin-bottom: 24px;
+}
+
+.pump-dump-score-container {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    margin-bottom: 32px;
+    padding: 24px;
+    background: var(--bg-card);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+}
+
+.pump-score-circle {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    border: 6px solid;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);
+}
+
+.pump-score-circle.pump-critical {
+    border-color: var(--accent-red);
+    background: rgba(244, 67, 54, 0.1);
+    box-shadow: 0 0 40px rgba(244, 67, 54, 0.4);
+}
+
+.pump-score-circle.pump-high {
+    border-color: var(--accent-orange);
+    background: rgba(255, 152, 0, 0.1);
+    box-shadow: 0 0 40px rgba(255, 152, 0, 0.3);
+}
+
+.pump-score-circle.pump-medium {
+    border-color: var(--accent-yellow);
+    background: rgba(255, 193, 7, 0.1);
+}
+
+.pump-score-circle.pump-low {
+    border-color: var(--accent-purple);
+    background: rgba(156, 39, 176, 0.1);
+}
+
+.pump-score-circle.pump-safe {
+    border-color: var(--accent-green);
+    background: rgba(76, 175, 80, 0.1);
+}
+
+.pump-score-value {
+    font-size: 48px;
+    font-weight: 900;
+    line-height: 1;
+}
+
+.pump-score-label {
+    font-size: 18px;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.pump-risk-badge {
+    flex: 1;
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+}
+
+.pump-risk-badge.pump-critical {
+    background: rgba(244, 67, 54, 0.15);
+    border: 2px solid var(--accent-red);
+}
+
+.pump-risk-badge.pump-high {
+    background: rgba(255, 152, 0, 0.15);
+    border: 2px solid var(--accent-orange);
+}
+
+.pump-risk-badge.pump-medium {
+    background: rgba(255, 193, 7, 0.15);
+    border: 2px solid var(--accent-yellow);
+}
+
+.pump-risk-badge.pump-low {
+    background: rgba(156, 39, 176, 0.15);
+    border: 2px solid var(--accent-purple);
+}
+
+.pump-risk-badge.pump-safe {
+    background: rgba(76, 175, 80, 0.15);
+    border: 2px solid var(--accent-green);
+}
+
+.pump-risk-emoji {
+    font-size: 48px;
+    display: block;
+    margin-bottom: 12px;
+}
+
+.pump-risk-text {
+    font-size: 28px;
+    font-weight: 900;
+    display: block;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.pump-risk-subtitle {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.pump-warnings-container {
+    margin-bottom: 32px;
+}
+
+.pump-indicators-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+}
+
+.pump-indicator-item {
+    background: var(--bg-card);
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+}
+
+.pump-indicator-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.pump-indicator-bar {
+    height: 10px;
+    background: var(--bg-secondary);
+    border-radius: 5px;
+    overflow: hidden;
+    margin-bottom: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.pump-indicator-fill {
+    height: 100%;
+    border-radius: 5px;
+    transition: width 0.5s ease;
+}
+
+.pump-indicator-value {
+    font-size: 14px;
+    font-weight: 700;
+    text-align: right;
+}
+
+/* ==================== TWITTER SECTION ==================== */
+
 .twitter-section {
     background: var(--bg-card);
     padding: 20px;
@@ -774,7 +1274,8 @@ body {
     color: var(--text-secondary);
 }
 
-/* Responsive */
+/* ==================== RESPONSIVE ==================== */
+
 @media (max-width: 768px) {
     .container {
         padding: 20px;
@@ -792,5 +1293,31 @@ body {
         margin: 0;
         border-radius: 0;
         max-height: 100vh;
+    }
+
+    .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .filters {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .search-box {
+        min-width: 100%;
+    }
+
+    .pump-dump-score-container {
+        flex-direction: column;
+    }
+
+    .pump-indicators-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .twitter-stats {
+        grid-template-columns: 1fr;
     }
 }

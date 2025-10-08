@@ -1,6 +1,7 @@
 """
 Module de scanning de tokens crypto
 Optimisé pour utilisation avec interface web
+Version améliorée avec récupération des icons + DÉTECTION PUMP & DUMP
 """
 
 import requests
@@ -186,7 +187,7 @@ class TokenScanner:
         return score, details
     
     def fetch_latest_tokens(self) -> List[Dict]:
-        """Récupère les derniers tokens listés sur DexScreener"""
+        """Récupère les derniers tokens listés sur DexScreener avec leurs icons"""
         try:
             response = requests.get(self.dexscreener_profiles_api, timeout=15)
             
@@ -209,10 +210,13 @@ class TokenScanner:
                             twitter = link.get('url')
                             break
                     
+                    icon_url = token.get('icon', '')
+                    
                     filtered_tokens.append({
                         'address': token.get('tokenAddress'),
                         'chain': chain,
                         'url': token.get('url'),
+                        'icon': icon_url,
                         'description': token.get('description', 'N/A'),
                         'twitter': twitter,
                         'links': links
@@ -244,7 +248,10 @@ class TokenScanner:
             return {
                 "price_usd": float(main_pair.get("priceUsd", 0)),
                 "price_change_24h": float(main_pair.get("priceChange", {}).get("h24", 0) or 0),
+                "price_change_6h": float(main_pair.get("priceChange", {}).get("h6", 0) or 0),
+                "price_change_1h": float(main_pair.get("priceChange", {}).get("h1", 0) or 0),
                 "volume_24h": float(main_pair.get("volume", {}).get("h24", 0) or 0),
+                "volume_6h": float(main_pair.get("volume", {}).get("h6", 0) or 0),
                 "liquidity_usd": float(main_pair.get("liquidity", {}).get("usd", 0) or 0),
                 "market_cap": float(main_pair.get("marketCap", 0) or 0),
                 "txns_24h_buys": main_pair.get("txns", {}).get("h24", {}).get("buys", 0),
@@ -290,9 +297,168 @@ class TokenScanner:
                 "buy_tax": float(result.get("buy_tax", "0")) if result.get("buy_tax") else 0,
                 "sell_tax": float(result.get("sell_tax", "0")) if result.get("sell_tax") else 0,
                 "holder_count": result.get("holder_count", "N/A"),
+                "total_supply": result.get("total_supply", "N/A"),
+                "creator_balance": result.get("creator_balance", "0"),
+                "owner_balance": result.get("owner_balance", "0"),
             }
         except Exception as e:
             return {"error": str(e)}
+    
+    def detect_pump_dump(self, market: Dict, security: Dict, pair_created_at: str) -> Dict[str, Any]:
+        """
+        🆕 DÉTECTEUR DE PUMP & DUMP
+        Analyse les indicateurs suspects de manipulation de marché
+        """
+        score = 0
+        warnings = []
+        indicators = {}
+        
+        if "error" in market or "error" in security:
+            return {
+                "pump_dump_score": 0,
+                "pump_dump_risk": "UNKNOWN",
+                "pump_dump_warnings": ["Données insuffisantes pour l'analyse"],
+                "pump_dump_indicators": {},
+                "is_pump_dump_suspect": False
+            }
+        
+        # ===== 1. SPIKE DE VOLUME (0-25 points) =====
+        volume_24h = market.get("volume_24h", 0)
+        volume_6h = market.get("volume_6h", 0)
+        liquidity = market.get("liquidity_usd", 0)
+        
+        if liquidity > 0 and volume_24h > 0:
+            volume_to_liquidity_ratio = volume_24h / liquidity
+            
+            if volume_to_liquidity_ratio > 10:
+                score += 25
+                indicators['volume_spike'] = 100
+                warnings.append(f"🚨 Volume explosif: {volume_to_liquidity_ratio:.1f}x la liquidité")
+            elif volume_to_liquidity_ratio > 5:
+                score += 20
+                indicators['volume_spike'] = 80
+                warnings.append(f"⚠️ Volume spike important: {volume_to_liquidity_ratio:.1f}x la liquidité")
+            elif volume_to_liquidity_ratio > 3:
+                score += 15
+                indicators['volume_spike'] = 60
+                warnings.append(f"⚠️ Volume élevé: {volume_to_liquidity_ratio:.1f}x la liquidité")
+            elif volume_to_liquidity_ratio > 2:
+                score += 10
+                indicators['volume_spike'] = 40
+            else:
+                indicators['volume_spike'] = 20
+        else:
+            indicators['volume_spike'] = 0
+        
+        # ===== 2. SPIKE DE PRIX (0-30 points) =====
+        price_change_24h = market.get("price_change_24h", 0)
+        price_change_6h = market.get("price_change_6h", 0)
+        price_change_1h = market.get("price_change_1h", 0)
+        
+        if price_change_24h > 200:
+            score += 30
+            indicators['price_spike'] = 100
+            warnings.append(f"🚨 Prix +{price_change_24h:.0f}% en 24h - PUMP MASSIF")
+        elif price_change_24h > 100:
+            score += 25
+            indicators['price_spike'] = 85
+            warnings.append(f"🚨 Prix +{price_change_24h:.0f}% en 24h - Potentiel pump")
+        elif price_change_24h > 50:
+            score += 20
+            indicators['price_spike'] = 70
+            warnings.append(f"⚠️ Prix +{price_change_24h:.0f}% en 24h - Hausse suspecte")
+        elif price_change_24h > 30:
+            score += 10
+            indicators['price_spike'] = 50
+        else:
+            indicators['price_spike'] = max(0, int(price_change_24h * 1.5))
+        
+        if price_change_1h > 50:
+            score += 10
+            warnings.append(f"🚨 Prix +{price_change_1h:.0f}% en 1h - Pump actif!")
+        
+        # ===== 3. CONCENTRATION DES HOLDERS (0-20 points) =====
+        try:
+            creator_balance = float(security.get("creator_balance", "0"))
+            owner_balance = float(security.get("owner_balance", "0"))
+            
+            if creator_balance > 50 or owner_balance > 50:
+                score += 20
+                indicators['holder_concentration'] = 100
+                warnings.append(f"🚨 Concentration extrême: Créateur/Owner détient {max(creator_balance, owner_balance):.0f}%")
+            elif creator_balance > 30 or owner_balance > 30:
+                score += 15
+                indicators['holder_concentration'] = 75
+                warnings.append(f"⚠️ Forte concentration: {max(creator_balance, owner_balance):.0f}% détenu")
+            elif creator_balance > 20 or owner_balance > 20:
+                score += 10
+                indicators['holder_concentration'] = 50
+                warnings.append(f"⚠️ Concentration modérée: {max(creator_balance, owner_balance):.0f}%")
+            else:
+                indicators['holder_concentration'] = 25
+        except:
+            indicators['holder_concentration'] = 0
+        
+        # ===== 4. LIQUIDITÉ FAIBLE (0-15 points) =====
+        if liquidity < 5000:
+            score += 15
+            indicators['low_liquidity'] = 100
+            warnings.append(f"🚨 Liquidité très faible: ${liquidity:,.0f} - Risque de rug")
+        elif liquidity < 10000:
+            score += 10
+            indicators['low_liquidity'] = 70
+            warnings.append(f"⚠️ Liquidité faible: ${liquidity:,.0f}")
+        elif liquidity < 25000:
+            score += 5
+            indicators['low_liquidity'] = 40
+        else:
+            indicators['low_liquidity'] = 0
+        
+        # ===== 5. TOKEN RÉCENT (0-10 points) =====
+        try:
+            if pair_created_at and pair_created_at != "N/A":
+                created_timestamp = int(pair_created_at) / 1000
+                age_hours = (time.time() - created_timestamp) / 3600
+                
+                if age_hours < 6:
+                    score += 10
+                    indicators['new_token'] = 100
+                    warnings.append(f"⚠️ Token très récent ({age_hours:.1f}h) - Risque élevé")
+                elif age_hours < 24:
+                    score += 7
+                    indicators['new_token'] = 70
+                    warnings.append(f"⚠️ Token récent ({age_hours:.0f}h)")
+                elif age_hours < 72:
+                    score += 4
+                    indicators['new_token'] = 40
+                else:
+                    indicators['new_token'] = 0
+            else:
+                indicators['new_token'] = 0
+        except:
+            indicators['new_token'] = 0
+        
+        # ===== CALCUL DU NIVEAU DE RISQUE =====
+        if score >= 70:
+            risk_level = "CRITICAL"
+        elif score >= 50:
+            risk_level = "HIGH"
+        elif score >= 30:
+            risk_level = "MEDIUM"
+        elif score >= 15:
+            risk_level = "LOW"
+        else:
+            risk_level = "SAFE"
+        
+        is_suspect = score >= 50
+        
+        return {
+            "pump_dump_score": min(score, 100),
+            "pump_dump_risk": risk_level,
+            "pump_dump_warnings": warnings,
+            "pump_dump_indicators": indicators,
+            "is_pump_dump_suspect": is_suspect
+        }
     
     def calculate_risk_score(self, security: Dict, market: Dict) -> tuple:
         """Calcule le score de risque"""
@@ -356,6 +522,7 @@ class TokenScanner:
         """Analyse complète d'un token"""
         address = token_info['address']
         chain = token_info['chain']
+        icon = token_info.get('icon', '')
         
         market = self.get_market_data(address)
         time.sleep(0.5)
@@ -364,6 +531,9 @@ class TokenScanner:
         time.sleep(0.5)
         
         risk_score, warnings = self.calculate_risk_score(security, market)
+        
+        pair_created_at = market.get("pair_created_at", "N/A")
+        pump_dump_analysis = self.detect_pump_dump(market, security, pair_created_at)
         
         twitter_data = {}
         social_score = 0
@@ -383,6 +553,7 @@ class TokenScanner:
             "address": address,
             "chain": chain,
             "url": token_info.get('url'),
+            "icon": icon,
             "description": token_info.get('description'),
             "twitter": token_info.get('twitter'),
             "twitter_data": twitter_data,
@@ -393,6 +564,11 @@ class TokenScanner:
             "risk_score": risk_score,
             "warnings": warnings,
             "is_safe": risk_score < 50,
+            "pump_dump_score": pump_dump_analysis["pump_dump_score"],
+            "pump_dump_risk": pump_dump_analysis["pump_dump_risk"],
+            "pump_dump_warnings": pump_dump_analysis["pump_dump_warnings"],
+            "pump_dump_indicators": pump_dump_analysis["pump_dump_indicators"],
+            "is_pump_dump_suspect": pump_dump_analysis["is_pump_dump_suspect"],
             "timestamp": datetime.now().isoformat()
         }
     
@@ -414,6 +590,7 @@ class TokenScanner:
         results = []
         safe_tokens = []
         dangerous_tokens = []
+        pump_dump_suspects = []
         
         for token in tokens:
             try:
@@ -424,6 +601,10 @@ class TokenScanner:
                     safe_tokens.append(result)
                 else:
                     dangerous_tokens.append(result)
+                
+                if result['is_pump_dump_suspect']:
+                    pump_dump_suspects.append(result)
+                    
             except Exception as e:
                 print(f"Erreur analyse token: {e}")
                 continue
@@ -433,8 +614,10 @@ class TokenScanner:
             "total_analyzed": len(results),
             "safe_count": len(safe_tokens),
             "dangerous_count": len(dangerous_tokens),
+            "pump_dump_suspects_count": len(pump_dump_suspects),
             "results": results,
             "safe_tokens": sorted(safe_tokens, key=lambda x: x['risk_score']),
             "dangerous_tokens": sorted(dangerous_tokens, key=lambda x: x['risk_score'], reverse=True),
+            "pump_dump_suspects": sorted(pump_dump_suspects, key=lambda x: x['pump_dump_score'], reverse=True),
             "timestamp": datetime.now().isoformat()
         }
