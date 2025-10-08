@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Token Scanner Pro</title>
+    <title>Token Scanner Pro - Détection Pump & Dump</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
@@ -120,10 +120,11 @@
                     </button>
                 </div>
 
-                <!-- Filter Buttons -->
+                <!-- Filter Buttons - 🆕 AJOUT DU FILTRE PUMP & DUMP -->
                 <button class="filter-btn active" data-filter="all">Tous</button>
                 <button class="filter-btn" data-filter="safe">✅ Sûrs</button>
                 <button class="filter-btn" data-filter="danger">⚠️ Dangereux</button>
+                <button class="filter-btn" data-filter="pump_dump">🚨 Pump & Dump</button>
             </div>
         </div>
 
