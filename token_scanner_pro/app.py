@@ -1,7 +1,6 @@
 """
 Serveur Flask pour l'interface web du Token Scanner
-Avec système d'authentification et favoris
-Version améliorée avec recherche et timestamps
+Avec recherche de tokens, RSI, Fibonacci et analyse pump & dump améliorée
 """
 
 from flask import Flask, render_template, jsonify, request, session
@@ -15,7 +14,7 @@ import secrets
 from functools import wraps
 
 app = Flask(__name__)
-app.secret_key = secrets.token_hex(32)  # Clé secrète pour les sessions
+app.secret_key = secrets.token_hex(32)
 CORS(app, supports_credentials=True)
 
 # Instances globales
@@ -25,7 +24,7 @@ scan_in_progress = False
 current_scan_results = None
 last_scan_timestamp = None
 
-# ==================== DÉCORATEURS (DOIVENT ÊTRE DÉFINIS EN PREMIER) ====================
+# ==================== DÉCORATEURS ====================
 
 def admin_required(f):
     """Décorateur pour vérifier si l'utilisateur est admin"""
@@ -57,13 +56,11 @@ def admin_page():
     """Page admin - Accessible uniquement aux admins"""
     user_id = session.get('user_id')
     
-    # Vérifier si l'utilisateur est connecté
     if not user_id:
         return render_template('error.html', 
                              error="Accès refusé", 
                              message="Vous devez être connecté pour accéder à cette page"), 403
     
-    # Vérifier si l'utilisateur est admin
     if not db.is_admin(user_id):
         return render_template('error.html', 
                              error="Accès refusé", 
@@ -79,12 +76,11 @@ def get_admin_stats():
     """Récupère les statistiques globales"""
     stats = db.get_global_stats()
     
-    # Ajouter les stats de scans
     all_users = db.get_all_users()
     total_scans = sum(user.get('scan_count', 0) for user in all_users)
     
     stats['total_scans'] = total_scans
-    stats['new_users_today'] = 0  # À implémenter si besoin
+    stats['new_users_today'] = 0
     
     return jsonify({
         "success": True,
@@ -178,7 +174,6 @@ def delete_user_api(user_id):
     """Supprime un utilisateur"""
     admin_id = session.get('user_id')
     
-    # Empêcher l'admin de se supprimer lui-même
     if user_id == admin_id:
         return jsonify({
             "success": False,
@@ -219,7 +214,6 @@ def register():
     username = data.get('username')
     password = data.get('password')
     
-    # Validation
     if not email or not username or not password:
         return jsonify({
             "success": False,
@@ -232,7 +226,6 @@ def register():
             "error": "Le mot de passe doit contenir au moins 6 caractères"
         }), 400
     
-    # Créer l'utilisateur
     user_id = db.create_user(email, username, password)
     
     if user_id:
@@ -273,7 +266,6 @@ def login():
         session['user_id'] = user['id']
         session['username'] = user['username']
         
-        # Enregistrer la dernière connexion
         db.update_last_login(user['id'])
         
         return jsonify({
@@ -531,6 +523,91 @@ def get_scan_details(scan_id):
             "error": "Scan non trouvé"
         }), 404
 
+# ==================== 🆕 RECHERCHE DE TOKENS ====================
+
+@app.route('/api/token/search', methods=['GET'])
+def search_token_api():
+    """
+    Recherche un token via DexScreener API
+    Query params: ?q=nom_ou_adresse
+    """
+    query = request.args.get('q', '').strip()
+    
+    if not query or len(query) < 2:
+        return jsonify({
+            "success": False,
+            "error": "Requête trop courte (minimum 2 caractères)"
+        }), 400
+    
+    try:
+        temp_scanner = TokenScanner()
+        results = temp_scanner.search_token(query)
+        
+        return jsonify({
+            "success": True,
+            "query": query,
+            "results": results,
+            "count": len(results)
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": f"Erreur de recherche: {str(e)}"
+        }), 500
+
+@app.route('/api/token/analyze', methods=['POST'])
+def analyze_single_token():
+    """
+    Analyse un token spécifique
+    Body: { "address": "...", "chain": "..." }
+    """
+    user_id = session.get('user_id')
+    
+    data = request.json
+    address = data.get('address')
+    chain = data.get('chain')
+    
+    if not address or not chain:
+        return jsonify({
+            "success": False,
+            "error": "Adresse et chaîne requises"
+        }), 400
+    
+    try:
+        temp_scanner = TokenScanner()
+        
+        # Créer un token_info basique
+        token_info = {
+            'address': address,
+            'chain': chain,
+            'url': f"https://dexscreener.com/{chain}/{address}",
+            'icon': '',
+            'description': '',
+            'twitter': '',
+            'links': []
+        }
+        
+        result = temp_scanner.analyze_token(token_info)
+        
+        # Sauvegarder dans l'historique si connecté
+        if user_id:
+            db.save_scan_history(user_id, {
+                "success": True,
+                "total_analyzed": 1,
+                "results": [result]
+            })
+            db.update_scan_count(user_id)
+        
+        return jsonify({
+            "success": True,
+            "token": result
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": f"Erreur d'analyse: {str(e)}"
+        }), 500
+
 # ==================== SCAN ====================
 
 @app.route('/api/config', methods=['GET'])
@@ -557,10 +634,8 @@ def start_scan():
     max_tokens = data.get('max_tokens', 10)
     nitter_url = data.get('nitter_url', 'http://192.168.1.19:8080')
     
-    # Limiter les scans pour utilisateurs non connectés
     user_id = session.get('user_id')
     if not user_id:
-        # Limiter à 5 tokens pour les non-connectés
         max_tokens = min(max_tokens, 5)
     
     if max_tokens < 1 or max_tokens > 50:
@@ -577,7 +652,6 @@ def start_scan():
             scan_in_progress = False
             last_scan_timestamp = datetime.now().isoformat()
             
-            # Sauvegarder dans l'historique si connecté
             if user_id and current_scan_results.get('success'):
                 db.save_scan_history(user_id, current_scan_results)
                 db.update_scan_count(user_id)
@@ -631,7 +705,7 @@ def get_progress():
 
 @app.route('/api/scan/results', methods=['GET'])
 def get_results():
-    """Récupère les résultats du dernier scan avec timestamp"""
+    """Récupère les résultats du dernier scan"""
     global current_scan_results, last_scan_timestamp
     
     if current_scan_results is None:
@@ -640,7 +714,6 @@ def get_results():
             "error": "Aucun résultat disponible"
         }), 404
     
-    # Ajouter le timestamp de la dernière analyse
     results_with_timestamp = current_scan_results.copy()
     results_with_timestamp['last_scan_timestamp'] = last_scan_timestamp
     
@@ -666,7 +739,6 @@ def search_token():
             "error": "Requête de recherche vide"
         }), 400
     
-    # Rechercher dans les résultats
     results = current_scan_results.get('results', [])
     filtered_results = [
         token for token in results
@@ -691,7 +763,8 @@ def health_check():
         "last_scan": last_scan_timestamp
     })
 
-# Gestion des erreurs
+# ==================== GESTION DES ERREURS ====================
+
 @app.errorhandler(404)
 def not_found(error):
     return jsonify({
@@ -706,6 +779,8 @@ def internal_error(error):
         "error": "Erreur serveur interne"
     }), 500
 
+# ==================== DÉMARRAGE ====================
+
 if __name__ == '__main__':
     import socket
     
@@ -714,17 +789,17 @@ if __name__ == '__main__':
     
     print("""
     ╔════════════════════════════════════════════════════════════╗
-    ║   TOKEN SCANNER PRO - Interface Web + Auth                ║
+    ║   TOKEN SCANNER PRO - Interface Web Enhanced              ║
     ║                                                            ║
     ║   🌐 Accès local:    http://localhost:5000                ║
     ║   🌐 Accès réseau:   http://192.168.1.19:5000            ║
     ║   🌐 IP détectée:    http://""" + local_ip + """:5000           ║
     ║                                                            ║
-    ║   ✅ Système de comptes activé                             ║
-    ║   ✅ Favoris activés                                       ║
-    ║   ✅ Historique activé                                     ║
-    ║   ✅ Recherche activée                                     ║
-    ║   ✅ Icons tokens activés                                  ║
+    ║   ✅ Recherche de tokens                                   ║
+    ║   ✅ RSI & Fibonacci                                       ║
+    ║   ✅ Pump & Dump (nouveaux tokens)                         ║
+    ║   ✅ Top 5 holders                                         ║
+    ║   ✅ Système de comptes                                    ║
     ╚════════════════════════════════════════════════════════════╝
     """)
     

@@ -1,5 +1,30 @@
+# ==================== Framework Web ====================
 flask==3.0.0
-requests==2.31.0
 flask-cors==4.0.0
-flask-login==0.6.3
-flask-bcrypt==1.0.1
+
+# ==================== Sécurité & Authentification ====================
+werkzeug==3.0.1
+
+# ==================== Requêtes HTTP ====================
+requests==2.31.0
+
+# ==================== Base de données ====================
+# SQLite est inclus avec Python, pas besoin de package externe
+
+# ==================== Utilitaires ====================
+python-dotenv==1.0.0  # Pour les variables d'environnement (optionnel)
+
+# ==================== Email (inclus avec Python) ====================
+# smtplib - Inclus dans la bibliothèque standard Python
+# email - Inclus dans la bibliothèque standard Python
+
+# ==================== Notes ====================
+# Python 3.8+ requis
+# 
+# Installation:
+# pip install -r requirements.txt
+#
+# Pour Gmail SMTP:
+# 1. Activez la validation en 2 étapes sur votre compte Google
+# 2. Générez un "App Password" sur https://myaccount.google.com/apppasswords
+# 3. Utilisez ce mot de passe dans alert_system.py

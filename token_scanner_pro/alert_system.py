@@ -1,8 +1,6 @@
 """
 Système d'alertes pour utilisateurs Premium
-- Surveillance automatique des favoris (toutes les heures)
-- Alertes Email HTML élégantes
-- Notifications Web en temps réel
+Version améliorée avec RSI, Fibonacci et détection adaptée aux nouveaux tokens
 """
 
 import time
@@ -41,7 +39,7 @@ class AlertSystem:
         self.monitoring = False
         self.check_interval = 3600  # 1 heure en secondes
         
-        print("🚨 Système d'alertes initialisé")
+        print("🚨 Système d'alertes initialisé (RSI + Fibonacci)")
     
     def start_monitoring(self):
         """Démarre la surveillance automatique des favoris"""
@@ -69,12 +67,10 @@ class AlertSystem:
             except Exception as e:
                 print(f"❌ Erreur lors de la vérification: {e}")
             
-            # Attendre avant la prochaine vérification
             time.sleep(self.check_interval)
     
     def check_all_premium_favorites(self):
         """Vérifie les favoris de tous les utilisateurs premium"""
-        # Récupérer tous les utilisateurs premium
         all_users = self.db.get_all_users()
         premium_users = [u for u in all_users if u.get('is_premium')]
         
@@ -92,7 +88,6 @@ class AlertSystem:
         username = user['username']
         email = user['email']
         
-        # Récupérer les favoris
         favorites = self.db.get_user_favorites(user_id)
         
         if not favorites:
@@ -107,7 +102,6 @@ class AlertSystem:
             token_chain = favorite['token_chain']
             
             try:
-                # Analyser le token
                 token_info = {
                     'address': token_address,
                     'chain': token_chain,
@@ -120,12 +114,11 @@ class AlertSystem:
                 
                 current_data = self.scanner.analyze_token(token_info)
                 
-                # Détecter les changements critiques
+                # Détecter les changements critiques (avec nouvelles métriques)
                 alert = self._detect_critical_changes(favorite, current_data)
                 
                 if alert:
                     alerts.append(alert)
-                    # Sauvegarder l'alerte en base de données
                     self._save_alert_to_db(user_id, alert)
                 
             except Exception as e:
@@ -135,33 +128,88 @@ class AlertSystem:
         if alerts:
             print(f"  🚨 {len(alerts)} alerte(s) détectée(s) pour {username}")
             
-            # Envoyer email
             if email:
                 self.send_email_alert(email, username, alerts)
             
-            # Créer notifications web
             for alert in alerts:
                 self._create_web_notification(user_id, alert)
     
     def _detect_critical_changes(self, old_data: Dict, new_data: Dict) -> Dict[str, Any]:
         """
-        Détecte les changements critiques dans un token
-        Retourne un dictionnaire d'alerte ou None
+        🆕 Détecte les changements critiques avec RSI, Fibonacci et pump & dump adapté
         """
         alerts_list = []
         alert_type = "info"
         
-        # 🆕 1. DÉTECTION PUMP & DUMP
+        # 🆕 1. ALERTE RSI SURACHETÉ
+        if new_data.get('rsi_value', 50) >= 70:
+            alert_type = "critical"
+            alerts_list.append({
+                "type": "rsi_overbought",
+                "severity": "critical",
+                "message": f"🔥 RSI SURACHETÉ: {new_data['rsi_value']}/100",
+                "details": [
+                    f"Signal: {new_data.get('rsi_signal', 'N/A')}",
+                    f"Interprétation: {new_data.get('rsi_interpretation', 'N/A')}",
+                    "⚠️ Risque élevé de correction/dump imminent"
+                ]
+            })
+        
+        # 🆕 2. ALERTE RSI SURVENDU (Opportunité)
+        elif new_data.get('rsi_value', 50) <= 30:
+            alert_type = "info"
+            alerts_list.append({
+                "type": "rsi_oversold",
+                "severity": "info",
+                "message": f"💎 RSI SURVENDU: {new_data['rsi_value']}/100",
+                "details": [
+                    f"Signal: {new_data.get('rsi_signal', 'N/A')}",
+                    "💡 Potentiel rebond technique possible",
+                    "Vérifier les autres indicateurs avant d'investir"
+                ]
+            })
+        
+        # 🆕 3. ALERTE FIBONACCI - ZONE DE RÉSISTANCE
+        if new_data.get('fibonacci_percentage', 0) >= 78.6:
+            alert_type = "warning" if alert_type == "info" else alert_type
+            alerts_list.append({
+                "type": "fibonacci_resistance",
+                "severity": "warning",
+                "message": f"📐 Près de la résistance Fibonacci ({new_data['fibonacci_percentage']:.1f}%)",
+                "details": [
+                    f"Position: {new_data.get('fibonacci_position', 'N/A')}",
+                    "⚠️ Zone dangereuse, risque de rejet",
+                    "Surveiller les volumes et le RSI"
+                ]
+            })
+        
+        # 🆕 4. ALERTE FIBONACCI - ZONE DE SUPPORT
+        elif new_data.get('fibonacci_percentage', 0) <= 23.6:
+            alerts_list.append({
+                "type": "fibonacci_support",
+                "severity": "info",
+                "message": f"📐 Près du support Fibonacci ({new_data['fibonacci_percentage']:.1f}%)",
+                "details": [
+                    f"Position: {new_data.get('fibonacci_position', 'N/A')}",
+                    "💡 Zone de support possible",
+                    "Potentiel rebond si le support tient"
+                ]
+            })
+        
+        # 5. PUMP & DUMP DÉTECTÉ (adapté nouveaux tokens)
         if new_data.get('is_pump_dump_suspect') and new_data.get('pump_dump_score', 0) >= 50:
             alert_type = "critical"
+            token_age = new_data.get('token_age_hours', 'N/A')
+            age_text = f" (Token de {token_age}h)" if token_age != 'N/A' else ""
+            
             alerts_list.append({
                 "type": "pump_dump",
                 "severity": "critical",
-                "message": f"🚨 PUMP & DUMP DÉTECTÉ ! Score: {new_data['pump_dump_score']}/100",
-                "details": new_data.get('pump_dump_warnings', [])
+                "message": f"🚨 PUMP & DUMP DÉTECTÉ{age_text} ! Score: {new_data['pump_dump_score']}/100",
+                "details": new_data.get('pump_dump_warnings', [])[:5]  # Max 5 warnings
             })
         
-        # 2. CHANGEMENT DE PRIX IMPORTANT
+        # 6. CHANGEMENT DE PRIX IMPORTANT
         price_change = new_data.get('market', {}).get('price_change_24h', 0)
         if abs(price_change) >= 50:
             severity = "critical" if abs(price_change) >= 100 else "warning"
@@ -170,20 +218,26 @@ class AlertSystem:
                     "type": "price_spike",
                     "severity": severity,
                     "message": f"📈 Prix +{price_change:.1f}% en 24h !",
-                    "details": []
+                    "details": [
+                        "Vérifier le RSI pour confirmer la tendance",
+                        "Attention au pump & dump"
+                    ]
                 })
             else:
                 alerts_list.append({
                     "type": "price_drop",
                     "severity": severity,
                     "message": f"📉 Prix {price_change:.1f}% en 24h !",
-                    "details": []
+                    "details": [
+                        "Possible dump en cours",
+                        "Vérifier la liquidité et les volumes"
+                    ]
                 })
             
             if severity == "critical":
                 alert_type = "critical"
         
-        # 3. LIQUIDITÉ CRITIQUE
+        # 7. LIQUIDITÉ CRITIQUE
         liquidity = new_data.get('market', {}).get('liquidity_usd', 0)
         if liquidity < 5000:
             alert_type = "critical"
@@ -191,20 +245,20 @@ class AlertSystem:
                 "type": "low_liquidity",
                 "severity": "critical",
                 "message": f"💧 Liquidité très faible: ${liquidity:,.0f}",
-                "details": ["Risque de rug pull élevé"]
+                "details": ["Risque de rug pull élevé", "Difficile de vendre sans slippage"]
             })
         
-        # 4. HONEYPOT DÉTECTÉ
+        # 8. HONEYPOT DÉTECTÉ
         if new_data.get('security', {}).get('is_honeypot'):
             alert_type = "critical"
             alerts_list.append({
                 "type": "honeypot",
                 "severity": "critical",
                 "message": "🚫 HONEYPOT DÉTECTÉ !",
-                "details": ["Ne pas acheter ce token"]
+                "details": ["Ne pas acheter ce token", "Impossible de vendre"]
             })
         
-        # 5. AUGMENTATION DU RISQUE
+        # 9. AUGMENTATION DU RISQUE
         new_risk = new_data.get('risk_score', 0)
         if new_risk >= 70:
             alert_type = "critical"
@@ -212,8 +266,25 @@ class AlertSystem:
                 "type": "high_risk",
                 "severity": "critical",
                 "message": f"⚠️ Score de risque très élevé: {new_risk}/100",
-                "details": new_data.get('warnings', [])
+                "details": new_data.get('warnings', [])[:5]
             })
+        
+        # 🆕 10. CONCENTRATION ÉLEVÉE DES HOLDERS
+        top_holders = new_data.get('security', {}).get('top_holders', [])
+        if top_holders:
+            top_5_concentration = sum(h.get('percent', 0) for h in top_holders[:5])
+            if top_5_concentration > 50:
+                alert_type = "critical" if alert_type != "critical" else alert_type
+                alerts_list.append({
+                    "type": "high_concentration",
+                    "severity": "critical",
+                    "message": f"👥 Concentration Top 5: {top_5_concentration:.1f}%",
+                    "details": [
+                        "Plus de 50% détenu par 5 wallets",
+                        "Risque de manipulation élevé",
+                        f"Top holder: {top_holders[0].get('percent', 0):.1f}%"
+                    ]
+                })
         
         # Si des alertes ont été détectées, créer l'objet d'alerte
         if alerts_list:
@@ -224,7 +295,13 @@ class AlertSystem:
                 "alert_type": alert_type,
                 "alerts": alerts_list,
                 "token_data": new_data,
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
+                # 🆕 Nouvelles métriques
+                "rsi_value": new_data.get('rsi_value'),
+                "rsi_signal": new_data.get('rsi_signal'),
+                "fibonacci_percentage": new_data.get('fibonacci_percentage'),
+                "pump_dump_score": new_data.get('pump_dump_score'),
+                "token_age_hours": new_data.get('token_age_hours')
             }
         
         return None
@@ -235,7 +312,6 @@ class AlertSystem:
             conn = self.db.get_connection()
             cursor = conn.cursor()
             
-            # Créer la table si elle n'existe pas
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS alerts (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -264,27 +340,21 @@ class AlertSystem:
     
     def _create_web_notification(self, user_id: int, alert: Dict):
         """Crée une notification web pour l'utilisateur"""
-        # Les notifications sont stockées dans la table alerts
-        # Elles seront récupérées via l'API
         pass
     
     def send_email_alert(self, to_email: str, username: str, alerts: List[Dict]):
-        """Envoie un email d'alerte HTML élégant"""
+        """Envoie un email d'alerte HTML avec RSI et Fibonacci"""
         try:
-            # Créer le message
             msg = MIMEMultipart('alternative')
             msg['Subject'] = f"🚨 {len(alerts)} Alerte(s) Token Scanner Pro"
             msg['From'] = self.smtp_user
             msg['To'] = to_email
             
-            # Générer le HTML
             html_content = self._generate_email_html(username, alerts)
             
-            # Attacher le HTML
             html_part = MIMEText(html_content, 'html')
             msg.attach(html_part)
             
-            # Envoyer l'email
             with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
                 server.starttls()
                 server.login(self.smtp_user, self.smtp_password)
@@ -296,9 +366,8 @@ class AlertSystem:
             print(f"  ❌ Erreur envoi email: {e}")
     
     def _generate_email_html(self, username: str, alerts: List[Dict]) -> str:
-        """Génère un email HTML élégant"""
+        """🆕 Génère un email HTML avec RSI, Fibonacci et métriques avancées"""
         
-        # Header
         html = f"""
 <!DOCTYPE html>
 <html>
@@ -394,6 +463,36 @@ class AlertSystem:
             color: #9FA8DA;
             text-transform: uppercase;
         }}
+        .metrics-grid {{
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 15px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+        }}
+        .metric-item {{
+            text-align: center;
+        }}
+        .metric-label {{
+            font-size: 11px;
+            color: #9FA8DA;
+            margin-bottom: 4px;
+        }}
+        .metric-value {{
+            font-size: 18px;
+            font-weight: 700;
+        }}
+        .metric-value.critical {{
+            color: #F44336;
+        }}
+        .metric-value.warning {{
+            color: #FF9800;
+        }}
+        .metric-value.success {{
+            color: #4CAF50;
+        }}
         .alert-item {{
             background: rgba(0, 0, 0, 0.3);
             padding: 15px;
@@ -406,6 +505,9 @@ class AlertSystem:
         }}
         .alert-item.warning {{
             border-left-color: #FF9800;
+        }}
+        .alert-item.info {{
+            border-left-color: #4A90E2;
         }}
         .alert-message {{
             font-size: 16px;
@@ -463,6 +565,12 @@ class AlertSystem:
             icon = alert.get('token_icon', '')
             icon_html = f'<img src="{icon}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />' if icon else '🪙'
             
+            # 🆕 Métriques avancées
+            rsi_value = alert.get('rsi_value')
+            fibonacci_pct = alert.get('fibonacci_percentage')
+            pump_score = alert.get('pump_dump_score')
+            token_age = alert.get('token_age_hours')
+            
             html += f"""
             <div class="alert-card {alert_type}">
                 <div class="token-header">
@@ -471,6 +579,48 @@ class AlertSystem:
                         <div class="token-address">{short_addr}</div>
                         <div class="token-chain">{token_chain}</div>
                     </div>
+                </div>
+                
+                <div class="metrics-grid">
+"""
+            
+            # Afficher les métriques disponibles
+            if rsi_value is not None:
+                rsi_class = "critical" if rsi_value >= 70 else "warning" if rsi_value >= 50 else "success"
+                html += f"""
+                    <div class="metric-item">
+                        <div class="metric-label">📊 RSI</div>
+                        <div class="metric-value {rsi_class}">{rsi_value}</div>
+                    </div>
+"""
+            
+            if fibonacci_pct is not None:
+                fib_class = "critical" if fibonacci_pct >= 78.6 else "warning" if fibonacci_pct >= 61.8 else "success"
+                html += f"""
+                    <div class="metric-item">
+                        <div class="metric-label">📐 Fibonacci</div>
+                        <div class="metric-value {fib_class}">{fibonacci_pct:.1f}%</div>
+                    </div>
+"""
+            
+            if pump_score is not None and pump_score > 0:
+                pump_class = "critical" if pump_score >= 70 else "warning" if pump_score >= 50 else "success"
+                html += f"""
+                    <div class="metric-item">
+                        <div class="metric-label">🚨 Pump Score</div>
+                        <div class="metric-value {pump_class}">{pump_score}/100</div>
+                    </div>
+"""
+            
+            if token_age != 'N/A' and token_age is not None:
+                html += f"""
+                    <div class="metric-item">
+                        <div class="metric-label">🆕 Âge Token</div>
+                        <div class="metric-value">{token_age}h</div>
+                    </div>
+"""
+            
+            html += """
                 </div>
 """
             
@@ -483,7 +633,7 @@ class AlertSystem:
                 
                 if item.get('details'):
                     html += '<ul class="alert-details">'
-                    for detail in item['details'][:3]:  # Max 3 détails
+                    for detail in item['details'][:3]:
                         html += f'<li>{detail}</li>'
                     html += '</ul>'
                 
@@ -499,7 +649,7 @@ class AlertSystem:
             <p>Cette alerte a été générée automatiquement le {datetime.now().strftime('%d/%m/%Y à %H:%M')}</p>
             <a href="http://localhost:5000" class="btn">📊 Voir le dashboard</a>
             <p style="margin-top: 20px; font-size: 11px;">
-                Token Scanner Pro - Surveillance automatique de vos tokens<br/>
+                Token Scanner Pro - Surveillance automatique avec RSI & Fibonacci<br/>
                 Vous recevez cet email car vous êtes un utilisateur Premium
             </p>
         </div>
@@ -511,7 +661,7 @@ class AlertSystem:
         return html
     
     def get_user_alerts(self, user_id: int, limit: int = 20, unread_only: bool = False):
-        """Récupère les alertes d'un utilisateur pour l'affichage web"""
+        """Récupère les alertes d'un utilisateur"""
         try:
             conn = self.db.get_connection()
             cursor = conn.cursor()
@@ -586,8 +736,8 @@ if __name__ == "__main__":
     alert_system = AlertSystem(
         smtp_server="smtp.gmail.com",
         smtp_port=587,
-        smtp_user="votre.email@gmail.com",  # Remplacer par votre email
-        smtp_password="votre_app_password"   # Remplacer par votre App Password
+        smtp_user="votre.email@gmail.com",  # Remplacer
+        smtp_password="votre_app_password"   # Remplacer
     )
     
     # Démarrer la surveillance automatique

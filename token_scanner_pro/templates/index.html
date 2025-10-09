@@ -3,8 +3,174 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Token Scanner Pro - Détection Pump & Dump</title>
+    <title>Token Scanner Pro - RSI, Fibonacci & Pump/Dump Detection</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        /* 🆕 Styles pour la barre de recherche */
+        .search-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px;
+            border-radius: 20px;
+            margin-bottom: 40px;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .search-header-title {
+            font-size: 32px;
+            font-weight: 900;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+
+        .search-header-subtitle {
+            font-size: 16px;
+            opacity: 0.9;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .search-bar-container {
+            display: flex;
+            gap: 12px;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .search-input-large {
+            flex: 1;
+            padding: 16px 24px;
+            background: rgba(255, 255, 255, 0.95);
+            border: none;
+            border-radius: 12px;
+            color: var(--bg-primary);
+            font-size: 16px;
+            font-weight: 500;
+            box-shadow: var(--shadow-md);
+        }
+
+        .search-input-large::placeholder {
+            color: rgba(10, 14, 39, 0.5);
+        }
+
+        .search-input-large:focus {
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.3);
+        }
+
+        /* Modal résultats de recherche */
+        .search-result-card {
+            background: var(--bg-card);
+            border: 2px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .search-result-card:hover {
+            border-color: var(--accent-blue);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .search-result-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid var(--border-color);
+        }
+
+        .search-result-icon-placeholder {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: var(--gradient-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+        }
+
+        .search-result-info {
+            flex: 1;
+        }
+
+        .search-result-name {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .search-result-symbol {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .search-result-chain {
+            display: inline-block;
+            padding: 4px 12px;
+            background: rgba(74, 144, 226, 0.15);
+            border: 1px solid rgba(74, 144, 226, 0.3);
+            border-radius: 6px;
+            font-size: 11px;
+            text-transform: uppercase;
+            font-weight: 600;
+            color: var(--accent-blue);
+            margin-right: 8px;
+        }
+
+        .search-result-address {
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .search-result-stats {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 150px;
+        }
+
+        .search-result-stat {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* Badge RSI dans les cards */
+        .rsi-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            margin-top: 4px;
+            border: 1px solid;
+        }
+
+        /* Loading spinner grand */
+        .spinner-large {
+            width: 64px;
+            height: 64px;
+            border: 6px solid rgba(74, 144, 226, 0.2);
+            border-top-color: var(--accent-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
 </head>
 <body>
     <!-- Header -->
@@ -45,6 +211,23 @@
 
     <!-- Container -->
     <div class="container">
+        <!-- 🆕 Barre de recherche -->
+        <div class="search-header">
+            <h1 class="search-header-title">🔍 Recherche de Token</h1>
+            <p class="search-header-subtitle">Recherchez et analysez n'importe quel token par nom, symbole ou adresse</p>
+            <div class="search-bar-container">
+                <input 
+                    type="text" 
+                    id="tokenSearchInput" 
+                    class="search-input-large" 
+                    placeholder="Entrez le nom, symbole ou adresse du token..."
+                >
+                <button class="btn btn-primary" id="tokenSearchBtn" style="padding: 16px 32px; font-size: 16px;">
+                    🔎 Rechercher
+                </button>
+            </div>
+        </div>
+
         <!-- Stats Grid -->
         <div class="stats-grid" id="statsGrid">
             <div class="stat-card">
@@ -120,7 +303,7 @@
                     </button>
                 </div>
 
-                <!-- Filter Buttons - 🆕 AJOUT DU FILTRE PUMP & DUMP -->
+                <!-- Filter Buttons -->
                 <button class="filter-btn active" data-filter="all">Tous</button>
                 <button class="filter-btn" data-filter="safe">✅ Sûrs</button>
                 <button class="filter-btn" data-filter="danger">⚠️ Dangereux</button>
@@ -133,7 +316,7 @@
             <div class="empty-state">
                 <div class="empty-icon">🔍</div>
                 <h3 class="empty-title">Aucun token analysé</h3>
-                <p class="empty-text">Lancez un nouveau scan pour analyser les derniers tokens du marché</p>
+                <p class="empty-text">Lancez un nouveau scan pour analyser les derniers tokens du marché ou recherchez un token spécifique</p>
                 <button class="btn btn-primary" onclick="document.getElementById('startScanBtn').click()">
                     ▶️ Démarrer le scan
                 </button>
@@ -195,6 +378,21 @@
                         </button>
                     </form>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🆕 Modal Résultats de Recherche -->
+    <div class="modal" id="searchResultsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title-section">
+                    <h2 class="modal-title">🔍 Résultats de la recherche</h2>
+                </div>
+                <button class="modal-close" onclick="closeSearchResultsModal()">✕</button>
+            </div>
+            <div class="modal-body" id="searchResultsContainer">
+                <!-- Les résultats seront insérés ici -->
             </div>
         </div>
     </div>

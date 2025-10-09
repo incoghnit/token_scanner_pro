@@ -12,7 +12,152 @@ let lastScanTimestamp = null;
 window.addEventListener('load', async () => {
     await checkAuth();
     await loadPreviousResults();
+    initializeSearchBar();
 });
+
+// ==================== 🆕 RECHERCHE DE TOKENS ====================
+
+function initializeSearchBar() {
+    const searchBtn = document.getElementById('tokenSearchBtn');
+    const searchInput = document.getElementById('tokenSearchInput');
+    
+    if (searchBtn && searchInput) {
+        searchBtn.addEventListener('click', () => performTokenSearch());
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                performTokenSearch();
+            }
+        });
+    }
+}
+
+async function performTokenSearch() {
+    const searchInput = document.getElementById('tokenSearchInput');
+    const query = searchInput.value.trim();
+    
+    if (!query || query.length < 2) {
+        alert('Entrez au moins 2 caractères pour la recherche');
+        return;
+    }
+    
+    const searchBtn = document.getElementById('tokenSearchBtn');
+    const originalHTML = searchBtn.innerHTML;
+    searchBtn.disabled = true;
+    searchBtn.innerHTML = '<span class="spinner"></span> Recherche...';
+    
+    try {
+        const response = await fetch(`${API_URL}/token/search?q=${encodeURIComponent(query)}`);
+        const data = await response.json();
+        
+        if (data.success && data.results.length > 0) {
+            displaySearchResults(data.results);
+        } else {
+            alert(`Aucun résultat trouvé pour "${query}"`);
+        }
+    } catch (error) {
+        alert('Erreur lors de la recherche');
+        console.error(error);
+    } finally {
+        searchBtn.disabled = false;
+        searchBtn.innerHTML = originalHTML;
+    }
+}
+
+function displaySearchResults(results) {
+    // Ouvrir le modal de recherche
+    const modal = document.getElementById('searchResultsModal');
+    const container = document.getElementById('searchResultsContainer');
+    
+    if (!modal || !container) {
+        console.error('Modal de recherche non trouvé');
+        return;
+    }
+    
+    container.innerHTML = '';
+    
+    results.forEach(token => {
+        const card = document.createElement('div');
+        card.className = 'search-result-card';
+        
+        const iconHtml = token.icon 
+            ? `<img src="${token.icon}" alt="${token.symbol}" class="search-result-icon" onerror="this.src=''">`
+            : '<span class="search-result-icon-placeholder">🪙</span>';
+        
+        card.innerHTML = `
+            ${iconHtml}
+            <div class="search-result-info">
+                <div class="search-result-name">${token.name || 'N/A'}</div>
+                <div class="search-result-symbol">${token.symbol || 'N/A'}</div>
+                <div class="search-result-chain">${token.chain.toUpperCase()}</div>
+                <div class="search-result-address">${token.address.substring(0, 10)}...${token.address.substring(token.address.length - 8)}</div>
+            </div>
+            <div class="search-result-stats">
+                ${token.priceUsd ? `<div class="search-result-stat">💰 $${parseFloat(token.priceUsd).toFixed(8)}</div>` : ''}
+                ${token.liquidity ? `<div class="search-result-stat">💧 $${formatNumber(token.liquidity)}</div>` : ''}
+                ${token.marketCap ? `<div class="search-result-stat">📊 $${formatNumber(token.marketCap)}</div>` : ''}
+            </div>
+            <button class="btn btn-primary" onclick='analyzeSearchedToken(${JSON.stringify(token).replace(/'/g, "&#39;")})'>
+                🔍 Analyser
+            </button>
+        `;
+        
+        container.appendChild(card);
+    });
+    
+    modal.classList.add('active');
+}
+
+async function analyzeSearchedToken(token) {
+    closeSearchResultsModal();
+    
+    const loadingModal = document.createElement('div');
+    loadingModal.className = 'modal active';
+    loadingModal.innerHTML = `
+        <div class="modal-content small">
+            <div class="modal-body" style="text-align: center; padding: 60px 40px;">
+                <div class="spinner-large"></div>
+                <h3 style="margin-top: 24px;">Analyse en cours...</h3>
+                <p style="color: var(--text-secondary);">${token.name} (${token.symbol})</p>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(loadingModal);
+    
+    try {
+        const response = await fetch(`${API_URL}/token/analyze`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+                address: token.address,
+                chain: token.chain
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            document.body.removeChild(loadingModal);
+            openModal(data.token);
+        } else {
+            alert('Erreur: ' + data.error);
+        }
+    } catch (error) {
+        alert('Erreur lors de l\'analyse');
+        console.error(error);
+    } finally {
+        if (document.body.contains(loadingModal)) {
+            document.body.removeChild(loadingModal);
+        }
+    }
+}
+
+function closeSearchResultsModal() {
+    const modal = document.getElementById('searchResultsModal');
+    if (modal) {
+        modal.classList.remove('active');
+    }
+}
 
 // ==================== AUTHENTIFICATION ====================
 
@@ -223,7 +368,6 @@ document.addEventListener('DOMContentLoaded', () => {
         await startNewScan();
     });
 
-    // View Switcher
     document.querySelectorAll('.view-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             currentView = btn.dataset.view;
@@ -239,7 +383,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Search
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
         searchInput.addEventListener('input', (e) => {
@@ -247,7 +390,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Filtres
     document.querySelectorAll('.filter-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -417,7 +559,6 @@ function displayTokens(tokens) {
     });
 }
 
-// 🆕 FONCTION POUR OBTENIR LE BADGE PUMP & DUMP
 function getPumpDumpBadge(pumpDumpRisk, pumpDumpScore) {
     const badges = {
         'CRITICAL': { emoji: '🚨', text: 'PUMP CRITIQUE', class: 'pump-critical' },
@@ -429,6 +570,18 @@ function getPumpDumpBadge(pumpDumpRisk, pumpDumpScore) {
     };
 
     return badges[pumpDumpRisk] || badges['UNKNOWN'];
+}
+
+// 🆕 Badge RSI
+function getRSIBadge(rsiSignal, rsiValue) {
+    const badges = {
+        'SURACHETÉ': { emoji: '🔥', class: 'rsi-overbought', color: 'var(--accent-red)' },
+        'HAUSSIER': { emoji: '📈', class: 'rsi-bullish', color: 'var(--accent-green)' },
+        'NEUTRE': { emoji: '➖', class: 'rsi-neutral', color: 'var(--text-secondary)' },
+        'SURVENDU': { emoji: '❄️', class: 'rsi-oversold', color: 'var(--accent-blue)' }
+    };
+    
+    return badges[rsiSignal] || badges['NEUTRE'];
 }
 
 function createTokenCard(token) {
@@ -450,9 +603,11 @@ function createTokenCard(token) {
     const circumference = 2 * Math.PI * 24;
     const offset = circumference - (token.risk_score / 100) * circumference;
 
-    // 🆕 Badge Pump & Dump
     const pumpDumpBadge = getPumpDumpBadge(token.pump_dump_risk, token.pump_dump_score);
     const showPumpDumpBadge = token.pump_dump_score >= 30;
+    
+    // 🆕 RSI Badge
+    const rsiBadge = getRSIBadge(token.rsi_signal, token.rsi_value);
 
     card.innerHTML = `
         <div class="token-header">
@@ -463,6 +618,9 @@ function createTokenCard(token) {
                     <span class="chain-badge">${token.chain}</span>
                     ${showPumpDumpBadge ? `<span class="pump-badge ${pumpDumpBadge.class}" title="Score Pump & Dump: ${token.pump_dump_score}/100">
                         ${pumpDumpBadge.emoji} ${pumpDumpBadge.text}
+                    </span>` : ''}
+                    ${token.rsi_value ? `<span class="rsi-badge ${rsiBadge.class}" style="background: rgba(${rsiBadge.color === 'var(--accent-red)' ? '244, 67, 54' : rsiBadge.color === 'var(--accent-green)' ? '76, 175, 80' : '74, 144, 226'}, 0.15); border-color: ${rsiBadge.color}; color: ${rsiBadge.color};" title="RSI: ${token.rsi_value}">
+                        ${rsiBadge.emoji} RSI ${token.rsi_value}
                     </span>` : ''}
                 </div>
             </div>
@@ -499,28 +657,6 @@ function createTokenCard(token) {
                 <div class="metric-label">🐦 Score Social</div>
                 <div class="metric-value">${token.social_score || 0}/100</div>
             </div>
-            ${currentView === 'list' ? `
-            <div class="metric">
-                <div class="metric-label">👥 Holders</div>
-                <div class="metric-value">${token.security.holder_count || 'N/A'}</div>
-            </div>
-            <div class="metric">
-                <div class="metric-label">💸 Prix USD</div>
-                <div class="metric-value">$${token.market.price_usd ? token.market.price_usd.toFixed(8) : 'N/A'}</div>
-            </div>
-            <div class="metric">
-                <div class="metric-label">📈 Change 24h</div>
-                <div class="metric-value" style="color: ${token.market.price_change_24h >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'}">
-                    ${token.market.price_change_24h ? token.market.price_change_24h.toFixed(2) : '0'}%
-                </div>
-            </div>
-            <div class="metric">
-                <div class="metric-label">🚨 Pump Score</div>
-                <div class="metric-value" style="color: ${token.pump_dump_score >= 70 ? 'var(--accent-red)' : token.pump_dump_score >= 50 ? 'var(--accent-orange)' : 'var(--accent-green)'}">
-                    ${token.pump_dump_score}/100
-                </div>
-            </div>
-            ` : ''}
         </div>
     `;
 
@@ -536,7 +672,24 @@ function createTokenCard(token) {
     return card;
 }
 
-// ==================== MODAL DÉTAILS ====================
+// ==================== MODAL DÉTAILS (SUITE DANS LE PROCHAIN MESSAGE) ====================
+
+function formatNumber(num) {
+    if (num >= 1000000000) return (num / 1000000000).toFixed(2) + 'B';
+    if (num >= 1000000) return (num / 1000000).toFixed(2) + 'M';
+    if (num >= 1000) return (num / 1000).toFixed(2) + 'K';
+    return num.toFixed(2);
+}
+
+function showFavorites() {
+    window.location.href = '/favorites';
+}
+
+function showProfile() {
+    alert('Page profil à venir !');
+}
+
+// ==================== MODAL DÉTAILS COMPLET ====================
 
 function openModal(token) {
     const modal = document.getElementById('tokenModal');
@@ -559,11 +712,120 @@ function openModal(token) {
         ? `<img src="${token.icon}" alt="${token.chain}" style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid var(--border-color);" onerror="this.style.display='none'">`
         : '';
 
-    // 🆕 SECTION PUMP & DUMP COMPLÈTE
+    // Pump & Dump Badge
     const pumpDumpBadge = getPumpDumpBadge(token.pump_dump_risk, token.pump_dump_score);
+    
+    // 🆕 RSI Badge
+    const rsiBadge = getRSIBadge(token.rsi_signal, token.rsi_value);
+    
+    // 🆕 SECTION RSI COMPLÈTE
+    const rsiSection = token.rsi_value ? `
+        <div class="detail-section" style="background: linear-gradient(135deg, rgba(74, 144, 226, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%); border: 2px solid rgba(74, 144, 226, 0.3); border-radius: 16px; padding: 24px;">
+            <div class="detail-section-title" style="color: var(--accent-blue);">📊 Analyse RSI (Relative Strength Index)</div>
+            
+            <div style="display: grid; grid-template-columns: auto 1fr; gap: 24px; align-items: center; margin-bottom: 20px;">
+                <div style="width: 120px; height: 120px; border-radius: 50%; background: conic-gradient(
+                    ${token.rsi_value >= 70 ? 'var(--accent-red)' : token.rsi_value >= 50 ? 'var(--accent-green)' : token.rsi_value >= 30 ? 'var(--accent-yellow)' : 'var(--accent-blue)'} ${token.rsi_value * 3.6}deg,
+                    var(--bg-secondary) ${token.rsi_value * 3.6}deg
+                ); display: flex; align-items: center; justify-content: center; position: relative; border: 4px solid var(--border-color);">
+                    <div style="width: 90px; height: 90px; border-radius: 50%; background: var(--bg-card); display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                        <div style="font-size: 32px; font-weight: 900;">${token.rsi_value}</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">RSI</div>
+                    </div>
+                </div>
+                
+                <div>
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                        <span style="font-size: 32px;">${rsiBadge.emoji}</span>
+                        <div>
+                            <div style="font-size: 24px; font-weight: 700; color: ${rsiBadge.color};">${token.rsi_signal}</div>
+                            <div style="font-size: 14px; color: var(--text-secondary);">${token.rsi_interpretation}</div>
+                        </div>
+                    </div>
+                    
+                    <div style="background: var(--bg-secondary); padding: 12px; border-radius: 8px; margin-top: 12px;">
+                        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">Échelle RSI</div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <div style="flex: 1; background: linear-gradient(90deg, var(--accent-blue) 0%, var(--accent-yellow) 50%, var(--accent-red) 100%); height: 8px; border-radius: 4px; position: relative;">
+                                <div style="position: absolute; left: ${token.rsi_value}%; top: -2px; width: 4px; height: 12px; background: white; border: 2px solid var(--bg-primary); border-radius: 2px; transform: translateX(-50%);"></div>
+                            </div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 10px; color: var(--text-secondary); margin-top: 4px;">
+                            <span>0 (Survendu)</span>
+                            <span>30</span>
+                            <span>50</span>
+                            <span>70</span>
+                            <span>100 (Suracheté)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="background: var(--bg-secondary); padding: 16px; border-radius: 12px; border-left: 4px solid ${rsiBadge.color};">
+                <div style="font-weight: 600; margin-bottom: 8px;">💡 Interprétation Trading</div>
+                <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
+                    ${token.rsi_value >= 70 ? '⚠️ Le token est en zone de SURACHETÉ. Risque élevé de correction ou dump imminent. Prudence recommandée.' :
+                      token.rsi_value >= 50 ? '✅ Momentum haussier détecté. Le prix a une tendance positive, mais restez vigilant.' :
+                      token.rsi_value >= 30 ? '➖ Zone neutre. Pas de signal clair de direction. Attendre des confirmations.' :
+                      '💎 Zone de SURVENDU. Potentiel rebond technique possible, mais vérifier les autres indicateurs.'}
+                </div>
+            </div>
+        </div>
+    ` : '';
+
+    // 🆕 SECTION FIBONACCI COMPLÈTE
+    const fibonacciSection = token.fibonacci_levels && Object.keys(token.fibonacci_levels).length > 0 ? `
+        <div class="detail-section" style="background: linear-gradient(135deg, rgba(255, 193, 7, 0.05) 0%, rgba(255, 152, 0, 0.05) 100%); border: 2px solid rgba(255, 193, 7, 0.3); border-radius: 16px; padding: 24px;">
+            <div class="detail-section-title" style="color: var(--accent-yellow);">📐 Niveaux de Fibonacci</div>
+            
+            <div style="margin-bottom: 20px;">
+                <div style="font-size: 16px; font-weight: 600; margin-bottom: 12px;">Position actuelle: ${token.fibonacci_position}</div>
+                <div style="font-size: 13px; color: var(--text-secondary);">${token.fibonacci_percentage}% entre le low et high 24h</div>
+            </div>
+            
+            <div style="background: var(--bg-secondary); padding: 20px; border-radius: 12px; position: relative;">
+                <div style="height: 300px; position: relative; background: linear-gradient(180deg, 
+                    rgba(244, 67, 54, 0.1) 0%,
+                    rgba(255, 152, 0, 0.1) 30%,
+                    rgba(255, 193, 7, 0.1) 50%,
+                    rgba(76, 175, 80, 0.1) 70%,
+                    rgba(76, 175, 80, 0.15) 100%
+                ); border-radius: 8px; border: 1px solid var(--border-color);">
+                    ${Object.entries(token.fibonacci_levels).reverse().map(([level, price], index) => {
+                        const position = 100 - (parseFloat(level) / 100 * 100);
+                        const isCurrentPrice = Math.abs(parseFloat(level) - token.fibonacci_percentage) < 5;
+                        return `
+                            <div style="position: absolute; left: 0; right: 0; top: ${position}%; transform: translateY(-50%); display: flex; align-items: center;">
+                                <div style="flex: 1; height: ${isCurrentPrice ? '3px' : '1px'}; background: ${isCurrentPrice ? 'white' : 'rgba(255, 255, 255, 0.3)'}; position: relative;">
+                                    ${isCurrentPrice ? '<div style="position: absolute; right: 0; top: 50%; transform: translateY(-50%); width: 12px; height: 12px; border-radius: 50%; background: var(--accent-green); border: 3px solid var(--bg-primary); box-shadow: 0 0 10px var(--accent-green);"></div>' : ''}
+                                </div>
+                                <div style="margin-left: 12px; min-width: 120px; text-align: right;">
+                                    <div style="font-size: ${isCurrentPrice ? '14px' : '12px'}; font-weight: ${isCurrentPrice ? '700' : '500'}; color: ${isCurrentPrice ? 'var(--accent-green)' : 'var(--text-secondary)'};">
+                                        ${level} ${isCurrentPrice ? '← PRIX' : ''}
+                                    </div>
+                                    <div style="font-size: 11px; color: var(--text-secondary);">$${price.toFixed(8)}</div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 20px;">
+                ${Object.entries(token.fibonacci_levels).map(([level, price]) => `
+                    <div style="background: var(--bg-card); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
+                        <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 4px;">Niveau ${level}</div>
+                        <div style="font-size: 14px; font-weight: 600; font-family: monospace;">$${price.toFixed(8)}</div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    ` : '';
+
+    // SECTION PUMP & DUMP
     const pumpDumpSection = token.pump_dump_score > 0 ? `
         <div class="detail-section pump-dump-section">
-            <div class="detail-section-title">🚨 Analyse Pump & Dump</div>
+            <div class="detail-section-title">🚨 Analyse Pump & Dump ${token.token_age_hours !== 'N/A' ? `<span style="font-size: 14px; font-weight: normal; color: var(--text-secondary);">(Token de ${token.token_age_hours}h)</span>` : ''}</div>
             
             <div class="pump-dump-score-container">
                 <div class="pump-score-circle ${pumpDumpBadge.class}">
@@ -595,53 +857,66 @@ function openModal(token) {
 
             <div class="pump-indicators-grid">
                 <h4 style="font-size: 16px; margin-bottom: 16px; grid-column: span 2;">📊 Indicateurs détaillés</h4>
-                ${token.pump_dump_indicators ? `
-                    ${token.pump_dump_indicators.volume_spike !== undefined ? `
-                        <div class="pump-indicator-item">
-                            <div class="pump-indicator-label">📈 Volume Spike</div>
-                            <div class="pump-indicator-bar">
-                                <div class="pump-indicator-fill" style="width: ${token.pump_dump_indicators.volume_spike}%; background: ${token.pump_dump_indicators.volume_spike > 75 ? 'var(--accent-red)' : token.pump_dump_indicators.volume_spike > 50 ? 'var(--accent-orange)' : 'var(--accent-green)'}"></div>
+                ${token.pump_dump_indicators ? Object.entries({
+                    volume_spike: '📈 Volume Spike',
+                    price_spike: '💸 Price Spike',
+                    holder_concentration: '👥 Concentration',
+                    low_liquidity: '💧 Liquidité faible',
+                    new_token: '🆕 Token récent'
+                }).map(([key, label]) => {
+                    if (token.pump_dump_indicators[key] !== undefined) {
+                        const value = token.pump_dump_indicators[key];
+                        return `
+                            <div class="pump-indicator-item">
+                                <div class="pump-indicator-label">${label}</div>
+                                <div class="pump-indicator-bar">
+                                    <div class="pump-indicator-fill" style="width: ${value}%; background: ${value > 75 ? 'var(--accent-red)' : value > 50 ? 'var(--accent-orange)' : 'var(--accent-green)'}"></div>
+                                </div>
+                                <div class="pump-indicator-value">${value}/100</div>
                             </div>
-                            <div class="pump-indicator-value">${token.pump_dump_indicators.volume_spike}/100</div>
+                        `;
+                    }
+                    return '';
+                }).join('') : ''}
+            </div>
+        </div>
+    ` : '';
+
+    // 🆕 SECTION TOP 5 HOLDERS
+    const topHoldersSection = token.security && token.security.top_holders && token.security.top_holders.length > 0 ? `
+        <div class="detail-section">
+            <div class="detail-section-title">👥 Top 5 Holders</div>
+            <div style="background: var(--bg-secondary); padding: 16px; border-radius: 12px;">
+                ${token.security.top_holders.map(holder => `
+                    <div style="display: flex; align-items: center; gap: 16px; padding: 12px; background: var(--bg-card); border-radius: 8px; margin-bottom: 12px; border: 1px solid var(--border-color);">
+                        <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--gradient-primary); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; flex-shrink: 0;">
+                            #${holder.rank}
                         </div>
-                    ` : ''}
-                    ${token.pump_dump_indicators.price_spike !== undefined ? `
-                        <div class="pump-indicator-item">
-                            <div class="pump-indicator-label">💸 Price Spike</div>
-                            <div class="pump-indicator-bar">
-                                <div class="pump-indicator-fill" style="width: ${token.pump_dump_indicators.price_spike}%; background: ${token.pump_dump_indicators.price_spike > 75 ? 'var(--accent-red)' : token.pump_dump_indicators.price_spike > 50 ? 'var(--accent-orange)' : 'var(--accent-green)'}"></div>
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="font-family: 'Courier New', monospace; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 4px;">
+                                ${holder.address}
                             </div>
-                            <div class="pump-indicator-value">${token.pump_dump_indicators.price_spike}/100</div>
-                        </div>
-                    ` : ''}
-                    ${token.pump_dump_indicators.holder_concentration !== undefined ? `
-                        <div class="pump-indicator-item">
-                            <div class="pump-indicator-label">👥 Concentration</div>
-                            <div class="pump-indicator-bar">
-                                <div class="pump-indicator-fill" style="width: ${token.pump_dump_indicators.holder_concentration}%; background: ${token.pump_dump_indicators.holder_concentration > 75 ? 'var(--accent-red)' : token.pump_dump_indicators.holder_concentration > 50 ? 'var(--accent-orange)' : 'var(--accent-green)'}"></div>
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                ${holder.is_contract ? '<span style="font-size: 10px; padding: 2px 8px; background: rgba(74, 144, 226, 0.2); border: 1px solid var(--accent-blue); border-radius: 4px; color: var(--accent-blue);">📜 Contract</span>' : ''}
+                                ${holder.is_locked ? '<span style="font-size: 10px; padding: 2px 8px; background: rgba(76, 175, 80, 0.2); border: 1px solid var(--accent-green); border-radius: 4px; color: var(--accent-green);">🔒 Locked</span>' : ''}
                             </div>
-                            <div class="pump-indicator-value">${token.pump_dump_indicators.holder_concentration}/100</div>
                         </div>
-                    ` : ''}
-                    ${token.pump_dump_indicators.low_liquidity !== undefined ? `
-                        <div class="pump-indicator-item">
-                            <div class="pump-indicator-label">💧 Liquidité faible</div>
-                            <div class="pump-indicator-bar">
-                                <div class="pump-indicator-fill" style="width: ${token.pump_dump_indicators.low_liquidity}%; background: ${token.pump_dump_indicators.low_liquidity > 75 ? 'var(--accent-red)' : token.pump_dump_indicators.low_liquidity > 50 ? 'var(--accent-orange)' : 'var(--accent-green)'}"></div>
+                        <div style="text-align: right; flex-shrink: 0;">
+                            <div style="font-size: 20px; font-weight: 700; color: ${holder.percent > 20 ? 'var(--accent-red)' : holder.percent > 10 ? 'var(--accent-orange)' : 'var(--accent-green)'};">
+                                ${holder.percent}%
                             </div>
-                            <div class="pump-indicator-value">${token.pump_dump_indicators.low_liquidity}/100</div>
-                        </div>
-                    ` : ''}
-                    ${token.pump_dump_indicators.new_token !== undefined ? `
-                        <div class="pump-indicator-item">
-                            <div class="pump-indicator-label">🆕 Token récent</div>
-                            <div class="pump-indicator-bar">
-                                <div class="pump-indicator-fill" style="width: ${token.pump_dump_indicators.new_token}%; background: ${token.pump_dump_indicators.new_token > 75 ? 'var(--accent-red)' : token.pump_dump_indicators.new_token > 50 ? 'var(--accent-orange)' : 'var(--accent-green)'}"></div>
+                            <div style="font-size: 11px; color: var(--text-secondary);">
+                                ${formatNumber(holder.balance)} tokens
                             </div>
-                            <div class="pump-indicator-value">${token.pump_dump_indicators.new_token}/100</div>
                         </div>
-                    ` : ''}
-                ` : ''}
+                    </div>
+                `).join('')}
+                
+                <div style="margin-top: 16px; padding: 12px; background: var(--bg-card); border-radius: 8px; border-left: 4px solid var(--accent-blue);">
+                    <div style="font-size: 12px; color: var(--text-secondary);">
+                        💡 <strong>Concentration totale Top 5:</strong> ${token.security.top_holders.reduce((sum, h) => sum + h.percent, 0).toFixed(2)}%
+                    </div>
+                </div>
             </div>
         </div>
     ` : '';
@@ -663,6 +938,8 @@ function openModal(token) {
             </div>
         </div>
 
+        ${rsiSection}
+        ${fibonacciSection}
         ${pumpDumpSection}
 
         <div class="detail-section">
@@ -751,6 +1028,8 @@ function openModal(token) {
                 </div>
             </div>
         </div>
+
+        ${topHoldersSection}
 
         ${token.warnings && token.warnings.length > 0 ? `
         <div class="detail-section">
@@ -896,23 +1175,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             closeModal();
+            closeSearchResultsModal();
         }
     });
 });
-
-// ==================== UTILITIES ====================
-
-function formatNumber(num) {
-    if (num >= 1000000000) return (num / 1000000000).toFixed(2) + 'B';
-    if (num >= 1000000) return (num / 1000000).toFixed(2) + 'M';
-    if (num >= 1000) return (num / 1000).toFixed(2) + 'K';
-    return num.toFixed(2);
-}
-
-function showFavorites() {
-    window.location.href = '/favorites';
-}
-
-function showProfile() {
-    alert('Page profil à venir !');
-}
