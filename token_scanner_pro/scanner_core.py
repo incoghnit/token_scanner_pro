@@ -1,7 +1,7 @@
 """
 Module de scanning de tokens crypto
 Version améliorée avec RSI, Fibonacci, analyse Pump & Dump pour nouveaux tokens
-et recherche de tokens
+et recherche de tokens - VERSION FINALE CORRIGÉE
 """
 
 import requests
@@ -243,25 +243,64 @@ class TokenScanner:
         
         return score, details
     
-    # ==================== MARKET DATA ====================
+    # ==================== 🔧 RÉCUPÉRATION DES TOKENS (CORRIGÉ) ====================
     
     def fetch_latest_tokens(self) -> List[Dict]:
-        """Récupère les derniers tokens listés sur DexScreener"""
+        """Récupère les derniers tokens listés sur DexScreener - VERSION CORRIGÉE"""
         try:
             response = requests.get(self.dexscreener_profiles_api, timeout=15)
             
             if response.status_code != 200:
+                print(f"❌ Erreur API DexScreener: Status {response.status_code}")
                 return []
             
             data = response.json()
             
             if not data:
+                print("❌ Aucune donnée retournée par l'API")
                 return []
             
+            print(f"📡 API retourne {len(data)} tokens au total")
+            
+            # 🔧 Mapping étendu des chaînes pour supporter toutes les variantes
+            chain_mapping = {
+                'solana': 'solana',
+                'sol': 'solana',
+                'ethereum': 'ethereum',
+                'eth': 'ethereum',
+                'base': 'base',
+                'bsc': 'bsc',
+                'bnb': 'bsc',  # ⚠️ BSC peut être retourné comme "bnb"
+                'binance': 'bsc',
+                'arbitrum': 'arbitrum',
+                'arb': 'arbitrum',
+                'polygon': 'polygon',
+                'matic': 'polygon',
+                'avalanche': 'avalanche',
+                'avax': 'avalanche',
+                'optimism': 'optimism',
+                'op': 'optimism'
+            }
+            
+            # Chaînes acceptées (normalisées)
+            accepted_chains = ['solana', 'ethereum', 'base', 'bsc', 'arbitrum', 'polygon', 'avalanche', 'optimism']
+            
             filtered_tokens = []
+            chain_stats = {}
+            
             for token in data:
-                chain = token.get('chainId', '').lower()
-                if chain in ['solana', 'ethereum', 'base', 'bsc', 'arbitrum']:
+                chain_id = token.get('chainId', '').lower()
+                
+                # 🔍 Debug: compter les tokens par chaîne d'origine
+                if chain_id not in chain_stats:
+                    chain_stats[chain_id] = 0
+                chain_stats[chain_id] += 1
+                
+                # Normaliser le nom de la chaîne
+                normalized_chain = chain_mapping.get(chain_id, chain_id)
+                
+                # Filtrer seulement les chaînes acceptées
+                if normalized_chain in accepted_chains:
                     twitter = None
                     links = token.get('links', [])
                     for link in links:
@@ -273,7 +312,7 @@ class TokenScanner:
                     
                     filtered_tokens.append({
                         'address': token.get('tokenAddress'),
-                        'chain': chain,
+                        'chain': normalized_chain,  # Utiliser le nom normalisé
                         'url': token.get('url'),
                         'icon': icon_url,
                         'description': token.get('description', 'N/A'),
@@ -281,11 +320,118 @@ class TokenScanner:
                         'links': links
                     })
             
+            # 📊 Afficher les statistiques
+            print(f"\n📊 Statistiques des chaînes (API brute):")
+            for chain, count in sorted(chain_stats.items(), key=lambda x: x[1], reverse=True):
+                normalized = chain_mapping.get(chain, chain)
+                accepted_marker = "✅" if normalized in accepted_chains else "❌"
+                print(f"   {accepted_marker} {chain}: {count} tokens → {normalized}")
+            
+            print(f"\n✅ {len(filtered_tokens)} tokens acceptés après filtrage")
+            
+            # Afficher la répartition finale
+            final_stats = {}
+            for token in filtered_tokens:
+                chain = token['chain']
+                if chain not in final_stats:
+                    final_stats[chain] = 0
+                final_stats[chain] += 1
+            
+            print(f"\n📊 Répartition finale:")
+            for chain, count in sorted(final_stats.items(), key=lambda x: x[1], reverse=True):
+                print(f"   {chain.upper()}: {count} tokens")
+            print()
+            
             return filtered_tokens
             
         except Exception as e:
-            print(f"Erreur lors de la récupération: {e}")
+            print(f"❌ Erreur lors de la récupération: {e}")
+            import traceback
+            traceback.print_exc()
             return []
+    
+    def fetch_tokens_by_chains(self, max_per_chain: int = 5) -> List[Dict]:
+        """
+        🆕 Récupère les tokens récents en cherchant par chaîne
+        Alternative à fetch_latest_tokens si l'API profile ne retourne pas assez de résultats
+        """
+        try:
+            all_tokens = []
+            chains_to_search = ['solana', 'ethereum', 'base', 'bsc', 'arbitrum', 'polygon']
+            
+            print(f"🔍 Recherche sur {len(chains_to_search)} chaînes...")
+            
+            for chain in chains_to_search:
+                try:
+                    # Utiliser l'API de recherche avec un terme générique
+                    url = f"{self.dexscreener_search_api}?q={chain}"
+                    response = requests.get(url, timeout=10)
+                    
+                    if response.status_code != 200:
+                        print(f"   ⚠️ {chain}: API erreur {response.status_code}")
+                        continue
+                    
+                    data = response.json()
+                    pairs = data.get('pairs', [])
+                    
+                    if not pairs:
+                        print(f"   ❌ {chain}: aucun token trouvé")
+                        continue
+                    
+                    # Prendre les N premiers tokens de cette chaîne
+                    chain_tokens = []
+                    for pair in pairs[:max_per_chain * 3]:  # Prendre plus pour filtrer ensuite
+                        pair_chain = pair.get('chainId', '').lower()
+                        
+                        # Normaliser le nom de chaîne
+                        if pair_chain in ['bnb', 'binance']:
+                            pair_chain = 'bsc'
+                        
+                        if pair_chain != chain.lower():
+                            continue
+                        
+                        base_token = pair.get('baseToken', {})
+                        info = pair.get('info', {})
+                        
+                        # Extraire Twitter
+                        twitter = None
+                        socials = info.get('socials', [])
+                        for social in socials:
+                            if social.get('platform') == 'twitter':
+                                handle = social.get('handle', '')
+                                twitter = f"https://twitter.com/{handle}" if handle else None
+                                break
+                        
+                        chain_tokens.append({
+                            'address': base_token.get('address'),
+                            'chain': chain,
+                            'url': pair.get('url'),
+                            'icon': info.get('imageUrl'),
+                            'description': '',
+                            'twitter': twitter,
+                            'links': []
+                        })
+                        
+                        if len(chain_tokens) >= max_per_chain:
+                            break
+                    
+                    all_tokens.extend(chain_tokens)
+                    print(f"   ✅ {chain.upper()}: {len(chain_tokens)} tokens récupérés")
+                    
+                    time.sleep(0.5)  # Rate limiting
+                    
+                except Exception as e:
+                    print(f"   ❌ {chain}: Erreur - {e}")
+                    continue
+            
+            print(f"\n✅ Total: {len(all_tokens)} tokens récupérés\n")
+            return all_tokens
+            
+        except Exception as e:
+            print(f"❌ Erreur générale: {e}")
+            return []
+    
+    # ==================== MARKET DATA ====================
     
     def get_market_data(self, address: str) -> Dict[str, Any]:
         """Récupère les données de marché"""
@@ -321,7 +467,7 @@ class TokenScanner:
         except Exception as e:
             return {"error": str(e)}
     
-    # ==================== 🆕 RSI CALCULATION ====================
+    # ==================== RSI CALCULATION ====================
     
     def calculate_rsi(self, market: Dict) -> Dict[str, Any]:
         """
@@ -384,7 +530,7 @@ class TokenScanner:
                 "rsi_risk_level": "UNKNOWN"
             }
     
-    # ==================== 🆕 FIBONACCI ANALYSIS ====================
+    # ==================== FIBONACCI ANALYSIS ====================
     
     def calculate_fibonacci(self, market: Dict) -> Dict[str, Any]:
         """
@@ -465,7 +611,10 @@ class TokenScanner:
             "bsc": "56",
             "base": "8453",
             "arbitrum": "42161",
-            "solana": "solana"
+            "solana": "solana",
+            "polygon": "137",
+            "avalanche": "43114",
+            "optimism": "10"
         }
         
         chain_id = chain_ids.get(chain.lower(), chain)
@@ -537,15 +686,16 @@ class TokenScanner:
         except Exception as e:
             return {"error": str(e)}
     
-    # ==================== 🆕 PUMP & DUMP DETECTION (ADAPTÉ NOUVEAUX TOKENS) ====================
+    # ==================== 🔧 PUMP & DUMP DETECTION (CORRIGÉ) ====================
     
     def detect_pump_dump(self, market: Dict, security: Dict, pair_created_at: str) -> Dict[str, Any]:
         """
-        🆕 DÉTECTEUR DE PUMP & DUMP ADAPTÉ AUX NOUVEAUX TOKENS
+        🆕 DÉTECTEUR DE PUMP & DUMP ADAPTÉ AUX NOUVEAUX TOKENS - VERSION CORRIGÉE
         """
         score = 0
         warnings = []
         indicators = {}
+        token_age_hours = "N/A"
         
         if "error" in market or "error" in security:
             return {
@@ -553,19 +703,20 @@ class TokenScanner:
                 "pump_dump_risk": "UNKNOWN",
                 "pump_dump_warnings": ["Données insuffisantes"],
                 "pump_dump_indicators": {},
-                "is_pump_dump_suspect": False
+                "is_pump_dump_suspect": False,
+                "token_age_hours": "N/A"
             }
         
         # Calculer l'âge du token
-        token_age_hours = 999999
         try:
             if pair_created_at and pair_created_at != "N/A":
                 created_timestamp = int(pair_created_at) / 1000
-                token_age_hours = (time.time() - created_timestamp) / 3600
-        except:
-            pass
+                token_age_hours = round((time.time() - created_timestamp) / 3600, 1)
+        except Exception as e:
+            print(f"⚠️ Erreur calcul âge token: {e}")
+            token_age_hours = "N/A"
         
-        is_new_token = token_age_hours < 72  # Moins de 3 jours
+        is_new_token = isinstance(token_age_hours, (int, float)) and token_age_hours < 72
         
         # ===== 1. SPIKE DE VOLUME (adapté aux nouveaux tokens) =====
         volume_24h = market.get("volume_24h", 0)
@@ -668,7 +819,8 @@ class TokenScanner:
                 indicators['holder_concentration'] = 50
             else:
                 indicators['holder_concentration'] = int(max_concentration * 2)
-        except:
+        except Exception as e:
+            print(f"⚠️ Erreur concentration holders: {e}")
             indicators['holder_concentration'] = 0
         
         # ===== 4. LIQUIDITÉ CRITIQUE (adapté aux nouveaux tokens) =====
@@ -695,15 +847,18 @@ class TokenScanner:
                 indicators['low_liquidity'] = 0
         
         # ===== 5. TOKEN RÉCENT (moins pénalisant maintenant) =====
-        if token_age_hours < 6:
-            score += 5
-            indicators['new_token'] = 80
-            warnings.append(f"⚠️ Token très récent ({token_age_hours:.1f}h)")
-        elif token_age_hours < 24:
-            score += 3
-            indicators['new_token'] = 50
-        elif token_age_hours < 72:
-            indicators['new_token'] = 30
+        if isinstance(token_age_hours, (int, float)):
+            if token_age_hours < 6:
+                score += 5
+                indicators['new_token'] = 80
+                warnings.append(f"⚠️ Token très récent ({token_age_hours:.1f}h)")
+            elif token_age_hours < 24:
+                score += 3
+                indicators['new_token'] = 50
+            elif token_age_hours < 72:
+                indicators['new_token'] = 30
+            else:
+                indicators['new_token'] = 0
         else:
             indicators['new_token'] = 0
         
@@ -727,7 +882,7 @@ class TokenScanner:
             "pump_dump_warnings": warnings,
             "pump_dump_indicators": indicators,
             "is_pump_dump_suspect": is_suspect,
-            "token_age_hours": round(token_age_hours, 1) if token_age_hours < 999999 else "N/A"
+            "token_age_hours": token_age_hours
         }
     
     # ==================== RISK SCORE ====================
@@ -790,90 +945,138 @@ class TokenScanner:
         
         return min(score, 100), warnings
     
-    # ==================== ANALYZE TOKEN ====================
+    # ==================== 🔧 ANALYZE TOKEN (CORRIGÉ) ====================
     
     def analyze_token(self, token_info: Dict) -> Dict[str, Any]:
-        """Analyse complète d'un token"""
+        """Analyse complète d'un token avec gestion d'erreur robuste"""
         address = token_info['address']
         chain = token_info['chain']
         icon = token_info.get('icon', '')
         
-        market = self.get_market_data(address)
-        time.sleep(0.5)
-        
-        security = self.check_security(address, chain)
-        time.sleep(0.5)
-        
-        risk_score, warnings = self.calculate_risk_score(security, market)
-        
-        # 🆕 RSI Calculation
-        rsi_data = self.calculate_rsi(market)
-        
-        # 🆕 Fibonacci Analysis
-        fibonacci_data = self.calculate_fibonacci(market)
-        
-        # 🆕 Pump & Dump (adapté nouveaux tokens)
-        pair_created_at = market.get("pair_created_at", "N/A")
-        pump_dump_analysis = self.detect_pump_dump(market, security, pair_created_at)
-        
-        # Twitter
-        twitter_data = {}
-        social_score = 0
-        social_details = {}
-        
-        if token_info.get('twitter'):
-            username = self.extract_twitter_username(token_info['twitter'])
-            if username:
-                twitter_data = self.scrape_twitter_profile(username)
-                if "error" not in twitter_data:
-                    social_score, social_details = self.calculate_social_score(twitter_data)
-                time.sleep(1)
-        
-        self.current_progress += 1
-        
-        return {
-            "address": address,
-            "chain": chain,
-            "url": token_info.get('url'),
-            "icon": icon,
-            "description": token_info.get('description'),
-            "twitter": token_info.get('twitter'),
-            "twitter_data": twitter_data,
-            "social_score": social_score,
-            "social_details": social_details,
-            "market": market,
-            "security": security,
-            "risk_score": risk_score,
-            "warnings": warnings,
-            "is_safe": risk_score < 50,
+        try:
+            market = self.get_market_data(address)
+            time.sleep(0.5)
             
-            # 🆕 RSI
-            "rsi_value": rsi_data["rsi_value"],
-            "rsi_signal": rsi_data["rsi_signal"],
-            "rsi_interpretation": rsi_data["rsi_interpretation"],
-            "rsi_risk_level": rsi_data["rsi_risk_level"],
+            security = self.check_security(address, chain)
+            time.sleep(0.5)
             
-            # 🆕 Fibonacci
-            "fibonacci_levels": fibonacci_data["fibonacci_levels"],
-            "fibonacci_position": fibonacci_data["current_position"],
-            "fibonacci_percentage": fibonacci_data.get("position_percentage", 0),
+            risk_score, warnings = self.calculate_risk_score(security, market)
             
-            # Pump & Dump
-            "pump_dump_score": pump_dump_analysis["pump_dump_score"],
-            "pump_dump_risk": pump_dump_analysis["pump_dump_risk"],
-            "pump_dump_warnings": pump_dump_analysis["pump_dump_warnings"],
-            "pump_dump_indicators": pump_dump_analysis["pump_dump_indicators"],
-            "is_pump_dump_suspect": pump_dump_analysis["is_pump_dump_suspect"],
-            "token_age_hours": pump_dump_analysis["token_age_hours"],
+            # RSI Calculation
+            rsi_data = self.calculate_rsi(market)
             
-            "timestamp": datetime.now().isoformat()
-        }
+            # Fibonacci Analysis
+            fibonacci_data = self.calculate_fibonacci(market)
+            
+            # Pump & Dump (adapté nouveaux tokens)
+            pair_created_at = market.get("pair_created_at", "N/A")
+            pump_dump_analysis = self.detect_pump_dump(market, security, pair_created_at)
+            
+            # Twitter
+            twitter_data = {}
+            social_score = 0
+            social_details = {}
+            
+            if token_info.get('twitter'):
+                username = self.extract_twitter_username(token_info['twitter'])
+                if username:
+                    twitter_data = self.scrape_twitter_profile(username)
+                    if "error" not in twitter_data:
+                        social_score, social_details = self.calculate_social_score(twitter_data)
+                    time.sleep(1)
+            
+            self.current_progress += 1
+            
+            return {
+                "address": address,
+                "chain": chain,
+                "url": token_info.get('url'),
+                "icon": icon,
+                "description": token_info.get('description'),
+                "twitter": token_info.get('twitter'),
+                "twitter_data": twitter_data,
+                "social_score": social_score,
+                "social_details": social_details,
+                "market": market,
+                "security": security,
+                "risk_score": risk_score,
+                "warnings": warnings,
+                "is_safe": risk_score < 50,
+                
+                # RSI
+                "rsi_value": rsi_data.get("rsi_value", 50),
+                "rsi_signal": rsi_data.get("rsi_signal", "NEUTRE"),
+                "rsi_interpretation": rsi_data.get("rsi_interpretation", "N/A"),
+                "rsi_risk_level": rsi_data.get("rsi_risk_level", "UNKNOWN"),
+                
+                # Fibonacci
+                "fibonacci_levels": fibonacci_data.get("fibonacci_levels", {}),
+                "fibonacci_position": fibonacci_data.get("current_position", "N/A"),
+                "fibonacci_percentage": fibonacci_data.get("position_percentage", 0),
+                
+                # Pump & Dump - 🔧 Utiliser .get() pour éviter les KeyError
+                "pump_dump_score": pump_dump_analysis.get("pump_dump_score", 0),
+                "pump_dump_risk": pump_dump_analysis.get("pump_dump_risk", "UNKNOWN"),
+                "pump_dump_warnings": pump_dump_analysis.get("pump_dump_warnings", []),
+                "pump_dump_indicators": pump_dump_analysis.get("pump_dump_indicators", {}),
+                "is_pump_dump_suspect": pump_dump_analysis.get("is_pump_dump_suspect", False),
+                "token_age_hours": pump_dump_analysis.get("token_age_hours", "N/A"),
+                
+                "timestamp": datetime.now().isoformat()
+            }
+        
+        except Exception as e:
+            print(f"❌ Erreur critique analyse {address[:10]}...: {e}")
+            import traceback
+            traceback.print_exc()
+            
+            # Retourner un résultat minimal en cas d'erreur
+            self.current_progress += 1
+            return {
+                "address": address,
+                "chain": chain,
+                "url": token_info.get('url', ''),
+                "icon": icon,
+                "description": "Erreur d'analyse",
+                "twitter": None,
+                "twitter_data": {},
+                "social_score": 0,
+                "social_details": {},
+                "market": {"error": str(e)},
+                "security": {"error": str(e)},
+                "risk_score": 100,
+                "warnings": ["Erreur lors de l'analyse"],
+                "is_safe": False,
+                "rsi_value": 50,
+                "rsi_signal": "ERREUR",
+                "rsi_interpretation": "Analyse impossible",
+                "rsi_risk_level": "UNKNOWN",
+                "fibonacci_levels": {},
+                "fibonacci_position": "N/A",
+                "fibonacci_percentage": 0,
+                "pump_dump_score": 0,
+                "pump_dump_risk": "UNKNOWN",
+                "pump_dump_warnings": [],
+                "pump_dump_indicators": {},
+                "is_pump_dump_suspect": False,
+                "token_age_hours": "N/A",
+                "timestamp": datetime.now().isoformat()
+            }
     
     # ==================== SCAN TOKENS ====================
     
     def scan_tokens(self, max_tokens: int = 10) -> Dict[str, Any]:
-        """Scanner principal"""
+        """Scanner principal avec fallback automatique"""
+        print(f"🔍 Récupération des tokens...")
+        
+        # Essayer d'abord l'API profiles
         tokens = self.fetch_latest_tokens()
+        
+        # Si pas assez de tokens, utiliser l'API de recherche
+        if len(tokens) < max_tokens:
+            print(f"\n⚠️ Seulement {len(tokens)} tokens via API profiles")
+            print(f"🔄 Tentative avec l'API de recherche...\n")
+            tokens = self.fetch_tokens_by_chains(max_per_chain=max(2, max_tokens // 6))
         
         if not tokens:
             return {
@@ -885,6 +1088,8 @@ class TokenScanner:
         tokens = tokens[:max_tokens]
         self.total_tokens = len(tokens)
         self.current_progress = 0
+        
+        print(f"📊 Analyse de {len(tokens)} tokens...\n")
         
         results = []
         safe_tokens = []
@@ -905,7 +1110,7 @@ class TokenScanner:
                     pump_dump_suspects.append(result)
                     
             except Exception as e:
-                print(f"Erreur analyse token: {e}")
+                print(f"❌ Erreur analyse {token.get('address', 'N/A')[:8]}...: {e}")
                 continue
         
         return {
