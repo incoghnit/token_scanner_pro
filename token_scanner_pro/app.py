@@ -13,12 +13,11 @@ from datetime import datetime
 import threading
 import secrets
 from functools import wraps
-from api_routes import register_api_routes
-
 
 app = Flask(__name__)
-app.secret_key = secrets.token_hex(32)  # Clé secrète pour les sessions
+app.secret_key = secrets.token_hex(32)
 CORS(app, supports_credentials=True)
+
 # Configuration
 app.config['CLAUDE_API_KEY'] = 'votre_clé_claude_api'
 
@@ -29,7 +28,7 @@ scan_in_progress = False
 current_scan_results = None
 last_scan_timestamp = None
 
-# ==================== DÉCORATEURS (DOIVENT ÊTRE DÉFINIS EN PREMIER) ====================
+# ==================== DÉCORATEURS ====================
 
 def admin_required(f):
     """Décorateur pour vérifier si l'utilisateur est admin"""
@@ -61,13 +60,11 @@ def admin_page():
     """Page admin - Accessible uniquement aux admins"""
     user_id = session.get('user_id')
     
-    # Vérifier si l'utilisateur est connecté
     if not user_id:
         return render_template('error.html', 
                              error="Accès refusé", 
                              message="Vous devez être connecté pour accéder à cette page"), 403
     
-    # Vérifier si l'utilisateur est admin
     if not db.is_admin(user_id):
         return render_template('error.html', 
                              error="Accès refusé", 
@@ -75,26 +72,23 @@ def admin_page():
     
     return render_template('admin.html')
 
-# ==================== ROUTES API ADMIN ====================
-# Route pour servir le dashboard
 @app.route('/dashboard')
 def dashboard():
+    """Dashboard de trading"""
     return render_template('trading_dashboard.html')
 
-if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+# ==================== ROUTES API ADMIN ====================
+
 @app.route('/api/admin/stats', methods=['GET'])
 @admin_required
 def get_admin_stats():
     """Récupère les statistiques globales"""
     stats = db.get_global_stats()
-    
-    # Ajouter les stats de scans
     all_users = db.get_all_users()
     total_scans = sum(user.get('scan_count', 0) for user in all_users)
     
     stats['total_scans'] = total_scans
-    stats['new_users_today'] = 0  # À implémenter si besoin
+    stats['new_users_today'] = 0
     
     return jsonify({
         "success": True,
@@ -125,7 +119,6 @@ def get_admin_users():
 def toggle_user_status(user_id):
     """Active/Désactive un utilisateur"""
     admin_id = session.get('user_id')
-    
     success = db.toggle_user_status(user_id)
     
     if success:
@@ -143,7 +136,6 @@ def toggle_user_status(user_id):
 def toggle_user_premium(user_id):
     """Active/Désactive le premium d'un utilisateur"""
     admin_id = session.get('user_id')
-    
     success = db.toggle_premium(user_id)
     
     if success:
@@ -188,7 +180,6 @@ def delete_user_api(user_id):
     """Supprime un utilisateur"""
     admin_id = session.get('user_id')
     
-    # Empêcher l'admin de se supprimer lui-même
     if user_id == admin_id:
         return jsonify({
             "success": False,
@@ -229,7 +220,6 @@ def register():
     username = data.get('username')
     password = data.get('password')
     
-    # Validation
     if not email or not username or not password:
         return jsonify({
             "success": False,
@@ -242,7 +232,6 @@ def register():
             "error": "Le mot de passe doit contenir au moins 6 caractères"
         }), 400
     
-    # Créer l'utilisateur
     user_id = db.create_user(email, username, password)
     
     if user_id:
@@ -282,8 +271,6 @@ def login():
     if user:
         session['user_id'] = user['id']
         session['username'] = user['username']
-        
-        # Enregistrer la dernière connexion
         db.update_last_login(user['id'])
         
         return jsonify({
@@ -567,10 +554,8 @@ def start_scan():
     max_tokens = data.get('max_tokens', 10)
     nitter_url = data.get('nitter_url', 'http://192.168.1.19:8080')
     
-    # Limiter les scans pour utilisateurs non connectés
     user_id = session.get('user_id')
     if not user_id:
-        # Limiter à 5 tokens pour les non-connectés
         max_tokens = min(max_tokens, 5)
     
     if max_tokens < 1 or max_tokens > 50:
@@ -587,7 +572,6 @@ def start_scan():
             scan_in_progress = False
             last_scan_timestamp = datetime.now().isoformat()
             
-            # Sauvegarder dans l'historique si connecté
             if user_id and current_scan_results.get('success'):
                 db.save_scan_history(user_id, current_scan_results)
                 db.update_scan_count(user_id)
@@ -650,7 +634,6 @@ def get_results():
             "error": "Aucun résultat disponible"
         }), 404
     
-    # Ajouter le timestamp de la dernière analyse
     results_with_timestamp = current_scan_results.copy()
     results_with_timestamp['last_scan_timestamp'] = last_scan_timestamp
     
@@ -676,7 +659,6 @@ def search_token():
             "error": "Requête de recherche vide"
         }), 400
     
-    # Rechercher dans les résultats
     results = current_scan_results.get('results', [])
     filtered_results = [
         token for token in results
@@ -701,7 +683,8 @@ def health_check():
         "last_scan": last_scan_timestamp
     })
 
-# Gestion des erreurs
+# ==================== GESTION DES ERREURS ====================
+
 @app.errorhandler(404)
 def not_found(error):
     return jsonify({
@@ -716,12 +699,17 @@ def internal_error(error):
         "error": "Erreur serveur interne"
     }), 500
 
+# ==================== DÉMARRAGE ====================
+
 if __name__ == '__main__':
     import socket
+    from api_routes import register_api_routes
+    
+    # IMPORTANT : Enregistrer les routes API AVANT de démarrer le serveur
+    register_api_routes(app)
     
     hostname = socket.gethostname()
     local_ip = socket.gethostbyname(hostname)
-    register_api_routes(app)
     
     print("""
     ╔════════════════════════════════════════════════════════════╗

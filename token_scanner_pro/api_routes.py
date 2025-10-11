@@ -2,7 +2,7 @@
 Routes API Flask pour Token Scanner Pro - Trading System
 Intègre tous les modules : Scanner, IA Validator, Trading, Monitoring
 """
-
+from flask import Flask
 from flask import Blueprint, request, jsonify, session
 from functools import wraps
 from datetime import datetime
@@ -96,6 +96,8 @@ def init_trading_system(app):
     Initialise tous les modules du système de trading
     À appeler depuis app.py au démarrage
     """
+    global trading_engine, ai_validator, wallet_connector
+    global dex_executor, position_monitor, trading_bot, scanner, database
     global trading_engine, ai_validator, wallet_connector
     global dex_executor, position_monitor, trading_bot, scanner, database
     
