@@ -33,7 +33,7 @@ end
 # Unset irrelevant variables.
 deactivate nondestructive
 
-set -gx VIRTUAL_ENV /home/jimmy/script/APP_V2/token_scanner_pro/venv
+set -gx VIRTUAL_ENV /home/jimmy/script/APP_V5/token_scanner_pro/venv
 
 set -gx _OLD_VIRTUAL_PATH $PATH
 set -gx PATH "$VIRTUAL_ENV/"bin $PATH

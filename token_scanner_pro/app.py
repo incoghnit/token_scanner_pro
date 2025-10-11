@@ -13,6 +13,8 @@ from datetime import datetime
 import threading
 import secrets
 from functools import wraps
+from api_routes import register_api_routes
+
 
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(32)  # Clé secrète pour les sessions
@@ -719,20 +721,20 @@ if __name__ == '__main__':
     
     hostname = socket.gethostname()
     local_ip = socket.gethostbyname(hostname)
+    register_api_routes(app)
     
     print("""
     ╔════════════════════════════════════════════════════════════╗
-    ║   TOKEN SCANNER PRO - Interface Web + Auth                ║
+    ║   TOKEN SCANNER PRO - Interface Web + Auth + Trading      ║
     ║                                                            ║
     ║   🌐 Accès local:    http://localhost:5000                ║
     ║   🌐 Accès réseau:   http://192.168.1.19:5000            ║
-    ║   🌐 IP détectée:    http://""" + local_ip + """:5000           ║
-    ║                                                            ║
+    ║   🌐 IP détectée:    http://""" + local_ip + """:5000      ║
+    ║                                                             ║
     ║   ✅ Système de comptes activé                             ║
     ║   ✅ Favoris activés                                       ║
     ║   ✅ Historique activé                                     ║
-    ║   ✅ Recherche activée                                     ║
-    ║   ✅ Icons tokens activés                                  ║
+    ║   ✅ Trading system activé                                 ║
     ╚════════════════════════════════════════════════════════════╝
     """)
     

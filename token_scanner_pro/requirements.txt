@@ -3,3 +3,13 @@ requests==2.31.0
 flask-cors==4.0.0
 flask-login==0.6.3
 flask-bcrypt==1.0.1
+werkzeug==3.0.1
+
+# Modules de trading
+web3==6.11.3
+anthropic==0.18.1
+python-binance==1.0.19
+
+# Optionnel mais recommandé
+eth-account==0.10.0
+eth-utils==2.3.1
