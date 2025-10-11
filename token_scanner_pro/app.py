@@ -17,6 +17,8 @@ from functools import wraps
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(32)  # Clé secrète pour les sessions
 CORS(app, supports_credentials=True)
+# Configuration
+app.config['CLAUDE_API_KEY'] = 'votre_clé_claude_api'
 
 # Instances globales
 db = Database()
@@ -72,7 +74,13 @@ def admin_page():
     return render_template('admin.html')
 
 # ==================== ROUTES API ADMIN ====================
+# Route pour servir le dashboard
+@app.route('/dashboard')
+def dashboard():
+    return render_template('trading_dashboard.html')
 
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=5000)
 @app.route('/api/admin/stats', methods=['GET'])
 @admin_required
 def get_admin_stats():

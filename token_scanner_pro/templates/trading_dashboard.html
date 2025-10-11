@@ -1,0 +1,1500 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Token Scanner Pro - Trading Dashboard</title>
+    
+    <!-- Chart.js pour les graphiques -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border: #334155;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        /* Header */
+        .header {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .wallet-info {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--bg-dark);
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+
+        .wallet-status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--danger);
+        }
+
+        .wallet-status.connected {
+            background: var(--success);
+        }
+
+        /* Layout */
+        .container {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 1.5rem;
+            height: fit-content;
+            position: sticky;
+            top: 90px;
+        }
+
+        .nav-item {
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .nav-item:hover {
+            background: var(--bg-dark);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* Main Content */
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .section {
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-change {
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .stat-change.positive {
+            color: var(--success);
+        }
+
+        .stat-change.negative {
+            color: var(--danger);
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--border);
+            color: var(--text-primary);
+        }
+
+        .btn-outline:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        /* Table */
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: var(--bg-dark);
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+        }
+
+        tbody tr:hover {
+            background: var(--bg-dark);
+        }
+
+        /* Badge */
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .badge-success {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+        }
+
+        .badge-danger {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+        }
+
+        .badge-warning {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--warning);
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .close-modal {
+            cursor: pointer;
+            font-size: 1.5rem;
+            color: var(--text-secondary);
+        }
+
+        /* Loading */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid var(--border);
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Alert */
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .alert.active {
+            display: block;
+        }
+
+        .alert-success {
+            background: rgba(16, 185, 129, 0.2);
+            border-left: 4px solid var(--success);
+            color: var(--success);
+        }
+
+        .alert-danger {
+            background: rgba(239, 68, 68, 0.2);
+            border-left: 4px solid var(--danger);
+            color: var(--danger);
+        }
+
+        /* Chart Container */
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-top: 1rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                position: static;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="logo">
+            <span>🚀</span> Token Scanner Pro
+        </div>
+        <div class="header-right">
+            <div class="wallet-info">
+                <div class="wallet-status" id="walletStatus"></div>
+                <span id="walletAddress">Non connecté</span>
+            </div>
+            <button class="btn btn-primary" onclick="openConnectWalletModal()">
+                Connecter Wallet
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="nav-item active" onclick="switchSection('dashboard')">
+                📊 Dashboard
+            </div>
+            <div class="nav-item" onclick="switchSection('scanner')">
+                🔍 Scanner
+            </div>
+            <div class="nav-item" onclick="switchSection('trading')">
+                💰 Trading
+            </div>
+            <div class="nav-item" onclick="switchSection('positions')">
+                📈 Positions
+            </div>
+            <div class="nav-item" onclick="switchSection('bot')">
+                🤖 Bot Auto
+            </div>
+            <div class="nav-item" onclick="switchSection('settings')">
+                ⚙️ Paramètres
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Dashboard Section -->
+            <div id="dashboard" class="section active">
+                <!-- Stats Grid -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Positions Ouvertes</div>
+                        <div class="stat-value" id="openPositions">0</div>
+                        <div class="stat-change positive">
+                            <span>↑</span> 0 aujourd'hui
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Profit Total</div>
+                        <div class="stat-value" id="totalProfit">$0</div>
+                        <div class="stat-change positive" id="profitChange">
+                            <span>↑</span> 0%
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Win Rate</div>
+                        <div class="stat-value" id="winRate">0%</div>
+                        <div class="stat-change">
+                            Depuis le début
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Balance Wallet</div>
+                        <div class="stat-value" id="walletBalance">$0</div>
+                        <div class="stat-change">
+                            ETH + USDT
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Performance</h2>
+                        <select class="form-input" style="width: auto;" onchange="updateChart(this.value)">
+                            <option value="7d">7 jours</option>
+                            <option value="30d">30 jours</option>
+                            <option value="all">Tout</option>
+                        </select>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="profitChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Recent Positions -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Positions Récentes</h2>
+                        <button class="btn btn-outline" onclick="loadPositions()">Rafraîchir</button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Token</th>
+                                    <th>Type</th>
+                                    <th>Prix Entrée</th>
+                                    <th>Prix Actuel</th>
+                                    <th>P&L</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="positionsTable">
+                                <tr>
+                                    <td colspan="7" style="text-align: center; color: var(--text-secondary);">
+                                        Aucune position ouverte
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scanner Section -->
+            <div id="scanner" class="section">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Scanner de Tokens</h2>
+                    </div>
+                    
+                    <div class="alert" id="scannerAlert"></div>
+
+                    <form onsubmit="scanToken(event)">
+                        <div class="form-group">
+                            <label class="form-label">Adresse du Token</label>
+                            <input type="text" 
+                                   class="form-input" 
+                                   id="tokenAddress" 
+                                   placeholder="0x..."
+                                   required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Blockchain</label>
+                            <select class="form-input" id="tokenChain">
+                                <option value="ethereum">Ethereum</option>
+                                <option value="bsc">Binance Smart Chain</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            🔍 Analyser
+                        </button>
+                    </form>
+
+                    <div class="loading" id="scannerLoading">
+                        <div class="spinner"></div>
+                        <p>Analyse en cours...</p>
+                    </div>
+
+                    <!-- Résultats -->
+                    <div id="scannerResults" style="display: none; margin-top: 2rem;">
+                        <h3 style="margin-bottom: 1rem;">Résultats de l'Analyse</h3>
+                        
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-label">Score de Trading</div>
+                                <div class="stat-value" id="tradingScore">0</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Recommandation IA</div>
+                                <div class="stat-value" id="aiRecommendation">-</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Confiance</div>
+                                <div class="stat-value" id="aiConfidence">0%</div>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                            <button class="btn btn-success" onclick="validateWithAI()">
+                                🤖 Valider avec IA
+                            </button>
+                            <button class="btn btn-primary" onclick="openTradeModal('BUY')">
+                                💰 Acheter
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trading Section -->
+            <div id="trading" class="section">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Interface de Trading</h2>
+                    </div>
+
+                    <div class="alert" id="tradingAlert"></div>
+
+                    <form onsubmit="executeTrade(event)">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div class="form-group">
+                                <label class="form-label">Adresse Token</label>
+                                <input type="text" 
+                                       class="form-input" 
+                                       id="tradeTokenAddress" 
+                                       placeholder="0x..."
+                                       required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Plateforme</label>
+                                <select class="form-input" id="tradePlatform">
+                                    <option value="uniswap">Uniswap V3</option>
+                                    <option value="pancakeswap">PancakeSwap V3</option>
+                                    <option value="binance">Binance</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div class="form-group">
+                                <label class="form-label">Action</label>
+                                <select class="form-input" id="tradeAction">
+                                    <option value="BUY">Acheter</option>
+                                    <option value="SELL">Vendre</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Montant (USD)</label>
+                                <input type="number" 
+                                       class="form-input" 
+                                       id="tradeAmount" 
+                                       placeholder="100"
+                                       step="0.01"
+                                       required>
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                            <div class="form-group">
+                                <label class="form-label">Slippage (%)</label>
+                                <input type="number" 
+                                       class="form-input" 
+                                       id="tradeSlippage" 
+                                       value="1.0"
+                                       step="0.1">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Stop Loss (%)</label>
+                                <input type="number" 
+                                       class="form-input" 
+                                       id="tradeStopLoss" 
+                                       value="10"
+                                       step="1">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Take Profit (%)</label>
+                                <input type="number" 
+                                       class="form-input" 
+                                       id="tradeTakeProfit" 
+                                       value="20"
+                                       step="1">
+                            </div>
+                        </div>
+
+                        <div style="display: flex; gap: 1rem;">
+                            <button type="button" class="btn btn-outline" onclick="estimateTrade()">
+                                📊 Estimer
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                ⚡ Exécuter Trade
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Positions Section -->
+            <div id="positions" class="section">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Gestion des Positions</h2>
+                        <button class="btn btn-primary" onclick="loadPositions()">
+                            🔄 Rafraîchir
+                        </button>
+                    </div>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Token</th>
+                                    <th>Type</th>
+                                    <th>Prix Entrée</th>
+                                    <th>Prix Actuel</th>
+                                    <th>Montant</th>
+                                    <th>P&L</th>
+                                    <th>SL/TP</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="allPositionsTable">
+                                <tr>
+                                    <td colspan="10" style="text-align: center; color: var(--text-secondary);">
+                                        Chargement...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Position Stats -->
+                <div class="card">
+                    <h2 class="card-title">Statistiques</h2>
+                    <div class="stats-grid" style="margin-top: 1rem;">
+                        <div class="stat-card">
+                            <div class="stat-label">Trades Totaux</div>
+                            <div class="stat-value" id="totalTrades">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Trades Gagnants</div>
+                            <div class="stat-value" id="winningTrades">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Trades Perdants</div>
+                            <div class="stat-value" id="losingTrades">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Profit Moyen</div>
+                            <div class="stat-value" id="avgProfit">$0</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bot Section -->
+            <div id="bot" class="section">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Bot de Trading Automatique</h2>
+                        <div>
+                            <span class="badge" id="botStatus">Arrêté</span>
+                        </div>
+                    </div>
+
+                    <div class="alert" id="botAlert"></div>
+
+                    <form onsubmit="toggleBot(event)">
+                        <div class="form-group">
+                            <label class="form-label">Liste de Tokens (séparés par des virgules)</label>
+                            <textarea class="form-input" 
+                                      id="botTokens" 
+                                      rows="3"
+                                      placeholder="0x..., 0x..., 0x..."></textarea>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                            <div class="form-group">
+                                <label class="form-label">Positions Max</label>
+                                <input type="number" 
+                                       class="form-input" 
+                                       id="botMaxPositions" 
+                                       value="5"
+                                       min="1"
+                                       max="20">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Risque par Trade (%)</label>
+                                <input type="number" 
+                                       class="form-input" 
+                                       id="botRiskPerTrade" 
+                                       value="2"
+                                       step="0.5"
+                                       min="0.5"
+                                       max="10">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Confiance Min (%)</label>
+                                <input type="number" 
+                                       class="form-input" 
+                                       id="botMinConfidence" 
+                                       value="70"
+                                       min="50"
+                                       max="100">
+                            </div>
+                        </div>
+
+                        <div style="display: flex; gap: 1rem;">
+                            <button type="submit" class="btn btn-success" id="startBotBtn">
+                                ▶️ Démarrer Bot
+                            </button>
+                            <button type="button" class="btn btn-danger" onclick="stopBot()" id="stopBotBtn" disabled>
+                                ⏸️ Arrêter Bot
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Bot Activity -->
+                    <div style="margin-top: 2rem;">
+                        <h3 style="margin-bottom: 1rem;">Activité du Bot</h3>
+                        <div class="card" style="background: var(--bg-dark); max-height: 300px; overflow-y: auto;">
+                            <div id="botActivity" style="font-family: monospace; font-size: 0.85rem;">
+                                En attente de démarrage...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Section -->
+            <div id="settings" class="section">
+                <div class="card">
+                    <h2 class="card-title">Paramètres</h2>
+                    
+                    <div class="alert" id="settingsAlert"></div>
+
+                    <form onsubmit="saveSettings(event)">
+                        <h3 style="margin: 1.5rem 0 1rem;">Paramètres par Défaut</h3>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div class="form-group">
+                                <label class="form-label">Slippage par Défaut (%)</label>
+                                <input type="number" 
+                                       class="form-input" 
+                                       id="settingsSlippage" 
+                                       value="1.0"
+                                       step="0.1">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Stop Loss par Défaut (%)</label>
+                                <input type="number" 
+                                       class="form-input" 
+                                       id="settingsStopLoss" 
+                                       value="10"
+                                       step="1">
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div class="form-group">
+                                <label class="form-label">Take Profit par Défaut (%)</label>
+                                <input type="number" 
+                                       class="form-input" 
+                                       id="settingsTakeProfit" 
+                                       value="20"
+                                       step="1">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Plateforme Préférée</label>
+                                <select class="form-input" id="settingsPlatform">
+                                    <option value="uniswap">Uniswap V3</option>
+                                    <option value="pancakeswap">PancakeSwap V3</option>
+                                    <option value="binance">Binance</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <h3 style="margin: 1.5rem 0 1rem;">Notifications</h3>
+                        
+                        <div class="form-group">
+                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                <input type="checkbox" id="settingsNotifications" checked>
+                                <span>Activer les notifications</span>
+                            </label>
+                        </div>
+
+                        <h3 style="margin: 1.5rem 0 1rem;">Clés API</h3>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Claude API Key</label>
+                            <input type="password" 
+                                   class="form-input" 
+                                   id="settingsClaudeKey" 
+                                   placeholder="sk-ant-...">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Binance API Key</label>
+                            <input type="text" 
+                                   class="form-input" 
+                                   id="settingsBinanceKey" 
+                                   placeholder="Votre API Key Binance">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Binance API Secret</label>
+                            <input type="password" 
+                                   class="form-input" 
+                                   id="settingsBinanceSecret" 
+                                   placeholder="Votre API Secret Binance">
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">
+                            💾 Sauvegarder
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Connect Wallet Modal -->
+    <div class="modal" id="connectWalletModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Connecter un Wallet</h2>
+                <span class="close-modal" onclick="closeModal('connectWalletModal')">×</span>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                <button class="btn btn-primary" onclick="connectWallet('metamask')">
+                    🦊 MetaMask
+                </button>
+                <button class="btn btn-primary" onclick="connectWallet('walletconnect')">
+                    🔗 WalletConnect
+                </button>
+                <button class="btn btn-primary" onclick="showBinanceForm()">
+                    💱 Binance API
+                </button>
+            </div>
+
+            <div id="binanceForm" style="display: none; margin-top: 1.5rem;">
+                <div class="form-group">
+                    <label class="form-label">Binance API Key</label>
+                    <input type="text" class="form-input" id="binanceApiKey">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Binance API Secret</label>
+                    <input type="password" class="form-input" id="binanceApiSecret">
+                </div>
+                <button class="btn btn-primary" onclick="connectBinance()">
+                    Connecter
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Trade Modal -->
+    <div class="modal" id="tradeModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="tradeModalTitle">Confirmer le Trade</h2>
+                <span class="close-modal" onclick="closeModal('tradeModal')">×</span>
+            </div>
+
+            <div id="tradeModalContent">
+                <!-- Dynamically populated -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentToken = null;
+        let profitChart = null;
+        let refreshInterval = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            initChart();
+            loadDashboard();
+            checkWalletStatus();
+            startAutoRefresh();
+        });
+
+        // Navigation
+        function switchSection(sectionId) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            
+            document.getElementById(sectionId).classList.add('active');
+            event.target.classList.add('active');
+
+            if (sectionId === 'positions') {
+                loadPositions();
+            }
+        }
+
+        // Chart initialization
+        function initChart() {
+            const ctx = document.getElementById('profitChart').getContext('2d');
+            profitChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Profit',
+                        data: [],
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            grid: {
+                                color: '#334155'
+                            },
+                            ticks: {
+                                color: '#94a3b8'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: '#334155'
+                            },
+                            ticks: {
+                                color: '#94a3b8'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Dashboard functions
+        async function loadDashboard() {
+            try {
+                const response = await fetch('/api/positions/stats');
+                const data = await response.json();
+
+                if (data.success) {
+                    const stats = data.stats;
+                    document.getElementById('openPositions').textContent = stats.open_positions || 0;
+                    document.getElementById('totalProfit').textContent = `$${stats.total_profit?.toFixed(2) || 0}`;
+                    document.getElementById('winRate').textContent = `${stats.win_rate?.toFixed(1) || 0}%`;
+                }
+
+                await loadWalletBalance();
+                await loadPositions();
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+            }
+        }
+
+        async function loadWalletBalance() {
+            try {
+                const response = await fetch('/api/wallet/balance');
+                const data = await response.json();
+
+                if (data.success && data.balances) {
+                    const total = Object.values(data.balances).reduce((sum, val) => sum + val, 0);
+                    document.getElementById('walletBalance').textContent = `$${total.toFixed(2)}`;
+                }
+            } catch (error) {
+                console.error('Error loading wallet balance:', error);
+            }
+        }
+
+        async function loadPositions() {
+            try {
+                const response = await fetch('/api/positions/list');
+                const data = await response.json();
+
+                if (data.success) {
+                    updatePositionsTable(data.positions, 'positionsTable', true);
+                    updatePositionsTable(data.positions, 'allPositionsTable', false);
+                }
+            } catch (error) {
+                console.error('Error loading positions:', error);
+            }
+        }
+
+        function updatePositionsTable(positions, tableId, limit = false) {
+            const tbody = document.getElementById(tableId);
+            
+            if (!positions || positions.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; color: var(--text-secondary);">Aucune position</td></tr>';
+                return;
+            }
+
+            const displayPositions = limit ? positions.slice(0, 5) : positions;
+            
+            tbody.innerHTML = displayPositions.map(pos => `
+                <tr>
+                    <td>${pos.id?.substring(0, 8) || '-'}</td>
+                    <td>${pos.token_symbol || pos.token_address?.substring(0, 8)}</td>
+                    <td><span class="badge badge-${pos.action === 'BUY' ? 'success' : 'danger'}">${pos.action}</span></td>
+                    <td>$${pos.entry_price?.toFixed(6) || 0}</td>
+                    <td>$${pos.current_price?.toFixed(6) || 0}</td>
+                    <td>${pos.amount || 0}</td>
+                    <td class="${pos.pnl >= 0 ? 'stat-change positive' : 'stat-change negative'}">
+                        ${pos.pnl >= 0 ? '↑' : '↓'} ${pos.pnl?.toFixed(2) || 0}%
+                    </td>
+                    <td>SL: ${pos.stop_loss || '-'}% / TP: ${pos.take_profit || '-'}%</td>
+                    <td><span class="badge badge-${pos.status === 'open' ? 'success' : 'warning'}">${pos.status}</span></td>
+                    <td>
+                        <button class="btn btn-danger" style="padding: 0.5rem;" onclick="closePosition('${pos.id}')">
+                            Fermer
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Scanner functions
+        async function scanToken(event) {
+            event.preventDefault();
+            
+            const address = document.getElementById('tokenAddress').value;
+            const chain = document.getElementById('tokenChain').value;
+
+            showLoading('scannerLoading', true);
+            hideAlert('scannerAlert');
+
+            try {
+                const response = await fetch('/api/scan/token', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({address, chain})
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    currentToken = data;
+                    displayScanResults(data);
+                    showAlert('scannerAlert', 'success', 'Analyse terminée avec succès !');
+                } else {
+                    showAlert('scannerAlert', 'danger', data.error || 'Erreur lors de l\'analyse');
+                }
+            } catch (error) {
+                showAlert('scannerAlert', 'danger', 'Erreur réseau: ' + error.message);
+            } finally {
+                showLoading('scannerLoading', false);
+            }
+        }
+
+        function displayScanResults(data) {
+            document.getElementById('scannerResults').style.display = 'block';
+            document.getElementById('tradingScore').textContent = data.trading_score?.total_score || 0;
+        }
+
+        async function validateWithAI() {
+            if (!currentToken) return;
+
+            try {
+                const response = await fetch('/api/ai/validate', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        token_data: currentToken.token,
+                        trading_score: currentToken.trading_score,
+                        action: 'BUY'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    const validation = data.validation;
+                    document.getElementById('aiRecommendation').textContent = validation.recommendation;
+                    document.getElementById('aiConfidence').textContent = `${validation.confidence_score}%`;
+                    
+                    showAlert('scannerAlert', 'success', `IA: ${validation.recommendation} (${validation.confidence_score}% confiance)`);
+                }
+            } catch (error) {
+                showAlert('scannerAlert', 'danger', 'Erreur lors de la validation IA');
+            }
+        }
+
+        // Trading functions
+        async function executeTrade(event) {
+            event.preventDefault();
+
+            const tradeData = {
+                action: document.getElementById('tradeAction').value,
+                token_address: document.getElementById('tradeTokenAddress').value,
+                amount: parseFloat(document.getElementById('tradeAmount').value),
+                platform: document.getElementById('tradePlatform').value,
+                slippage: parseFloat(document.getElementById('tradeSlippage').value),
+                stop_loss: parseFloat(document.getElementById('tradeStopLoss').value),
+                take_profit: parseFloat(document.getElementById('tradeTakeProfit').value)
+            };
+
+            hideAlert('tradingAlert');
+
+            try {
+                const response = await fetch('/api/trade/execute', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(tradeData)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showAlert('tradingAlert', 'success', `Trade exécuté avec succès ! TX: ${data.tx_hash?.substring(0, 10)}...`);
+                    setTimeout(() => loadDashboard(), 2000);
+                } else {
+                    showAlert('tradingAlert', 'danger', data.error || 'Erreur lors de l\'exécution');
+                }
+            } catch (error) {
+                showAlert('tradingAlert', 'danger', 'Erreur réseau: ' + error.message);
+            }
+        }
+
+        async function estimateTrade() {
+            const tradeData = {
+                action: document.getElementById('tradeAction').value,
+                token_address: document.getElementById('tradeTokenAddress').value,
+                amount: parseFloat(document.getElementById('tradeAmount').value),
+                platform: document.getElementById('tradePlatform').value
+            };
+
+            try {
+                const response = await fetch('/api/trade/estimate', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(tradeData)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showAlert('tradingAlert', 'success', `Estimation: ${data.estimate.amount_out} tokens`);
+                }
+            } catch (error) {
+                showAlert('tradingAlert', 'danger', 'Erreur lors de l\'estimation');
+            }
+        }
+
+        // Position functions
+        async function closePosition(positionId) {
+            if (!confirm('Êtes-vous sûr de vouloir fermer cette position ?')) return;
+
+            try {
+                const response = await fetch(`/api/positions/${positionId}/close`, {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('Position fermée avec succès !');
+                    loadPositions();
+                    loadDashboard();
+                } else {
+                    alert('Erreur: ' + data.error);
+                }
+            } catch (error) {
+                alert('Erreur réseau: ' + error.message);
+            }
+        }
+
+        // Bot functions
+        async function toggleBot(event) {
+            event.preventDefault();
+
+            const tokens = document.getElementById('botTokens').value.split(',').map(t => t.trim());
+            const config = {
+                max_positions: parseInt(document.getElementById('botMaxPositions').value),
+                risk_per_trade: parseFloat(document.getElementById('botRiskPerTrade').value),
+                min_confidence: parseInt(document.getElementById('botMinConfidence').value)
+            };
+
+            try {
+                const response = await fetch('/api/bot/start', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({tokens, config})
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('botStatus').textContent = 'En cours';
+                    document.getElementById('botStatus').className = 'badge badge-success';
+                    document.getElementById('startBotBtn').disabled = true;
+                    document.getElementById('stopBotBtn').disabled = false;
+                    showAlert('botAlert', 'success', 'Bot démarré avec succès !');
+                    startBotActivityLog();
+                }
+            } catch (error) {
+                showAlert('botAlert', 'danger', 'Erreur: ' + error.message);
+            }
+        }
+
+        async function stopBot() {
+            try {
+                const response = await fetch('/api/bot/stop', {method: 'POST'});
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('botStatus').textContent = 'Arrêté';
+                    document.getElementById('botStatus').className = 'badge badge-danger';
+                    document.getElementById('startBotBtn').disabled = false;
+                    document.getElementById('stopBotBtn').disabled = true;
+                    showAlert('botAlert', 'success', 'Bot arrêté');
+                }
+            } catch (error) {
+                showAlert('botAlert', 'danger', 'Erreur: ' + error.message);
+            }
+        }
+
+        function startBotActivityLog() {
+            // Simulate bot activity
+            setInterval(() => {
+                const activity = document.getElementById('botActivity');
+                const timestamp = new Date().toLocaleTimeString();
+                activity.innerHTML = `${timestamp}: Bot actif - Analyse en cours...\n` + activity.innerHTML;
+            }, 5000);
+        }
+
+        // Wallet functions
+        async function checkWalletStatus() {
+            try {
+                const response = await fetch('/api/wallet/balance');
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('walletStatus').classList.add('connected');
+                    document.getElementById('walletAddress').textContent = 'Connecté';
+                }
+            } catch (error) {
+                console.error('Wallet not connected');
+            }
+        }
+
+        async function connectWallet(type) {
+            try {
+                const response = await fetch('/api/wallet/connect', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({type, address: '0x...'})
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    closeModal('connectWalletModal');
+                    checkWalletStatus();
+                    alert('Wallet connecté avec succès !');
+                }
+            } catch (error) {
+                alert('Erreur de connexion: ' + error.message);
+            }
+        }
+
+        function showBinanceForm() {
+            document.getElementById('binanceForm').style.display = 'block';
+        }
+
+        async function connectBinance() {
+            const apiKey = document.getElementById('binanceApiKey').value;
+            const apiSecret = document.getElementById('binanceApiSecret').value;
+
+            try {
+                const response = await fetch('/api/wallet/connect', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        type: 'binance',
+                        api_key: apiKey,
+                        api_secret: apiSecret
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    closeModal('connectWalletModal');
+                    checkWalletStatus();
+                    alert('Binance connecté avec succès !');
+                }
+            } catch (error) {
+                alert('Erreur de connexion Binance: ' + error.message);
+            }
+        }
+
+        // Settings functions
+        async function saveSettings(event) {
+            event.preventDefault();
+
+            const settings = {
+                default_slippage: parseFloat(document.getElementById('settingsSlippage').value),
+                default_stop_loss: parseFloat(document.getElementById('settingsStopLoss').value),
+                default_take_profit: parseFloat(document.getElementById('settingsTakeProfit').value),
+                notifications_enabled: document.getElementById('settingsNotifications').checked
+            };
+
+            try {
+                const response = await fetch('/api/config/update', {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(settings)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showAlert('settingsAlert', 'success', 'Paramètres sauvegardés !');
+                }
+            } catch (error) {
+                showAlert('settingsAlert', 'danger', 'Erreur: ' + error.message);
+            }
+        }
+
+        // Utility functions
+        function showAlert(id, type, message) {
+            const alert = document.getElementById(id);
+            alert.className = `alert alert-${type} active`;
+            alert.textContent = message;
+            setTimeout(() => hideAlert(id), 5000);
+        }
+
+        function hideAlert(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        function showLoading(id, show) {
+            document.getElementById(id).classList.toggle('active', show);
+        }
+
+        function openModal(id) {
+            document.getElementById(id).classList.add('active');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        function openConnectWalletModal() {
+            openModal('connectWalletModal');
+        }
+
+        function openTradeModal(action) {
+            // Implementation for trade modal
+            openModal('tradeModal');
+        }
+
+        function startAutoRefresh() {
+            refreshInterval = setInterval(() => {
+                loadDashboard();
+            }, 30000); // Refresh every 30 seconds
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (refreshInterval) clearInterval(refreshInterval);
+        });
+    </script>
+</body>
+</html>
