@@ -33,203 +33,144 @@ class TokenScanner:
         """Extrait le username depuis une URL Twitter"""
         if not twitter_url:
             return None
-        match = re.search(r'(?:twitter\.com|x\.com)/([^/?]+)', twitter_url)
+        match = re.search(r'(?:twitter\.com|x\.com)/([^/?#]+)', twitter_url)
         return match.group(1) if match else None
     
     def scrape_twitter_profile(self, username: str) -> Dict[str, Any]:
-        """Scrape un profil Twitter via Nitter local"""
-        if not username:
-            return {"error": "Username manquant"}
-        
-        username = username.strip('@')
-        
+        """Scrape un profil Twitter via Nitter"""
         try:
             url = f"{self.nitter_instance}/{username}"
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            }
-            
-            response = requests.get(url, headers=headers, timeout=15)
+            response = requests.get(url, timeout=10)
             
             if response.status_code != 200:
-                return {"error": f"Profil non accessible (HTTP {response.status_code})"}
+                return {"error": "Profil non trouvé"}
             
             html = response.text
             
-            profile_data = {
-                "username": username,
-                "followers": 0,
-                "following": 0,
-                "tweets": 0,
-                "bio": "",
-                "verified": False
-            }
+            followers_match = re.search(r'<span[^>]*class="profile-stat-num"[^>]*>([^<]+)</span>\s*<span[^>]*class="profile-stat-header"[^>]*>Followers', html)
+            following_match = re.search(r'<span[^>]*class="profile-stat-num"[^>]*>([^<]+)</span>\s*<span[^>]*class="profile-stat-header"[^>]*>Following', html)
+            tweets_match = re.search(r'<span[^>]*class="profile-stat-num"[^>]*>([^<]+)</span>\s*<span[^>]*class="profile-stat-header"[^>]*>Tweets', html)
             
-            stats_pattern = r'<span class="profile-stat-header">([^<]+)</span>\s*<span class="profile-stat-num">([^<]+)</span>'
-            for stat_match in re.finditer(stats_pattern, html):
-                stat_name = stat_match.group(1).strip().lower()
-                stat_value = stat_match.group(2).strip()
-                
+            bio_match = re.search(r'<div[^>]*class="profile-bio"[^>]*>(.*?)</div>', html, re.DOTALL)
+            
+            def parse_count(match_obj):
+                if not match_obj:
+                    return 0
+                count_str = unescape(match_obj.group(1)).strip().replace(',', '')
+                if 'K' in count_str:
+                    return int(float(count_str.replace('K', '')) * 1000)
+                elif 'M' in count_str:
+                    return int(float(count_str.replace('M', '')) * 1000000)
                 try:
-                    clean_value = stat_value.replace(',', '').replace(' ', '')
-                    
-                    if 'k' in clean_value.lower():
-                        value = int(float(clean_value.lower().replace('k', '')) * 1000)
-                    elif 'm' in clean_value.lower():
-                        value = int(float(clean_value.lower().replace('m', '')) * 1000000)
-                    else:
-                        value = int(clean_value) if clean_value.isdigit() else 0
-                    
-                    if 'follower' in stat_name:
-                        profile_data['followers'] = value
-                    elif 'following' in stat_name:
-                        profile_data['following'] = value
-                    elif 'tweet' in stat_name or 'post' in stat_name:
-                        profile_data['tweets'] = value
-                except ValueError:
-                    pass
+                    return int(count_str)
+                except:
+                    return 0
             
-            bio_match = re.search(r'<div class="profile-bio"><p[^>]*>(.*?)</p>', html, re.DOTALL)
-            if bio_match:
-                bio_text = re.sub(r'<[^>]+>', '', bio_match.group(1))
-                profile_data['bio'] = unescape(bio_text.strip())[:200]
-            
-            profile_data['verified'] = bool(re.search(r'verified-icon', html))
-            
-            return profile_data
-            
-        except requests.exceptions.Timeout:
-            return {"error": "Timeout lors de la connexion à Nitter"}
-        except requests.exceptions.ConnectionError:
-            return {"error": "Impossible de se connecter à Nitter"}
+            return {
+                "username": username,
+                "followers": parse_count(followers_match),
+                "following": parse_count(following_match),
+                "tweets": parse_count(tweets_match),
+                "bio": unescape(bio_match.group(1)).strip() if bio_match else "",
+                "url": f"https://twitter.com/{username}"
+            }
         except Exception as e:
-            return {"error": f"Erreur lors du scraping: {str(e)}"}
+            return {"error": str(e)}
     
-    def calculate_social_score(self, twitter_data: Dict) -> tuple:
-        """Calcule un score social de 0 à 100"""
+    def calculate_social_score(self, twitter_data: Dict) -> tuple[int, Dict[str, Any]]:
+        """Calcule le score social basé sur Twitter"""
         if "error" in twitter_data:
-            return 0, {"status": "Twitter non disponible"}
+            return 0, {}
         
         score = 0
         details = {}
         
-        followers = twitter_data.get('followers', 0)
-        following = twitter_data.get('following', 0)
-        tweets = twitter_data.get('tweets', 0)
-        verified = twitter_data.get('verified', False)
+        followers = twitter_data.get("followers", 0)
+        following = twitter_data.get("following", 0)
+        tweets = twitter_data.get("tweets", 0)
         
-        # Score followers (40 points max)
-        if followers >= 100000:
-            score += 40
-            details['followers_score'] = "Excellent (100k+)"
-        elif followers >= 50000:
-            score += 35
-            details['followers_score'] = "Très bon (50k+)"
-        elif followers >= 10000:
+        if followers > 10000:
             score += 30
-            details['followers_score'] = "Bon (10k+)"
-        elif followers >= 5000:
-            score += 25
-            details['followers_score'] = "Moyen (5k+)"
-        elif followers >= 1000:
-            score += 15
-            details['followers_score'] = "Faible (1k+)"
-        elif followers >= 100:
-            score += 5
-            details['followers_score'] = "Très faible (100+)"
+            details["followers_status"] = "Excellent (>10K)"
+        elif followers > 5000:
+            score += 20
+            details["followers_status"] = "Bon (>5K)"
+        elif followers > 1000:
+            score += 10
+            details["followers_status"] = "Moyen (>1K)"
         else:
-            details['followers_score'] = "Quasi inexistant"
+            details["followers_status"] = "Faible (<1K)"
         
-        # Ratio followers/following (20 points max)
         if following > 0:
             ratio = followers / following
-            if ratio >= 10:
+            if ratio > 2:
                 score += 20
-                details['ratio_score'] = "Excellent (10:1+)"
-            elif ratio >= 3:
-                score += 15
-                details['ratio_score'] = "Bon (3:1+)"
-            elif ratio >= 1:
+                details["ratio_status"] = f"Excellent ({ratio:.1f}:1)"
+            elif ratio > 1:
                 score += 10
-                details['ratio_score'] = "Moyen (1:1+)"
+                details["ratio_status"] = f"Bon ({ratio:.1f}:1)"
             else:
-                score += 5
-                details['ratio_score'] = "Faible"
+                details["ratio_status"] = f"Faible ({ratio:.1f}:1)"
         
-        # Score activité (20 points max)
-        if tweets >= 1000:
+        if tweets > 500:
             score += 20
-            details['activity_score'] = "Très actif (1k+ tweets)"
-        elif tweets >= 500:
+            details["activity_status"] = "Très actif (>500 tweets)"
+        elif tweets > 100:
             score += 15
-            details['activity_score'] = "Actif (500+)"
-        elif tweets >= 100:
+            details["activity_status"] = "Actif (>100 tweets)"
+        elif tweets > 50:
             score += 10
-            details['activity_score'] = "Moyen (100+)"
-        elif tweets >= 10:
-            score += 5
-            details['activity_score'] = "Faible (10+)"
+            details["activity_status"] = "Modéré (>50 tweets)"
         else:
-            details['activity_score'] = "Inactif"
+            details["activity_status"] = "Peu actif (<50 tweets)"
         
-        # Badge vérifié (20 points)
-        if verified:
-            score += 20
-            details['verified'] = "Oui ✓"
+        bio = twitter_data.get("bio", "")
+        if len(bio) > 50:
+            score += 10
+            details["bio_status"] = "Bio complète"
         else:
-            details['verified'] = "Non"
+            details["bio_status"] = "Bio incomplète"
         
-        details['total_score'] = score
-        details['followers'] = followers
-        details['following'] = following
-        details['tweets'] = tweets
+        if followers < 100 and tweets < 20:
+            score -= 20
+            details["warning"] = "Compte très récent ou inactif"
         
-        return score, details
+        details["total_score"] = max(0, min(100, score))
+        
+        return max(0, min(100, score)), details
     
     def fetch_latest_tokens(self) -> List[Dict]:
-        """Récupère les derniers tokens listés sur DexScreener avec leurs icons"""
+        """Récupère les derniers tokens depuis DexScreener"""
         try:
-            response = requests.get(self.dexscreener_profiles_api, timeout=15)
+            response = requests.get(self.dexscreener_profiles_api, timeout=10)
             
             if response.status_code != 200:
                 return []
             
             data = response.json()
+            tokens = []
             
-            if not data:
-                return []
-            
-            filtered_tokens = []
-            for token in data:
-                chain = token.get('chainId', '').lower()
-                if chain in ['solana', 'ethereum', 'base', 'bsc', 'arbitrum']:
-                    twitter = None
-                    links = token.get('links', [])
-                    for link in links:
-                        if link.get('type') == 'twitter':
-                            twitter = link.get('url')
-                            break
+            for item in data:
+                if item.get("chainId") and item.get("tokenAddress"):
+                    icon = item.get("icon") or ""
                     
-                    icon_url = token.get('icon', '')
-                    
-                    filtered_tokens.append({
-                        'address': token.get('tokenAddress'),
-                        'chain': chain,
-                        'url': token.get('url'),
-                        'icon': icon_url,
-                        'description': token.get('description', 'N/A'),
-                        'twitter': twitter,
-                        'links': links
+                    tokens.append({
+                        "address": item["tokenAddress"],
+                        "chain": item["chainId"],
+                        "url": item.get("url", ""),
+                        "icon": icon,
+                        "description": item.get("description", ""),
+                        "twitter": next((link["url"] for link in item.get("links", []) if link.get("type") == "twitter"), None),
+                        "links": item.get("links", [])
                     })
             
-            return filtered_tokens
-            
+            return tokens
         except Exception as e:
-            print(f"Erreur lors de la récupération: {e}")
+            print(f"Erreur fetch tokens: {e}")
             return []
     
     def get_market_data(self, address: str) -> Dict[str, Any]:
-        """Récupère les données de marché"""
+        """Récupère les données de marché via DexScreener"""
         try:
             url = f"{self.dexscreener_api}/tokens/{address}"
             response = requests.get(url, timeout=10)
@@ -238,11 +179,11 @@ class TokenScanner:
                 return {"error": "API non disponible"}
             
             data = response.json()
-            pairs = data.get("pairs", [])
             
-            if not pairs:
+            if "pairs" not in data or not data["pairs"]:
                 return {"error": "Aucune paire trouvée"}
             
+            pairs = data["pairs"]
             main_pair = max(pairs, key=lambda x: float(x.get("liquidity", {}).get("usd", 0) or 0))
             
             return {
@@ -282,6 +223,7 @@ class TokenScanner:
             
             data = response.json()
             
+            # ✅ CORRECTION : Ajout du "if" manquant à la ligne 186
             if data.get("code") != 1:
                 return {"error": "Token non trouvé"}
             
@@ -322,152 +264,129 @@ class TokenScanner:
                 "is_pump_dump_suspect": False
             }
         
-        # ===== 1. SPIKE DE VOLUME (0-25 points) =====
-        volume_24h = market.get("volume_24h", 0)
-        volume_6h = market.get("volume_6h", 0)
-        liquidity = market.get("liquidity_usd", 0)
+        # ===== 1. ÂGE DU TOKEN =====
+        try:
+            if pair_created_at and pair_created_at != "N/A":
+                created_timestamp = int(pair_created_at) / 1000
+                age_hours = (datetime.now().timestamp() - created_timestamp) / 3600
+                
+                indicators["token_age_hours"] = round(age_hours, 2)
+                
+                if age_hours < 1:
+                    score += 30
+                    warnings.append(f"Token ULTRA récent ({age_hours:.1f}h)")
+                elif age_hours < 6:
+                    score += 20
+                    warnings.append(f"Token très récent ({age_hours:.1f}h)")
+                elif age_hours < 24:
+                    score += 10
+                    warnings.append(f"Token récent ({age_hours:.1f}h)")
+        except:
+            pass
         
-        if liquidity > 0 and volume_24h > 0:
-            volume_to_liquidity_ratio = volume_24h / liquidity
-            
-            if volume_to_liquidity_ratio > 10:
-                score += 25
-                indicators['volume_spike'] = 100
-                warnings.append(f"🚨 Volume explosif: {volume_to_liquidity_ratio:.1f}x la liquidité")
-            elif volume_to_liquidity_ratio > 5:
-                score += 20
-                indicators['volume_spike'] = 80
-                warnings.append(f"⚠️ Volume spike important: {volume_to_liquidity_ratio:.1f}x la liquidité")
-            elif volume_to_liquidity_ratio > 3:
-                score += 15
-                indicators['volume_spike'] = 60
-                warnings.append(f"⚠️ Volume élevé: {volume_to_liquidity_ratio:.1f}x la liquidité")
-            elif volume_to_liquidity_ratio > 2:
-                score += 10
-                indicators['volume_spike'] = 40
-            else:
-                indicators['volume_spike'] = 20
-        else:
-            indicators['volume_spike'] = 0
-        
-        # ===== 2. SPIKE DE PRIX (0-30 points) =====
+        # ===== 2. VARIATION DE PRIX SUSPECTE =====
         price_change_24h = market.get("price_change_24h", 0)
         price_change_6h = market.get("price_change_6h", 0)
         price_change_1h = market.get("price_change_1h", 0)
         
-        if price_change_24h > 200:
-            score += 30
-            indicators['price_spike'] = 100
-            warnings.append(f"🚨 Prix +{price_change_24h:.0f}% en 24h - PUMP MASSIF")
-        elif price_change_24h > 100:
+        indicators["price_change_24h"] = price_change_24h
+        indicators["price_change_6h"] = price_change_6h
+        indicators["price_change_1h"] = price_change_1h
+        
+        if price_change_1h > 100:
             score += 25
-            indicators['price_spike'] = 85
-            warnings.append(f"🚨 Prix +{price_change_24h:.0f}% en 24h - Potentiel pump")
-        elif price_change_24h > 50:
+            warnings.append(f"Pump violent: +{price_change_1h:.0f}% en 1h")
+        elif price_change_1h > 50:
+            score += 15
+            warnings.append(f"Hausse suspecte: +{price_change_1h:.0f}% en 1h")
+        
+        if price_change_6h > 500:
             score += 20
-            indicators['price_spike'] = 70
-            warnings.append(f"⚠️ Prix +{price_change_24h:.0f}% en 24h - Hausse suspecte")
-        elif price_change_24h > 30:
-            score += 10
-            indicators['price_spike'] = 50
-        else:
-            indicators['price_spike'] = max(0, int(price_change_24h * 1.5))
+            warnings.append(f"Pump massif: +{price_change_6h:.0f}% en 6h")
         
-        if price_change_1h > 50:
-            score += 10
-            warnings.append(f"🚨 Prix +{price_change_1h:.0f}% en 1h - Pump actif!")
+        if price_change_24h < -50:
+            score += 25
+            warnings.append(f"Dump en cours: {price_change_24h:.0f}% en 24h")
         
-        # ===== 3. CONCENTRATION DES HOLDERS (0-20 points) =====
-        try:
-            creator_balance = float(security.get("creator_balance", "0"))
-            owner_balance = float(security.get("owner_balance", "0"))
+        # ===== 3. RATIO VOLUME / LIQUIDITÉ =====
+        volume_24h = market.get("volume_24h", 0)
+        liquidity = market.get("liquidity_usd", 1)
+        
+        if liquidity > 0:
+            vol_liq_ratio = volume_24h / liquidity
+            indicators["volume_liquidity_ratio"] = round(vol_liq_ratio, 2)
             
-            if creator_balance > 50 or owner_balance > 50:
+            if vol_liq_ratio > 5:
                 score += 20
-                indicators['holder_concentration'] = 100
-                warnings.append(f"🚨 Concentration extrême: Créateur/Owner détient {max(creator_balance, owner_balance):.0f}%")
-            elif creator_balance > 30 or owner_balance > 30:
-                score += 15
-                indicators['holder_concentration'] = 75
-                warnings.append(f"⚠️ Forte concentration: {max(creator_balance, owner_balance):.0f}% détenu")
-            elif creator_balance > 20 or owner_balance > 20:
+                warnings.append(f"Ratio Vol/Liq anormal: {vol_liq_ratio:.1f}x")
+            elif vol_liq_ratio > 3:
                 score += 10
-                indicators['holder_concentration'] = 50
-                warnings.append(f"⚠️ Concentration modérée: {max(creator_balance, owner_balance):.0f}%")
-            else:
-                indicators['holder_concentration'] = 25
-        except:
-            indicators['holder_concentration'] = 0
+                warnings.append(f"Ratio Vol/Liq élevé: {vol_liq_ratio:.1f}x")
         
-        # ===== 4. LIQUIDITÉ FAIBLE (0-15 points) =====
+        # ===== 4. LIQUIDITÉ FAIBLE =====
         if liquidity < 5000:
             score += 15
-            indicators['low_liquidity'] = 100
-            warnings.append(f"🚨 Liquidité très faible: ${liquidity:,.0f} - Risque de rug")
-        elif liquidity < 10000:
+            warnings.append(f"Liquidité très faible: ${liquidity:,.0f}")
+            indicators["low_liquidity"] = True
+        
+        # ===== 5. DÉSÉQUILIBRE BUY/SELL =====
+        buys = market.get("txns_24h_buys", 0)
+        sells = market.get("txns_24h_sells", 0)
+        
+        if buys > 0 and sells > 0:
+            buy_sell_ratio = buys / sells if sells > 0 else 10
+            indicators["buy_sell_ratio"] = round(buy_sell_ratio, 2)
+            
+            if buy_sell_ratio > 5:
+                score += 15
+                warnings.append(f"Déséquilibre achats/ventes: {buy_sell_ratio:.1f}:1")
+            elif buy_sell_ratio < 0.2:
+                score += 15
+                warnings.append(f"Ventes massives: ratio {buy_sell_ratio:.2f}:1")
+        
+        # ===== 6. TAXES SUSPICIEUSES =====
+        buy_tax = security.get("buy_tax", 0)
+        sell_tax = security.get("sell_tax", 0)
+        
+        if sell_tax > buy_tax + 5:
             score += 10
-            indicators['low_liquidity'] = 70
-            warnings.append(f"⚠️ Liquidité faible: ${liquidity:,.0f}")
-        elif liquidity < 25000:
-            score += 5
-            indicators['low_liquidity'] = 40
-        else:
-            indicators['low_liquidity'] = 0
+            warnings.append(f"Tax vente élevée: {sell_tax}% vs {buy_tax}%")
         
-        # ===== 5. TOKEN RÉCENT (0-10 points) =====
-        try:
-            if pair_created_at and pair_created_at != "N/A":
-                created_timestamp = int(pair_created_at) / 1000
-                age_hours = (time.time() - created_timestamp) / 3600
-                
-                if age_hours < 6:
-                    score += 10
-                    indicators['new_token'] = 100
-                    warnings.append(f"⚠️ Token très récent ({age_hours:.1f}h) - Risque élevé")
-                elif age_hours < 24:
-                    score += 7
-                    indicators['new_token'] = 70
-                    warnings.append(f"⚠️ Token récent ({age_hours:.0f}h)")
-                elif age_hours < 72:
-                    score += 4
-                    indicators['new_token'] = 40
-                else:
-                    indicators['new_token'] = 0
-            else:
-                indicators['new_token'] = 0
-        except:
-            indicators['new_token'] = 0
+        if buy_tax > 15 or sell_tax > 15:
+            score += 10
+            warnings.append("Taxes excessives (>15%)")
         
-        # ===== CALCUL DU NIVEAU DE RISQUE =====
+        # ===== CALCUL DU RISQUE FINAL =====
+        score = min(score, 100)
+        
         if score >= 70:
-            risk_level = "CRITICAL"
+            risk_level = "EXTREME"
         elif score >= 50:
             risk_level = "HIGH"
         elif score >= 30:
             risk_level = "MEDIUM"
-        elif score >= 15:
-            risk_level = "LOW"
         else:
-            risk_level = "SAFE"
-        
-        is_suspect = score >= 50
+            risk_level = "LOW"
         
         return {
-            "pump_dump_score": min(score, 100),
+            "pump_dump_score": score,
             "pump_dump_risk": risk_level,
             "pump_dump_warnings": warnings,
             "pump_dump_indicators": indicators,
-            "is_pump_dump_suspect": is_suspect
+            "is_pump_dump_suspect": score >= 50
         }
     
-    def calculate_risk_score(self, security: Dict, market: Dict) -> tuple:
-        """Calcule le score de risque"""
+    def calculate_risk_score(self, security: Dict, market: Dict) -> tuple[int, List[str]]:
+        """Calcule le score de risque global"""
         score = 0
         warnings = []
         
+        if "error" in security:
+            return 50, ["Impossible de vérifier la sécurité"]
+        
         if security.get("is_honeypot"):
             score += 50
-            warnings.append("HONEYPOT DÉTECTÉ")
+            warnings.append("⚠️ HONEYPOT DÉTECTÉ")
         
         if security.get("is_mintable"):
             score += 10
@@ -621,3 +540,17 @@ class TokenScanner:
             "pump_dump_suspects": sorted(pump_dump_suspects, key=lambda x: x['pump_dump_score'], reverse=True),
             "timestamp": datetime.now().isoformat()
         }
+
+
+if __name__ == "__main__":
+    print("🚀 Démarrage du scanner...")
+    scanner = TokenScanner()
+    results = scanner.scan_tokens(max_tokens=5)
+    
+    if results["success"]:
+        print(f"\n✅ {results['total_analyzed']} tokens analysés")
+        print(f"   Sûrs: {results['safe_count']}")
+        print(f"   Risqués: {results['dangerous_count']}")
+        print(f"   Pump & Dump suspects: {results['pump_dump_suspects_count']}")
+    else:
+        print(f"\n❌ Erreur: {results.get('error')}")

@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Token Scanner Pro - Analyse & Trading</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        /* 🆕 AJOUTS POUR NOUVELLES FONCTIONNALITÉS */
+        
+        /* System Health Bar */
+        .system-health {
+            background: var(--bg-secondary);
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+        }
+
+        .health-modules {
+            display: flex;
+            gap: 16px;
+        }
+
+        .health-module {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .health-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .health-dot.online { background: var(--accent-green); }
+        .health-dot.offline { background: var(--accent-red); }
+        .health-dot.warning { background: var(--accent-orange); }
+
+        /* Floating Action Button */
+        .fab-container {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 999;
+            display: flex;
+            flex-direction: column-reverse;
+            gap: 12px;
+        }
+
+        .fab {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--gradient-primary);
+            color: white;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .fab:hover {
+            transform: scale(1.1);
+        }
+
+        .fab-mini {
+            width: 48px;
+            height: 48px;
+            font-size: 20px;
+            display: none;
+        }
+
+        .fab-container:hover .fab-mini {
+            display: flex;
+        }
+
+        /* Trading Panel */
+        .trading-quick-panel {
+            position: fixed;
+            right: -400px;
+            top: 0;
+            width: 380px;
+            height: 100vh;
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border-color);
+            box-shadow: -4px 0 16px rgba(0,0,0,0.3);
+            transition: right 0.3s;
+            z-index: 999;
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        .trading-quick-panel.active {
+            right: 0;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .panel-title {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .panel-close {
+            cursor: pointer;
+            font-size: 24px;
+            color: var(--text-secondary);
+        }
+
+        /* AI Insights Card */
+        .ai-insights-card {
+            background: linear-gradient(135deg, rgba(156, 39, 176, 0.1), rgba(102, 126, 234, 0.1));
+            border: 2px solid var(--accent-purple);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .ai-badge {
+            background: var(--accent-purple);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            display: inline-block;
+            margin-bottom: 12px;
+        }
+
+        /* Scanner Debug Panel */
+        .debug-panel {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            max-width: 400px;
+            display: none;
+            z-index: 998;
+        }
+
+        .debug-panel.active {
+            display: block;
+        }
+
+        .debug-log {
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            color: var(--accent-green);
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        /* Notification Toast */
+        .toast-container {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 1001;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .toast {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px 20px;
+            min-width: 300px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+            animation: slideIn 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(400px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .toast.success { border-left: 4px solid var(--accent-green); }
+        .toast.error { border-left: 4px solid var(--accent-red); }
+        .toast.warning { border-left: 4px solid var(--accent-orange); }
+        .toast.info { border-left: 4px solid var(--accent-blue); }
+
+        /* Enhanced Progress Bar */
+        .progress-enhanced {
+            position: relative;
+            margin-top: 12px;
+        }
+
+        .progress-stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 8px;
+        }
+
+        /* Quick Actions in Token Cards */
+        .token-quick-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .token-card:hover .token-quick-actions {
+            opacity: 1;
+        }
+
+        .quick-action-btn {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            background: transparent;
+            border-radius: 8px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: var(--text-primary);
+        }
+
+        .quick-action-btn:hover {
+            background: var(--bg-hover);
+        }
+
+        .quick-action-btn.buy {
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+
+        .quick-action-btn.sell {
+            border-color: var(--accent-red);
+            color: var(--accent-red);
+        }
+    </style>
+</head>
+<body>
+    <!-- 🆕 System Health Bar -->
+    <div class="system-health">
+        <div class="health-modules">
+            <div class="health-module">
+                <div class="health-dot online" id="healthAPI"></div>
+                <span>API</span>
+            </div>
+            <div class="health-module">
+                <div class="health-dot online" id="healthScanner"></div>
+                <span>Scanner</span>
+            </div>
+            <div class="health-module">
+                <div class="health-dot warning" id="healthAI"></div>
+                <span>AI Validator</span>
+            </div>
+            <div class="health-module">
+                <div class="health-dot online" id="healthTrading"></div>
+                <span>Trading Engine</span>
+            </div>
+        </div>
+        <div>
+            <button class="btn btn-icon" onclick="toggleDebugPanel()" title="Debug Console">
+                🐛
+            </button>
+        </div>
+    </div>
+
+    <!-- Header existant -->
+    <div class="header">
+        <div class="header-content">
+            <div class="logo">
+                <div class="logo-icon">🔍</div>
+                <span>Token Scanner Pro</span>
+            </div>
+            <div class="header-actions">
+                <div id="userSection" style="display: none;">
+                    <div class="user-menu">
+                        <button class="btn btn-icon" onclick="showFavorites()" title="Mes favoris">
+                            ⭐
+                        </button>
+                        <!-- 🆕 Dashboard Link -->
+                        <button class="btn btn-icon" onclick="window.location.href='/dashboard'" title="Trading Dashboard">
+                            📊
+                        </button>
+                        <button class="btn btn-icon" onclick="showProfile()" title="Mon profil">
+                            👤
+                        </button>
+                        <button class="btn btn-secondary" onclick="logout()">
+                            🚪 Déconnexion
+                        </button>
+                    </div>
+                </div>
+                <div id="guestSection">
+                    <button class="btn btn-secondary" onclick="showAuthModal('login')">
+                        🔑 Connexion
+                    </button>
+                    <button class="btn btn-primary" onclick="showAuthModal('register')">
+                        ✨ S'inscrire
+                    </button>
+                </div>
+                <button class="btn btn-primary" id="startScanBtn">
+                    ▶️ Nouveau Scan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Container existant -->
+    <div class="container">
+        <!-- Stats Grid existant -->
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <div class="stat-icon">🔍</div>
+                <div class="stat-value" id="totalTokens">0</div>
+                <div class="stat-label">Tokens Analysés</div>
+            </div>
+            <div class="stat-card safe">
+                <div class="stat-icon">✅</div>
+                <div class="stat-value" id="safeTokens">0</div>
+                <div class="stat-label">Tokens Sûrs</div>
+            </div>
+            <div class="stat-card danger">
+                <div class="stat-icon">⚠️</div>
+                <div class="stat-value" id="dangerTokens">0</div>
+                <div class="stat-label">Risque Élevé</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📊</div>
+                <div class="stat-value" id="avgRisk">0</div>
+                <div class="stat-label">Risque Moyen</div>
+            </div>
+        </div>
+
+        <!-- 🆕 AI Insights Section (visible si signaux détectés) -->
+        <div class="ai-insights-card" id="aiInsightsCard" style="display: none;">
+            <span class="ai-badge">🤖 CLAUDE AI INSIGHTS</span>
+            <h3 style="margin-bottom: 12px;">Opportunités Détectées</h3>
+            <div id="aiInsightsContent">
+                <!-- Contenu dynamique -->
+            </div>
+            <button class="btn btn-primary" onclick="openAIValidator()" style="margin-top: 12px;">
+                🧠 Valider avec IA
+            </button>
+        </div>
+
+        <!-- Progress Section existant avec améliorations -->
+        <div class="progress-section" id="progressSection">
+            <div class="progress-header">
+                <h3>🔄 Scan en cours...</h3>
+                <div class="progress-percentage" id="progressPercentage">0%</div>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-text" id="progressText">Initialisation...</div>
+            <!-- 🆕 Enhanced Stats -->
+            <div class="progress-stats">
+                <span id="progressSpeed">Vitesse: -</span>
+                <span id="progressETA">Temps restant: -</span>
+            </div>
+        </div>
+
+        <!-- Timestamp Container existant -->
+        <div id="timestampContainer"></div>
+
+        <!-- Controls existant -->
+        <div class="controls">
+            <div class="search-container">
+                <span class="search-icon">🔍</span>
+                <input type="text" 
+                       class="search-input" 
+                       id="searchInput" 
+                       placeholder="Rechercher par adresse ou blockchain...">
+            </div>
+
+            <div class="view-switcher">
+                <button class="view-btn active" data-view="grid" title="Vue grille">
+                    <span>⊞</span>
+                </button>
+                <button class="view-btn" data-view="list" title="Vue liste">
+                    <span>☰</span>
+                </button>
+            </div>
+
+            <div class="filters">
+                <button class="filter-btn active" data-filter="all">Tous</button>
+                <button class="filter-btn" data-filter="safe">✅ Sûrs</button>
+                <button class="filter-btn" data-filter="danger">⚠️ Risqués</button>
+                <button class="filter-btn" data-filter="pump_dump">🚨 Pump & Dump</button>
+                <!-- 🆕 Nouveaux filtres -->
+                <button class="filter-btn" data-filter="buy_signal">💰 BUY Signal</button>
+                <button class="filter-btn" data-filter="high_volume">📈 High Volume</button>
+            </div>
+        </div>
+
+        <!-- Tokens Grid existant -->
+        <div class="tokens-grid" id="tokensGrid">
+            <div class="empty-state">
+                <div class="empty-icon">🔍</div>
+                <h3 class="empty-title">Aucune analyse en cours</h3>
+                <p class="empty-text">Lancez un nouveau scan pour analyser les derniers tokens du marché</p>
+                <button class="btn btn-primary" onclick="document.getElementById('startScanBtn').click()">
+                    ▶️ Démarrer le scan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals existants (Auth, Token Details) -->
+    <div class="modal" id="authModal">
+        <div class="modal-content small">
+            <div class="modal-header">
+                <div class="modal-title-section">
+                    <h2 class="modal-title">Authentification</h2>
+                </div>
+                <button class="modal-close" onclick="closeAuthModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="login">Connexion</button>
+                    <button class="tab-btn" data-tab="register">Inscription</button>
+                </div>
+                <div id="authAlert"></div>
+                <div class="tab-content active" id="loginTab">
+                    <form id="loginForm" onsubmit="handleLogin(event)">
+                        <div class="form-group">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-input" id="loginEmail" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Mot de passe</label>
+                            <input type="password" class="form-input" id="loginPassword" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width: 100%;">
+                            Se connecter
+                        </button>
+                    </form>
+                </div>
+                <div class="tab-content" id="registerTab">
+                    <form id="registerForm" onsubmit="handleRegister(event)">
+                        <div class="form-group">
+                            <label class="form-label">Nom d'utilisateur</label>
+                            <input type="text" class="form-input" id="registerUsername" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-input" id="registerEmail" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Mot de passe</label>
+                            <input type="password" class="form-input" id="registerPassword" required minlength="6">
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width: 100%;">
+                            Créer un compte
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="tokenModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title-section">
+                    <h2 class="modal-title" id="modalAddress" style="font-family: 'Courier New', monospace;"></h2>
+                    <span class="chain-badge" id="modalChain"></span>
+                </div>
+                <button class="modal-close" onclick="closeModal()">✕</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+
+    <!-- 🆕 AI Validator Modal -->
+    <div class="modal" id="aiValidatorModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title-section">
+                    <h2 class="modal-title">🧠 AI Validator (Claude)</h2>
+                </div>
+                <button class="modal-close" onclick="closeModal('aiValidatorModal')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="ai-insights-card">
+                    <span class="ai-badge">POWERED BY ANTHROPIC</span>
+                    <p style="color: var(--text-secondary); margin: 12px 0;">
+                        Validez vos signaux de trading avec l'intelligence artificielle Claude
+                    </p>
+                    <div id="aiValidatorContent">
+                        <!-- Contenu dynamique -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🆕 Trading Quick Panel (slide from right) -->
+    <div class="trading-quick-panel" id="tradingPanel">
+        <div class="panel-header">
+            <h2 class="panel-title">💰 Quick Trade</h2>
+            <span class="panel-close" onclick="closeTradingPanel()">×</span>
+        </div>
+        <div id="tradingPanelContent">
+            <!-- Contenu dynamique -->
+        </div>
+    </div>
+
+    <!-- 🆕 Debug Panel -->
+    <div class="debug-panel" id="debugPanel">
+        <strong style="display: block; margin-bottom: 8px;">🐛 Debug Console</strong>
+        <div class="debug-log" id="debugLog">
+            Initialisation...<br>
+        </div>
+        <button class="btn btn-small btn-outline" onclick="clearDebugLog()" style="margin-top: 8px;">
+            Effacer
+        </button>
+    </div>
+
+    <!-- 🆕 Toast Notification Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- 🆕 Floating Action Buttons -->
+    <div class="fab-container">
+        <button class="fab-mini" onclick="openAIValidator()" title="AI Validator">
+            🧠
+        </button>
+        <button class="fab-mini" onclick="openTradingPanel()" title="Quick Trade">
+            💰
+        </button>
+        <button class="fab-mini" onclick="window.location.href='/dashboard'" title="Dashboard">
+            📊
+        </button>
+        <button class="fab" onclick="startNewScan()" title="Scanner">
+            🔍
+        </button>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="/static/js/app.js"></script>
+    <script>
+        // 🆕 NOUVELLES FONCTIONS
+
+        // Check System Health
+        async function checkSystemHealth() {
+            try {
+                const response = await fetch(`${API_URL}/health`);
+                const data = await response.json();
+                
+                debugLog('✅ Health check: ' + data.status);
+                
+                if (data.success) {
+                    const modules = data.status.modules;
+                    document.getElementById('healthAPI').className = 'health-dot online';
+                    document.getElementById('healthScanner').className = modules.scanner ? 'health-dot online' : 'health-dot offline';
+                    document.getElementById('healthAI').className = modules.ai_validator ? 'health-dot online' : 'health-dot warning';
+                    document.getElementById('healthTrading').className = modules.trading_engine ? 'health-dot online' : 'health-dot offline';
+                }
+            } catch (error) {
+                debugLog('❌ Health check failed: ' + error.message);
+                document.getElementById('healthAPI').className = 'health-dot offline';
+            }
+        }
+
+        // Debug Logger
+        function debugLog(message) {
+            const log = document.getElementById('debugLog');
+            const timestamp = new Date().toLocaleTimeString();
+            log.innerHTML += `[${timestamp}] ${message}<br>`;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function toggleDebugPanel() {
+            document.getElementById('debugPanel').classList.toggle('active');
+        }
+
+        function clearDebugLog() {
+            document.getElementById('debugLog').innerHTML = 'Log effacé...<br>';
+        }
+
+        // Toast Notifications
+        function showToast(message, type = 'info', duration = 5000) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <span style="font-size: 20px;">${type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️'}</span>
+                <div>
+                    <strong>${message}</strong>
+                </div>
+            `;
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, duration);
+        }
+
+        // AI Validator
+        function openAIValidator() {
+            document.getElementById('aiValidatorModal').classList.add('active');
+            // TODO: Charger le contenu du validator
+        }
+
+        // Trading Panel
+        function openTradingPanel() {
+            document.getElementById('tradingPanel').classList.add('active');
+            // TODO: Charger les signaux de trading
+        }
+
+        function closeTradingPanel() {
+            document.getElementById('tradingPanel').classList.remove('active');
+        }
+
+        // Enhanced Token Card with Quick Actions
+        function enhanceTokenCard(card, token) {
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'token-quick-actions';
+            actionsDiv.innerHTML = `
+                <button class="quick-action-btn buy" onclick="quickTrade(event, '${token.address}', 'BUY')">
+                    💰 BUY
+                </button>
+                <button class="quick-action-btn" onclick="analyzeWithAI(event, '${token.address}')">
+                    🧠 AI
+                </button>
+                <button class="quick-action-btn sell" onclick="quickTrade(event, '${token.address}', 'SELL')">
+                    💸 SELL
+                </button>
+            `;
+            card.appendChild(actionsDiv);
+        }
+
+        function quickTrade(event, address, action) {
+            event.stopPropagation();
+            showToast(`${action} trade pour ${address.substring(0, 10)}...`, 'info');
+            openTradingPanel();
+            // TODO: Pré-remplir le panel de trading
+        }
+
+        function analyzeWithAI(event, address) {
+            event.stopPropagation();
+            showToast(`Analyse IA pour ${address.substring(0, 10)}...`, 'info');
+            openAIValidator();
+            // TODO: Pré-remplir l'analyzer
+        }
+
+        // Enhanced Filters
+        function enhancedFilterTokens() {
+            const currentFilter = document.querySelector('.filter-btn.active').dataset.filter;
+            
+            let filtered = allTokens;
+            
+            switch(currentFilter) {
+                case 'buy_signal':
+                    filtered = allTokens.filter(t => t.trading_signal === 'BUY');
+                    break;
+                case 'high_volume':
+                    filtered = allTokens.filter(t => t.market && t.market.volume_24h > 100000);
+                    break;
+                // ... autres filtres
+            }
+            
+            displayTokens(filtered);
+        }
+
+        // Detect AI Opportunities
+        function detectAIOpportunities(tokens) {
+            const buySignals = tokens.filter(t => 
+                t.risk_score < 30 && 
+                t.market && 
+                t.market.volume_24h > 50000
+            );
+            
+            if (buySignals.length > 0) {
+                const card = document.getElementById('aiInsightsCard');
+                const content = document.getElementById('aiInsightsContent');
+                
+                content.innerHTML = `
+                    <p><strong>${buySignals.length} opportunités BUY détectées</strong></p>
+                    <ul style="margin: 8px 0; padding-left: 20px; color: var(--text-secondary);">
+                        ${buySignals.slice(0, 3).map(t => 
+                            `<li>${t.address.substring(0, 10)}... - Score: ${t.risk_score}</li>`
+                        ).join('')}
+                    </ul>
+                `;
+                
+                card.style.display = 'block';
+            }
+        }
+
+        // Override original displayTokens to add enhancements
+        const originalDisplayTokens = window.displayTokens;
+        window.displayTokens = function(tokens) {
+            originalDisplayTokens(tokens);
+            
+            // Add quick actions to cards
+            document.querySelectorAll('.token-card').forEach((card, index) => {
+                if (tokens[index] && !card.querySelector('.token-quick-actions')) {
+                    enhanceTokenCard(card, tokens[index]);
+                }
+            });
+            
+            // Detect AI opportunities
+            detectAIOpportunities(tokens);
+        };
+
+        // Override startNewScan to add debug
+        const originalStartNewScan = window.startNewScan;
+        window.startNewScan = async function() {
+            debugLog('🚀 Démarrage du scan...');
+            showToast('Scanner démarré !', 'info');
+            
+            try {
+                await originalStartNewScan();
+                debugLog('✅ Scan initié avec succès');
+            } catch (error) {
+                debugLog('❌ Erreur scan: ' + error.message);
+                showToast('Erreur lors du scan', 'error');
+            }
+        };
+
+        // Initialize on load
+        window.addEventListener('load', async () => {
+            debugLog('🔧 Initialisation de l\'application...');
+            
+            // Check system health
+            await checkSystemHealth();
+            setInterval(checkSystemHealth, 30000); // Check every 30s
+            
+            debugLog('✅ Application prête !');
+            showToast('Bienvenue sur Token Scanner Pro !', 'success');
+        });
+
+        // Close modal helper
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+    </script>
+</body>
+</html>

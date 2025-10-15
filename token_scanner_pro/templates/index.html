@@ -3,341 +3,865 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Token Scanner Pro - Analyse & Trading</title>
-    <link rel="stylesheet" href="/static/css/style.css">
+    <title>Token Scanner Pro - Analyse Crypto en Temps Réel</title>
     <style>
-        /* 🆕 AJOUTS POUR NOUVELLES FONCTIONNALITÉS */
-        
-        /* System Health Bar */
-        .system-health {
-            background: var(--bg-secondary);
-            padding: 12px 20px;
-            border-bottom: 1px solid var(--border-color);
+        /* ==================== MODERN CSS VARIABLES (SAME AS FAVORITES) ==================== */
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #13131a;
+            --bg-tertiary: #1a1a24;
+            --bg-card: rgba(26, 26, 36, 0.7);
+            --bg-glass: rgba(255, 255, 255, 0.03);
+            
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            
+            --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-success: linear-gradient(135deg, #0cebeb 0%, #20e3b2 100%);
+            --gradient-danger: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --gradient-warning: linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%);
+            
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0b2;
+            --text-tertiary: #6b6b80;
+            
+            --accent-primary: #667eea;
+            --accent-success: #20e3b2;
+            --accent-danger: #f5576c;
+            --accent-warning: #fbc2eb;
+            
+            --border-subtle: rgba(255, 255, 255, 0.05);
+            --border-strong: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(102, 126, 234, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(118, 75, 162, 0.15) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ==================== HEADER ==================== */
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-subtle);
+            padding: 1.5rem 2rem;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 13px;
+            flex-wrap: wrap;
+            gap: 1rem;
         }
 
-        .health-modules {
-            display: flex;
-            gap: 16px;
-        }
-
-        .health-module {
+        .logo {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
-        .health-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            animation: pulse 2s infinite;
-        }
-
-        .health-dot.online { background: var(--accent-green); }
-        .health-dot.offline { background: var(--accent-red); }
-        .health-dot.warning { background: var(--accent-orange); }
-
-        /* Floating Action Button */
-        .fab-container {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            z-index: 999;
+        .header-actions {
             display: flex;
-            flex-direction: column-reverse;
-            gap: 12px;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
         }
 
-        .fab {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            white-space: nowrap;
+        }
+
+        .btn-primary {
             background: var(--gradient-primary);
             color: white;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-            box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
         }
 
-        .fab:hover {
-            transform: scale(1.1);
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
         }
 
-        .fab-mini {
-            width: 48px;
-            height: 48px;
-            font-size: 20px;
-            display: none;
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-strong);
         }
 
-        .fab-container:hover .fab-mini {
-            display: flex;
+        .btn-secondary:hover {
+            background: var(--bg-glass);
+            border-color: var(--accent-primary);
         }
 
-        /* Trading Panel */
-        .trading-quick-panel {
-            position: fixed;
-            right: -400px;
-            top: 0;
-            width: 380px;
-            height: 100vh;
-            background: var(--bg-secondary);
-            border-left: 1px solid var(--border-color);
-            box-shadow: -4px 0 16px rgba(0,0,0,0.3);
-            transition: right 0.3s;
-            z-index: 999;
-            overflow-y: auto;
-            padding: 24px;
-        }
-
-        .trading-quick-panel.active {
-            right: 0;
-        }
-
-        .panel-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-        }
-
-        .panel-title {
-            font-size: 20px;
-            font-weight: 700;
-        }
-
-        .panel-close {
-            cursor: pointer;
-            font-size: 24px;
-            color: var(--text-secondary);
-        }
-
-        /* AI Insights Card */
-        .ai-insights-card {
-            background: linear-gradient(135deg, rgba(156, 39, 176, 0.1), rgba(102, 126, 234, 0.1));
-            border: 2px solid var(--accent-purple);
-            border-radius: 12px;
-            padding: 20px;
-            margin: 20px 0;
-        }
-
-        .ai-badge {
-            background: var(--accent-purple);
+        .btn-success {
+            background: var(--gradient-success);
             color: white;
-            padding: 4px 12px;
-            border-radius: 6px;
-            font-size: 11px;
-            font-weight: 700;
-            display: inline-block;
-            margin-bottom: 12px;
+            box-shadow: 0 4px 16px rgba(32, 227, 178, 0.3);
         }
 
-        /* Scanner Debug Panel */
-        .debug-panel {
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 16px;
-            max-width: 400px;
-            display: none;
-            z-index: 998;
+        .btn-icon {
+            width: 44px;
+            height: 44px;
+            padding: 0;
+            justify-content: center;
+            font-size: 1.2rem;
         }
 
-        .debug-panel.active {
-            display: block;
-        }
-
-        .debug-log {
-            font-family: 'Courier New', monospace;
-            font-size: 11px;
-            color: var(--accent-green);
-            max-height: 200px;
-            overflow-y: auto;
-        }
-
-        /* Notification Toast */
-        .toast-container {
-            position: fixed;
-            top: 80px;
-            right: 20px;
-            z-index: 1001;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .toast {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 16px 20px;
-            min-width: 300px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
-            animation: slideIn 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        @keyframes slideIn {
-            from { transform: translateX(400px); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-
-        .toast.success { border-left: 4px solid var(--accent-green); }
-        .toast.error { border-left: 4px solid var(--accent-red); }
-        .toast.warning { border-left: 4px solid var(--accent-orange); }
-        .toast.info { border-left: 4px solid var(--accent-blue); }
-
-        /* Enhanced Progress Bar */
-        .progress-enhanced {
+        /* ==================== CONTAINER ==================== */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
             position: relative;
-            margin-top: 12px;
+            z-index: 1;
         }
 
-        .progress-stats {
+        /* ==================== STATS GRID ==================== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 2rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent-primary);
+            box-shadow: 0 12px 40px rgba(102, 126, 234, 0.2);
+        }
+
+        .stat-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* ==================== PROGRESS SECTION ==================== */
+        .progress-section {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            display: none;
+        }
+
+        .progress-section.active {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .progress-header {
             display: flex;
             justify-content: space-between;
-            font-size: 12px;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .progress-header h3 {
+            font-size: 1.2rem;
+        }
+
+        .progress-percentage {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 12px;
+            background: var(--bg-tertiary);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--gradient-primary);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
             color: var(--text-secondary);
-            margin-top: 8px;
+            font-size: 0.95rem;
         }
 
-        /* Quick Actions in Token Cards */
-        .token-quick-actions {
+        /* ==================== CONTROLS ==================== */
+        .controls {
             display: flex;
-            gap: 8px;
-            margin-top: 12px;
-            opacity: 0;
-            transition: opacity 0.3s;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            align-items: center;
         }
 
-        .token-card:hover .token-quick-actions {
-            opacity: 1;
-        }
-
-        .quick-action-btn {
+        .search-container {
             flex: 1;
-            padding: 8px;
-            border: 1px solid var(--border-color);
-            background: transparent;
-            border-radius: 8px;
-            font-size: 12px;
-            cursor: pointer;
+            min-width: 250px;
+            position: relative;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-tertiary);
+            font-size: 1.2rem;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.875rem 1rem 0.875rem 3rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 0.95rem;
             transition: all 0.3s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .filters {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 0.75rem 1.25rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 10px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .filter-btn:hover {
+            border-color: var(--accent-primary);
             color: var(--text-primary);
         }
 
-        .quick-action-btn:hover {
-            background: var(--bg-hover);
+        .filter-btn.active {
+            background: var(--gradient-primary);
+            color: white;
+            border-color: transparent;
         }
 
-        .quick-action-btn.buy {
-            border-color: var(--accent-green);
-            color: var(--accent-green);
+        /* ==================== TOKENS GRID ==================== */
+        .tokens-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+            gap: 2rem;
         }
 
-        .quick-action-btn.sell {
-            border-color: var(--accent-red);
-            color: var(--accent-red);
+        .token-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 2rem;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .token-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--gradient-primary);
+            opacity: 0;
+            transition: opacity 0.4s;
+            pointer-events: none;
+        }
+
+        .token-card:hover {
+            transform: translateY(-8px);
+            border-color: var(--accent-primary);
+            box-shadow: 0 20px 60px rgba(102, 126, 234, 0.3);
+        }
+
+        .token-card:hover::before {
+            opacity: 0.03;
+        }
+
+        .token-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .token-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border-strong);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+        }
+
+        .token-icon img {
+            width: 100%;
+            height: 100%;
+            border-radius: 14px;
+            object-fit: cover;
+        }
+
+        .token-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .icon-btn {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 10px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            transition: all 0.3s;
+        }
+
+        .icon-btn:hover {
+            background: var(--bg-glass);
+            color: var(--text-primary);
+            transform: scale(1.1);
+        }
+
+        .icon-btn.favorite {
+            color: var(--accent-warning);
+        }
+
+        .token-info {
+            margin-bottom: 1.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .token-address {
+            font-size: 0.85rem;
+            color: var(--text-tertiary);
+            font-family: 'Monaco', monospace;
+            margin-bottom: 0.5rem;
+        }
+
+        .token-chain {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.4rem 0.9rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .risk-badge {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            z-index: 1;
+        }
+
+        .risk-safe {
+            background: rgba(32, 227, 178, 0.15);
+            color: var(--accent-success);
+            border: 1px solid rgba(32, 227, 178, 0.3);
+        }
+
+        .risk-warning {
+            background: rgba(251, 194, 235, 0.15);
+            color: var(--accent-warning);
+            border: 1px solid rgba(251, 194, 235, 0.3);
+        }
+
+        .risk-danger {
+            background: rgba(245, 87, 108, 0.15);
+            color: var(--accent-danger);
+            border: 1px solid rgba(245, 87, 108, 0.3);
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .metric {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 1rem;
+        }
+
+        .metric-label {
+            font-size: 0.8rem;
+            color: var(--text-tertiary);
+            margin-bottom: 0.4rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .metric-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .metric-value.positive {
+            color: var(--accent-success);
+        }
+
+        .metric-value.negative {
+            color: var(--accent-danger);
+        }
+
+        /* ==================== EMPTY STATE ==================== */
+        .empty-state {
+            text-align: center;
+            padding: 5rem 2rem;
+            grid-column: 1/-1;
+        }
+
+        .empty-icon {
+            font-size: 6rem;
+            margin-bottom: 2rem;
+            opacity: 0.3;
+        }
+
+        .empty-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .empty-text {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+        }
+
+        /* ==================== MODAL ==================== */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .modal.active {
+            display: flex;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-strong);
+            border-radius: 24px;
+            max-width: 800px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-content.small {
+            max-width: 500px;
+        }
+
+        .modal-header {
+            padding: 2rem;
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+
+        .modal-close {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: var(--bg-tertiary);
+            border-radius: 10px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .modal-close:hover {
+            background: var(--accent-danger);
+            color: white;
+            transform: rotate(90deg);
+        }
+
+        .modal-body {
+            padding: 2rem;
+        }
+
+        /* Form Styles */
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 1rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 10px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active {
+            background: var(--gradient-primary);
+            color: white;
+            border-color: transparent;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            transition: all 0.3s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+        }
+
+        .alert-success {
+            background: rgba(32, 227, 178, 0.15);
+            color: var(--accent-success);
+            border: 1px solid rgba(32, 227, 178, 0.3);
+        }
+
+        .alert-error {
+            background: rgba(245, 87, 108, 0.15);
+            color: var(--accent-danger);
+            border: 1px solid rgba(245, 87, 108, 0.3);
+        }
+
+        /* ==================== RESPONSIVE ==================== */
+        @media (max-width: 768px) {
+            .container {
+                padding: 2rem 1rem;
+            }
+
+            .tokens-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .filters {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header-actions {
+                width: 100%;
+                justify-content: space-between;
+            }
+        }
+
+        /* ==================== LOADING ANIMATION ==================== */
+        @keyframes shimmer {
+            0% { background-position: -1000px 0; }
+            100% { background-position: 1000px 0; }
+        }
+
+        .loading {
+            animation: shimmer 2s infinite linear;
+            background: linear-gradient(
+                to right,
+                var(--bg-tertiary) 0%,
+                var(--bg-glass) 50%,
+                var(--bg-tertiary) 100%
+            );
+            background-size: 1000px 100%;
+        }
+
+        /* Toast Notifications */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            z-index: 10000;
+            animation: slideInRight 0.3s ease-out;
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .toast.success {
+            border-color: var(--accent-success);
+        }
+
+        .toast.error {
+            border-color: var(--accent-danger);
         }
     </style>
 </head>
 <body>
-    <!-- 🆕 System Health Bar -->
-    <div class="system-health">
-        <div class="health-modules">
-            <div class="health-module">
-                <div class="health-dot online" id="healthAPI"></div>
-                <span>API</span>
-            </div>
-            <div class="health-module">
-                <div class="health-dot online" id="healthScanner"></div>
-                <span>Scanner</span>
-            </div>
-            <div class="health-module">
-                <div class="health-dot warning" id="healthAI"></div>
-                <span>AI Validator</span>
-            </div>
-            <div class="health-module">
-                <div class="health-dot online" id="healthTrading"></div>
-                <span>Trading Engine</span>
-            </div>
-        </div>
-        <div>
-            <button class="btn btn-icon" onclick="toggleDebugPanel()" title="Debug Console">
-                🐛
-            </button>
-        </div>
-    </div>
-
-    <!-- Header existant -->
-    <div class="header">
+    <!-- Header -->
+    <header class="header">
         <div class="header-content">
             <div class="logo">
-                <div class="logo-icon">🔍</div>
-                <span>Token Scanner Pro</span>
+                🔍 Token Scanner Pro
             </div>
             <div class="header-actions">
                 <div id="userSection" style="display: none;">
-                    <div class="user-menu">
-                        <button class="btn btn-icon" onclick="showFavorites()" title="Mes favoris">
-                            ⭐
-                        </button>
-                        <!-- 🆕 Dashboard Link -->
-                        <button class="btn btn-icon" onclick="window.location.href='/dashboard'" title="Trading Dashboard">
-                            📊
-                        </button>
-                        <button class="btn btn-icon" onclick="showProfile()" title="Mon profil">
-                            👤
-                        </button>
-                        <button class="btn btn-secondary" onclick="logout()">
-                            🚪 Déconnexion
-                        </button>
-                    </div>
+                    <a href="/favorites" class="btn btn-icon" title="Mes favoris">⭐</a>
+                    <a href="/dashboard" class="btn btn-icon" title="Dashboard">📊</a>
+                    <button class="btn btn-secondary" onclick="logout()">🚪 Déconnexion</button>
                 </div>
                 <div id="guestSection">
-                    <button class="btn btn-secondary" onclick="showAuthModal('login')">
-                        🔑 Connexion
-                    </button>
-                    <button class="btn btn-primary" onclick="showAuthModal('register')">
-                        ✨ S'inscrire
-                    </button>
+                    <button class="btn btn-secondary" onclick="showAuthModal('login')">🔑 Connexion</button>
+                    <button class="btn btn-primary" onclick="showAuthModal('register')">✨ S'inscrire</button>
                 </div>
-                <button class="btn btn-primary" id="startScanBtn">
+                <button class="btn btn-success" id="startScanBtn" onclick="startNewScan()">
                     ▶️ Nouveau Scan
                 </button>
+                <!-- ✅ AUTO-SCAN TOGGLE -->
+                <div style="display: flex; align-items: center; gap: 1rem; padding: 0.5rem 1rem; background: var(--bg-tertiary); border-radius: 12px; border: 1px solid var(--border-subtle);">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; margin: 0;">
+                        <input type="checkbox" id="autoScanToggle" onchange="toggleAutoScan()" style="width: 18px; height: 18px; cursor: pointer;">
+                        <span style="font-size: 0.9rem; font-weight: 600;">🔄 Auto-scan 5min</span>
+                    </label>
+                    <span id="autoScanCountdown" style="font-size: 0.85rem; color: var(--text-tertiary); display: none;"></span>
+                </div>
             </div>
         </div>
-    </div>
+    </header>
 
-    <!-- Container existant -->
+    <!-- Main Content -->
     <div class="container">
-        <!-- Stats Grid existant -->
+        <!-- Stats Grid -->
         <div class="stats-grid" id="statsGrid">
             <div class="stat-card">
                 <div class="stat-icon">🔍</div>
                 <div class="stat-value" id="totalTokens">0</div>
                 <div class="stat-label">Tokens Analysés</div>
             </div>
-            <div class="stat-card safe">
+            <div class="stat-card">
                 <div class="stat-icon">✅</div>
                 <div class="stat-value" id="safeTokens">0</div>
                 <div class="stat-label">Tokens Sûrs</div>
             </div>
-            <div class="stat-card danger">
+            <div class="stat-card">
                 <div class="stat-icon">⚠️</div>
                 <div class="stat-value" id="dangerTokens">0</div>
                 <div class="stat-label">Risque Élevé</div>
@@ -347,21 +871,25 @@
                 <div class="stat-value" id="avgRisk">0</div>
                 <div class="stat-label">Risque Moyen</div>
             </div>
-        </div>
-
-        <!-- 🆕 AI Insights Section (visible si signaux détectés) -->
-        <div class="ai-insights-card" id="aiInsightsCard" style="display: none;">
-            <span class="ai-badge">🤖 CLAUDE AI INSIGHTS</span>
-            <h3 style="margin-bottom: 12px;">Opportunités Détectées</h3>
-            <div id="aiInsightsContent">
-                <!-- Contenu dynamique -->
+            <!-- ✅ AUTO-SCAN STATUS CARD -->
+            <div class="stat-card" id="autoScanStatusCard" style="grid-column: 1/-1; display: none; background: var(--gradient-primary); color: white;">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <div style="font-size: 2rem;">🔄</div>
+                        <div>
+                            <div style="font-size: 1.2rem; font-weight: 700;">Auto-Scan Actif</div>
+                            <div style="font-size: 0.9rem; opacity: 0.9;" id="autoScanStatus">Prochain scan dans...</div>
+                        </div>
+                    </div>
+                    <button onclick="document.getElementById('autoScanToggle').click()" 
+                            style="padding: 0.75rem 1.5rem; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); border-radius: 10px; color: white; font-weight: 600; cursor: pointer;">
+                        ⏸️ Désactiver
+                    </button>
+                </div>
             </div>
-            <button class="btn btn-primary" onclick="openAIValidator()" style="margin-top: 12px;">
-                🧠 Valider avec IA
-            </button>
         </div>
 
-        <!-- Progress Section existant avec améliorations -->
+        <!-- Progress Section -->
         <div class="progress-section" id="progressSection">
             <div class="progress-header">
                 <h3>🔄 Scan en cours...</h3>
@@ -371,76 +899,54 @@
                 <div class="progress-fill" id="progressFill"></div>
             </div>
             <div class="progress-text" id="progressText">Initialisation...</div>
-            <!-- 🆕 Enhanced Stats -->
-            <div class="progress-stats">
-                <span id="progressSpeed">Vitesse: -</span>
-                <span id="progressETA">Temps restant: -</span>
-            </div>
         </div>
 
-        <!-- Timestamp Container existant -->
-        <div id="timestampContainer"></div>
-
-        <!-- Controls existant -->
+        <!-- Controls -->
         <div class="controls">
             <div class="search-container">
                 <span class="search-icon">🔍</span>
-                <input type="text" 
-                       class="search-input" 
-                       id="searchInput" 
-                       placeholder="Rechercher par adresse ou blockchain...">
+                <input type="text" class="search-input" id="searchInput" 
+                       placeholder="Rechercher par adresse ou blockchain..."
+                       oninput="searchTokens()">
             </div>
-
-            <div class="view-switcher">
-                <button class="view-btn active" data-view="grid" title="Vue grille">
-                    <span>⊞</span>
-                </button>
-                <button class="view-btn" data-view="list" title="Vue liste">
-                    <span>☰</span>
-                </button>
-            </div>
-
             <div class="filters">
-                <button class="filter-btn active" data-filter="all">Tous</button>
-                <button class="filter-btn" data-filter="safe">✅ Sûrs</button>
-                <button class="filter-btn" data-filter="danger">⚠️ Risqués</button>
-                <button class="filter-btn" data-filter="pump_dump">🚨 Pump & Dump</button>
-                <!-- 🆕 Nouveaux filtres -->
-                <button class="filter-btn" data-filter="buy_signal">💰 BUY Signal</button>
-                <button class="filter-btn" data-filter="high_volume">📈 High Volume</button>
+                <button class="filter-btn active" data-filter="all" onclick="filterTokens('all')">Tous</button>
+                <button class="filter-btn" data-filter="safe" onclick="filterTokens('safe')">✅ Sûrs</button>
+                <button class="filter-btn" data-filter="danger" onclick="filterTokens('danger')">⚠️ Risqués</button>
+                <button class="filter-btn" data-filter="pump_dump" onclick="filterTokens('pump_dump')">🚨 Pump & Dump</button>
             </div>
         </div>
 
-        <!-- Tokens Grid existant -->
+        <!-- Tokens Grid -->
         <div class="tokens-grid" id="tokensGrid">
             <div class="empty-state">
                 <div class="empty-icon">🔍</div>
                 <h3 class="empty-title">Aucune analyse en cours</h3>
                 <p class="empty-text">Lancez un nouveau scan pour analyser les derniers tokens du marché</p>
-                <button class="btn btn-primary" onclick="document.getElementById('startScanBtn').click()">
+                <button class="btn btn-primary" onclick="startNewScan()">
                     ▶️ Démarrer le scan
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Modals existants (Auth, Token Details) -->
+    <!-- Auth Modal -->
     <div class="modal" id="authModal">
         <div class="modal-content small">
             <div class="modal-header">
-                <div class="modal-title-section">
-                    <h2 class="modal-title">Authentification</h2>
-                </div>
+                <h2 class="modal-title">Authentification</h2>
                 <button class="modal-close" onclick="closeAuthModal()">✕</button>
             </div>
             <div class="modal-body">
                 <div class="tabs">
-                    <button class="tab-btn active" data-tab="login">Connexion</button>
-                    <button class="tab-btn" data-tab="register">Inscription</button>
+                    <button class="tab-btn active" onclick="switchAuthTab('login')">Connexion</button>
+                    <button class="tab-btn" onclick="switchAuthTab('register')">Inscription</button>
                 </div>
                 <div id="authAlert"></div>
+                
+                <!-- Login Tab -->
                 <div class="tab-content active" id="loginTab">
-                    <form id="loginForm" onsubmit="handleLogin(event)">
+                    <form onsubmit="handleLogin(event)">
                         <div class="form-group">
                             <label class="form-label">Email</label>
                             <input type="email" class="form-input" id="loginEmail" required>
@@ -450,12 +956,14 @@
                             <input type="password" class="form-input" id="loginPassword" required>
                         </div>
                         <button type="submit" class="btn btn-primary" style="width: 100%;">
-                            Se connecter
+                            🔑 Se connecter
                         </button>
                     </form>
                 </div>
+
+                <!-- Register Tab -->
                 <div class="tab-content" id="registerTab">
-                    <form id="registerForm" onsubmit="handleRegister(event)">
+                    <form onsubmit="handleRegister(event)">
                         <div class="form-group">
                             <label class="form-label">Nom d'utilisateur</label>
                             <input type="text" class="form-input" id="registerUsername" required>
@@ -469,7 +977,7 @@
                             <input type="password" class="form-input" id="registerPassword" required minlength="6">
                         </div>
                         <button type="submit" class="btn btn-primary" style="width: 100%;">
-                            Créer un compte
+                            ✨ S'inscrire
                         </button>
                     </form>
                 </div>
@@ -477,283 +985,582 @@
         </div>
     </div>
 
+    <!-- Token Details Modal -->
     <div class="modal" id="tokenModal">
         <div class="modal-content">
             <div class="modal-header">
-                <div class="modal-title-section">
-                    <h2 class="modal-title" id="modalAddress" style="font-family: 'Courier New', monospace;"></h2>
-                    <span class="chain-badge" id="modalChain"></span>
-                </div>
-                <button class="modal-close" onclick="closeModal()">✕</button>
+                <h2 class="modal-title">Détails du Token</h2>
+                <button class="modal-close" onclick="closeTokenModal()">✕</button>
             </div>
-            <div class="modal-body" id="modalBody"></div>
-        </div>
-    </div>
-
-    <!-- 🆕 AI Validator Modal -->
-    <div class="modal" id="aiValidatorModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="modal-title-section">
-                    <h2 class="modal-title">🧠 AI Validator (Claude)</h2>
-                </div>
-                <button class="modal-close" onclick="closeModal('aiValidatorModal')">✕</button>
-            </div>
-            <div class="modal-body">
-                <div class="ai-insights-card">
-                    <span class="ai-badge">POWERED BY ANTHROPIC</span>
-                    <p style="color: var(--text-secondary); margin: 12px 0;">
-                        Validez vos signaux de trading avec l'intelligence artificielle Claude
-                    </p>
-                    <div id="aiValidatorContent">
-                        <!-- Contenu dynamique -->
-                    </div>
-                </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Content injected by JavaScript -->
             </div>
         </div>
     </div>
 
-    <!-- 🆕 Trading Quick Panel (slide from right) -->
-    <div class="trading-quick-panel" id="tradingPanel">
-        <div class="panel-header">
-            <h2 class="panel-title">💰 Quick Trade</h2>
-            <span class="panel-close" onclick="closeTradingPanel()">×</span>
-        </div>
-        <div id="tradingPanelContent">
-            <!-- Contenu dynamique -->
-        </div>
-    </div>
-
-    <!-- 🆕 Debug Panel -->
-    <div class="debug-panel" id="debugPanel">
-        <strong style="display: block; margin-bottom: 8px;">🐛 Debug Console</strong>
-        <div class="debug-log" id="debugLog">
-            Initialisation...<br>
-        </div>
-        <button class="btn btn-small btn-outline" onclick="clearDebugLog()" style="margin-top: 8px;">
-            Effacer
-        </button>
-    </div>
-
-    <!-- 🆕 Toast Notification Container -->
-    <div class="toast-container" id="toastContainer"></div>
-
-    <!-- 🆕 Floating Action Buttons -->
-    <div class="fab-container">
-        <button class="fab-mini" onclick="openAIValidator()" title="AI Validator">
-            🧠
-        </button>
-        <button class="fab-mini" onclick="openTradingPanel()" title="Quick Trade">
-            💰
-        </button>
-        <button class="fab-mini" onclick="window.location.href='/dashboard'" title="Dashboard">
-            📊
-        </button>
-        <button class="fab" onclick="startNewScan()" title="Scanner">
-            🔍
-        </button>
-    </div>
-
-    <!-- JavaScript -->
-    <script src="/static/js/app.js"></script>
     <script>
-        // 🆕 NOUVELLES FONCTIONS
+        // Global State
+        let allTokens = [];
+        let currentFilter = 'all';
+        let scanInterval = null;
+        let isAuthenticated = false;
+        
+        // ✅ AUTO-SCAN VARIABLES
+        let autoScanEnabled = false;
+        let autoScanInterval = null;
+        let nextScanTime = null;
+        let countdownInterval = null;
+        const AUTO_SCAN_DELAY = 5 * 60 * 1000; // 5 minutes en ms
 
-        // Check System Health
-        async function checkSystemHealth() {
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', () => {
+            checkAuth();
+            loadLastScan();
+            initAutoScan();
+        });
+
+        // ==================== AUTH FUNCTIONS ====================
+        async function checkAuth() {
             try {
-                const response = await fetch(`${API_URL}/health`);
+                const response = await fetch('/api/me', {
+                    credentials: 'include'
+                });
                 const data = await response.json();
                 
-                debugLog('✅ Health check: ' + data.status);
-                
-                if (data.success) {
-                    const modules = data.status.modules;
-                    document.getElementById('healthAPI').className = 'health-dot online';
-                    document.getElementById('healthScanner').className = modules.scanner ? 'health-dot online' : 'health-dot offline';
-                    document.getElementById('healthAI').className = modules.ai_validator ? 'health-dot online' : 'health-dot warning';
-                    document.getElementById('healthTrading').className = modules.trading_engine ? 'health-dot online' : 'health-dot offline';
+                if (data.success && data.user) {
+                    isAuthenticated = true;
+                    document.getElementById('userSection').style.display = 'flex';
+                    document.getElementById('guestSection').style.display = 'none';
+                } else {
+                    isAuthenticated = false;
+                    document.getElementById('userSection').style.display = 'none';
+                    document.getElementById('guestSection').style.display = 'flex';
                 }
             } catch (error) {
-                debugLog('❌ Health check failed: ' + error.message);
-                document.getElementById('healthAPI').className = 'health-dot offline';
+                console.error('Auth check failed:', error);
             }
         }
 
-        // Debug Logger
-        function debugLog(message) {
-            const log = document.getElementById('debugLog');
-            const timestamp = new Date().toLocaleTimeString();
-            log.innerHTML += `[${timestamp}] ${message}<br>`;
-            log.scrollTop = log.scrollHeight;
+        function showAuthModal(tab) {
+            document.getElementById('authModal').classList.add('active');
+            switchAuthTab(tab);
         }
 
-        function toggleDebugPanel() {
-            document.getElementById('debugPanel').classList.toggle('active');
+        function closeAuthModal() {
+            document.getElementById('authModal').classList.remove('active');
         }
 
-        function clearDebugLog() {
-            document.getElementById('debugLog').innerHTML = 'Log effacé...<br>';
+        function switchAuthTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            if (tab === 'login') {
+                document.querySelectorAll('.tab-btn')[0].classList.add('active');
+                document.getElementById('loginTab').classList.add('active');
+            } else {
+                document.querySelectorAll('.tab-btn')[1].classList.add('active');
+                document.getElementById('registerTab').classList.add('active');
+            }
         }
 
-        // Toast Notifications
-        function showToast(message, type = 'info', duration = 5000) {
-            const container = document.getElementById('toastContainer');
-            const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
-            toast.innerHTML = `
-                <span style="font-size: 20px;">${type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️'}</span>
-                <div>
-                    <strong>${message}</strong>
+        async function handleLogin(event) {
+            event.preventDefault();
+            
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('Connexion réussie !', 'success');
+                    closeAuthModal();
+                    checkAuth();
+                } else {
+                    showAlert(data.error, 'error');
+                }
+            } catch (error) {
+                showAlert('Erreur de connexion', 'error');
+            }
+        }
+
+        async function handleRegister(event) {
+            event.preventDefault();
+            
+            const username = document.getElementById('registerUsername').value;
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            
+            try {
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ username, email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('Inscription réussie !', 'success');
+                    closeAuthModal();
+                    checkAuth();
+                } else {
+                    showAlert(data.error, 'error');
+                }
+            } catch (error) {
+                showAlert('Erreur d\'inscription', 'error');
+            }
+        }
+
+        async function logout() {
+            try {
+                await fetch('/api/logout', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                showToast('Déconnexion réussie', 'success');
+                checkAuth();
+            } catch (error) {
+                console.error('Logout error:', error);
+            }
+        }
+
+        // ==================== SCAN FUNCTIONS ====================
+        async function startNewScan() {
+            const maxTokens = 10;
+            
+            try {
+                const response = await fetch('/api/scan/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ max_tokens: maxTokens })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('progressSection').classList.add('active');
+                    startProgressPolling();
+                    showToast('Scan démarré !', 'success');
+                } else {
+                    showToast(data.error, 'error');
+                }
+            } catch (error) {
+                showToast('Erreur lors du démarrage du scan', 'error');
+            }
+        }
+
+        function startProgressPolling() {
+            if (scanInterval) clearInterval(scanInterval);
+            
+            scanInterval = setInterval(async () => {
+                try {
+                    const response = await fetch('/api/scan/progress', {
+                        credentials: 'include'
+                    });
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        updateProgress(data.progress);
+                        
+                        if (!data.in_progress && data.results) {
+                            clearInterval(scanInterval);
+                            scanInterval = null;
+                            document.getElementById('progressSection').classList.remove('active');
+                            displayResults(data.results);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Progress polling error:', error);
+                }
+            }, 1000);
+        }
+
+        function updateProgress(progress) {
+            const percentage = Math.round((progress.current / progress.total) * 100);
+            document.getElementById('progressPercentage').textContent = percentage + '%';
+            document.getElementById('progressFill').style.width = percentage + '%';
+            document.getElementById('progressText').textContent = 
+                `Analyse ${progress.current}/${progress.total} tokens...`;
+        }
+
+        async function loadLastScan() {
+            try {
+                const response = await fetch('/api/scan/results', {
+                    credentials: 'include'
+                });
+                const data = await response.json();
+                
+                if (data.success && data.results) {
+                    displayResults(data.results);
+                }
+            } catch (error) {
+                console.error('Load last scan error:', error);
+            }
+        }
+
+        function displayResults(results) {
+            allTokens = results.results || [];
+            updateStats(results);
+            displayTokens(allTokens);
+            
+            // ✅ Notification si auto-scan activé
+            if (autoScanEnabled && allTokens.length > 0) {
+                const safeCount = results.safe_count || 0;
+                const dangerCount = results.dangerous_count || 0;
+                
+                showToast(`✨ Nouveau scan : ${allTokens.length} tokens analysés (${safeCount} sûrs, ${dangerCount} risqués)`, 'success');
+            }
+        }
+
+        function updateStats(results) {
+            document.getElementById('totalTokens').textContent = results.total_analyzed || 0;
+            document.getElementById('safeTokens').textContent = results.safe_count || 0;
+            document.getElementById('dangerTokens').textContent = results.dangerous_count || 0;
+            
+            const avgRisk = allTokens.length > 0 
+                ? Math.round(allTokens.reduce((sum, t) => sum + t.risk_score, 0) / allTokens.length)
+                : 0;
+            document.getElementById('avgRisk').textContent = avgRisk;
+        }
+
+        // ==================== DISPLAY FUNCTIONS ====================
+        function displayTokens(tokens) {
+            const grid = document.getElementById('tokensGrid');
+            
+            if (tokens.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">🔍</div>
+                        <h3 class="empty-title">Aucun token trouvé</h3>
+                        <p class="empty-text">Essayez de modifier vos filtres ou lancez un nouveau scan</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            grid.innerHTML = tokens.map(token => createTokenCard(token)).join('');
+        }
+
+        function createTokenCard(token) {
+            const riskClass = token.risk_score < 50 ? 'safe' : token.risk_score < 80 ? 'warning' : 'danger';
+            const riskLabel = token.risk_score < 50 ? '✅ Sûr' : token.risk_score < 80 ? '⚠️ Modéré' : '🚨 Danger';
+            
+            return `
+                <div class="token-card" onclick='openTokenModal(${JSON.stringify(token).replace(/'/g, "\\'")})'> 
+                    <div class="risk-badge risk-${riskClass}">${riskLabel}</div>
+                    
+                    <div class="token-header">
+                        <div class="token-icon">
+                            ${token.icon ? `<img src="${token.icon}" alt="icon">` : '🪙'}
+                        </div>
+                        <div class="token-actions">
+                            <button class="icon-btn" onclick="event.stopPropagation(); copyAddress('${token.address}')" title="Copier adresse">
+                                📋
+                            </button>
+                            <button class="icon-btn favorite" onclick="event.stopPropagation(); addToFavorites('${token.address}', '${token.chain}')" title="Ajouter aux favoris">
+                                ⭐
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="token-info">
+                        <div class="token-address">${token.address}</div>
+                        <span class="token-chain">⛓️ ${token.chain.toUpperCase()}</span>
+                    </div>
+                    
+                    <div class="metrics-grid">
+                        <div class="metric">
+                            <div class="metric-label">Prix USD</div>
+                            <div class="metric-value">
+                                ${token.market?.price_usd ? '$' + token.market.price_usd.toFixed(8) : 'N/A'}
+                            </div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-label">Variation 24h</div>
+                            <div class="metric-value ${token.market?.price_change_24h >= 0 ? 'positive' : 'negative'}">
+                                ${token.market?.price_change_24h ? token.market.price_change_24h.toFixed(2) + '%' : '0%'}
+                            </div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-label">Liquidité</div>
+                            <div class="metric-value">
+                                ${formatNumber(token.market?.liquidity_usd || 0)}
+                            </div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-label">Score Risque</div>
+                            <div class="metric-value">${token.risk_score}/100</div>
+                        </div>
+                    </div>
                 </div>
             `;
-            container.appendChild(toast);
+        }
+
+        // ==================== FILTER & SEARCH ====================
+        function filterTokens(filter) {
+            currentFilter = filter;
             
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                setTimeout(() => toast.remove(), 300);
-            }, duration);
-        }
-
-        // AI Validator
-        function openAIValidator() {
-            document.getElementById('aiValidatorModal').classList.add('active');
-            // TODO: Charger le contenu du validator
-        }
-
-        // Trading Panel
-        function openTradingPanel() {
-            document.getElementById('tradingPanel').classList.add('active');
-            // TODO: Charger les signaux de trading
-        }
-
-        function closeTradingPanel() {
-            document.getElementById('tradingPanel').classList.remove('active');
-        }
-
-        // Enhanced Token Card with Quick Actions
-        function enhanceTokenCard(card, token) {
-            const actionsDiv = document.createElement('div');
-            actionsDiv.className = 'token-quick-actions';
-            actionsDiv.innerHTML = `
-                <button class="quick-action-btn buy" onclick="quickTrade(event, '${token.address}', 'BUY')">
-                    💰 BUY
-                </button>
-                <button class="quick-action-btn" onclick="analyzeWithAI(event, '${token.address}')">
-                    🧠 AI
-                </button>
-                <button class="quick-action-btn sell" onclick="quickTrade(event, '${token.address}', 'SELL')">
-                    💸 SELL
-                </button>
-            `;
-            card.appendChild(actionsDiv);
-        }
-
-        function quickTrade(event, address, action) {
-            event.stopPropagation();
-            showToast(`${action} trade pour ${address.substring(0, 10)}...`, 'info');
-            openTradingPanel();
-            // TODO: Pré-remplir le panel de trading
-        }
-
-        function analyzeWithAI(event, address) {
-            event.stopPropagation();
-            showToast(`Analyse IA pour ${address.substring(0, 10)}...`, 'info');
-            openAIValidator();
-            // TODO: Pré-remplir l'analyzer
-        }
-
-        // Enhanced Filters
-        function enhancedFilterTokens() {
-            const currentFilter = document.querySelector('.filter-btn.active').dataset.filter;
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.filter === filter);
+            });
             
             let filtered = allTokens;
             
-            switch(currentFilter) {
-                case 'buy_signal':
-                    filtered = allTokens.filter(t => t.trading_signal === 'BUY');
+            switch(filter) {
+                case 'safe':
+                    filtered = allTokens.filter(t => t.risk_score < 50);
                     break;
-                case 'high_volume':
-                    filtered = allTokens.filter(t => t.market && t.market.volume_24h > 100000);
+                case 'danger':
+                    filtered = allTokens.filter(t => t.risk_score >= 50);
                     break;
-                // ... autres filtres
+                case 'pump_dump':
+                    filtered = allTokens.filter(t => t.is_pump_dump_suspect);
+                    break;
             }
             
             displayTokens(filtered);
         }
 
-        // Detect AI Opportunities
-        function detectAIOpportunities(tokens) {
-            const buySignals = tokens.filter(t => 
-                t.risk_score < 30 && 
-                t.market && 
-                t.market.volume_24h > 50000
+        function searchTokens() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = allTokens.filter(t => 
+                t.address.toLowerCase().includes(search) ||
+                t.chain.toLowerCase().includes(search)
             );
-            
-            if (buySignals.length > 0) {
-                const card = document.getElementById('aiInsightsCard');
-                const content = document.getElementById('aiInsightsContent');
-                
-                content.innerHTML = `
-                    <p><strong>${buySignals.length} opportunités BUY détectées</strong></p>
-                    <ul style="margin: 8px 0; padding-left: 20px; color: var(--text-secondary);">
-                        ${buySignals.slice(0, 3).map(t => 
-                            `<li>${t.address.substring(0, 10)}... - Score: ${t.risk_score}</li>`
-                        ).join('')}
-                    </ul>
-                `;
-                
-                card.style.display = 'block';
-            }
+            displayTokens(filtered);
         }
 
-        // Override original displayTokens to add enhancements
-        const originalDisplayTokens = window.displayTokens;
-        window.displayTokens = function(tokens) {
-            originalDisplayTokens(tokens);
+        // ==================== MODAL FUNCTIONS ====================
+        function openTokenModal(token) {
+            const modal = document.getElementById('tokenModal');
+            const modalBody = document.getElementById('modalBody');
             
-            // Add quick actions to cards
-            document.querySelectorAll('.token-card').forEach((card, index) => {
-                if (tokens[index] && !card.querySelector('.token-quick-actions')) {
-                    enhanceTokenCard(card, tokens[index]);
-                }
-            });
+            modalBody.innerHTML = `
+                <div style="margin-bottom: 2rem;">
+                    <h3>📊 Informations Générales</h3>
+                    <p><strong>Adresse:</strong> ${token.address}</p>
+                    <p><strong>Blockchain:</strong> ${token.chain.toUpperCase()}</p>
+                    <p><strong>Score de Risque:</strong> ${token.risk_score}/100</p>
+                </div>
+                
+                <div style="margin-bottom: 2rem;">
+                    <h3>💰 Données de Marché</h3>
+                    <p><strong>Prix:</strong> ${token.market?.price_usd ? '$' + token.market.price_usd.toFixed(8) : 'N/A'}</p>
+                    <p><strong>Liquidité:</strong> ${formatNumber(token.market?.liquidity_usd || 0)}</p>
+                    <p><strong>Volume 24h:</strong> ${formatNumber(token.market?.volume_24h || 0)}</p>
+                </div>
+                
+                <div>
+                    <h3>🔒 Sécurité</h3>
+                    <p><strong>Honeypot:</strong> ${token.security?.is_honeypot ? '⚠️ OUI' : '✅ NON'}</p>
+                    <p><strong>Code Open Source:</strong> ${token.security?.is_open_source ? '✅ OUI' : '⚠️ NON'}</p>
+                    <p><strong>Taxes:</strong> ${token.security?.buy_tax || 0}% / ${token.security?.sell_tax || 0}%</p>
+                </div>
+            `;
             
-            // Detect AI opportunities
-            detectAIOpportunities(tokens);
-        };
+            modal.classList.add('active');
+        }
 
-        // Override startNewScan to add debug
-        const originalStartNewScan = window.startNewScan;
-        window.startNewScan = async function() {
-            debugLog('🚀 Démarrage du scan...');
-            showToast('Scanner démarré !', 'info');
+        function closeTokenModal() {
+            document.getElementById('tokenModal').classList.remove('active');
+        }
+
+        // ==================== UTILITY FUNCTIONS ====================
+        async function addToFavorites(address, chain) {
+            if (!isAuthenticated) {
+                showToast('Connectez-vous pour ajouter aux favoris', 'error');
+                return;
+            }
             
             try {
-                await originalStartNewScan();
-                debugLog('✅ Scan initié avec succès');
+                const token = allTokens.find(t => t.address === address);
+                const response = await fetch('/api/favorites', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        token_address: address,
+                        token_chain: chain,
+                        token_data: token
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('Ajouté aux favoris !', 'success');
+                } else {
+                    showToast(data.error, 'error');
+                }
             } catch (error) {
-                debugLog('❌ Erreur scan: ' + error.message);
-                showToast('Erreur lors du scan', 'error');
+                showToast('Erreur lors de l\'ajout', 'error');
+            }
+        }
+
+        function copyAddress(address) {
+            navigator.clipboard.writeText(address);
+            showToast('Adresse copiée !', 'success');
+        }
+
+        function formatNumber(num) {
+            if (num >= 1e9) return '$' + (num / 1e9).toFixed(2) + 'B';
+            if (num >= 1e6) return '$' + (num / 1e6).toFixed(2) + 'M';
+            if (num >= 1e3) return '$' + (num / 1e3).toFixed(2) + 'K';
+            return '$' + num.toFixed(2);
+        }
+
+        function showAlert(message, type) {
+            const alertDiv = document.getElementById('authAlert');
+            alertDiv.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+            setTimeout(() => alertDiv.innerHTML = '', 3000);
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Close modals on outside click
+        document.getElementById('authModal').addEventListener('click', (e) => {
+            if (e.target.id === 'authModal') closeAuthModal();
+        });
+        
+        document.getElementById('tokenModal').addEventListener('click', (e) => {
+            if (e.target.id === 'tokenModal') closeTokenModal();
+        });
+        
+        // ==================== AUTO-SCAN FUNCTIONS ====================
+        
+        function initAutoScan() {
+            // Charger la préférence sauvegardée
+            const saved = localStorage.getItem('autoScanEnabled');
+            if (saved === 'true') {
+                document.getElementById('autoScanToggle').checked = true;
+                startAutoScan();
+            }
+        }
+        
+        function toggleAutoScan() {
+            const checkbox = document.getElementById('autoScanToggle');
+            autoScanEnabled = checkbox.checked;
+            
+            // Sauvegarder la préférence
+            localStorage.setItem('autoScanEnabled', autoScanEnabled);
+            
+            if (autoScanEnabled) {
+                startAutoScan();
+                showToast('🔄 Auto-scan activé (toutes les 5 min)', 'success');
+            } else {
+                stopAutoScan();
+                showToast('⏸️ Auto-scan désactivé', 'info');
+            }
+        }
+        
+        function startAutoScan() {
+            if (autoScanInterval) return; // Déjà actif
+            
+            autoScanEnabled = true;
+            nextScanTime = Date.now() + AUTO_SCAN_DELAY;
+            
+            // Afficher la carte de statut
+            document.getElementById('autoScanStatusCard').style.display = 'block';
+            
+            // Lancer le scan automatique
+            autoScanInterval = setInterval(() => {
+                console.log('🔄 Auto-scan triggered');
+                startNewScan();
+            }, AUTO_SCAN_DELAY);
+            
+            // Démarrer le countdown
+            startCountdown();
+            
+            console.log('✅ Auto-scan démarré (intervalle: 5 minutes)');
+        }
+        
+        function stopAutoScan() {
+            autoScanEnabled = false;
+            
+            // Masquer la carte de statut
+            document.getElementById('autoScanStatusCard').style.display = 'none';
+            
+            if (autoScanInterval) {
+                clearInterval(autoScanInterval);
+                autoScanInterval = null;
+            }
+            
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+            }
+            
+            const countdown = document.getElementById('autoScanCountdown');
+            countdown.style.display = 'none';
+            
+            console.log('⏸️ Auto-scan arrêté');
+        }
+        
+        function startCountdown() {
+            const countdown = document.getElementById('autoScanCountdown');
+            const statusText = document.getElementById('autoScanStatus');
+            countdown.style.display = 'inline';
+            
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+            }
+            
+            countdownInterval = setInterval(() => {
+                if (!autoScanEnabled || !nextScanTime) {
+                    countdown.style.display = 'none';
+                    return;
+                }
+                
+                const remaining = Math.max(0, nextScanTime - Date.now());
+                const minutes = Math.floor(remaining / 60000);
+                const seconds = Math.floor((remaining % 60000) / 1000);
+                
+                if (remaining <= 0) {
+                    countdown.textContent = 'Scan en cours...';
+                    if (statusText) statusText.textContent = 'Scan en cours...';
+                    nextScanTime = Date.now() + AUTO_SCAN_DELAY;
+                } else {
+                    const timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                    countdown.textContent = `Prochain: ${timeStr}`;
+                    if (statusText) statusText.textContent = `Prochain scan dans ${timeStr}`;
+                }
+            }, 1000);
+        }
+        
+        // Reset countdown when manual scan is triggered
+        const originalStartNewScan = startNewScan;
+        startNewScan = async function() {
+            await originalStartNewScan();
+            
+            // Reset le timer d'auto-scan
+            if (autoScanEnabled) {
+                nextScanTime = Date.now() + AUTO_SCAN_DELAY;
             }
         };
-
-        // Initialize on load
-        window.addEventListener('load', async () => {
-            debugLog('🔧 Initialisation de l\'application...');
-            
-            // Check system health
-            await checkSystemHealth();
-            setInterval(checkSystemHealth, 30000); // Check every 30s
-            
-            debugLog('✅ Application prête !');
-            showToast('Bienvenue sur Token Scanner Pro !', 'success');
-        });
-
-        // Close modal helper
-        function closeModal(modalId) {
-            document.getElementById(modalId).classList.remove('active');
-        }
     </script>
 </body>
 </html>
