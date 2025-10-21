@@ -1,5 +1,119 @@
+# ==================== CORE DEPENDENCIES ====================
+# Flask Framework & Extensions
 flask==3.0.0
-requests==2.31.0
 flask-cors==4.0.0
-flask-login==0.6.3
-flask-bcrypt==1.0.1
+werkzeug==3.0.1
+
+# HTTP Requests
+requests==2.31.0
+
+# Database
+#sqlite3  # Built-in Python module (no install needed)
+
+# Security & Authentication
+werkzeug==3.0.1  # For password hashing
+
+# ==================== TRADING & BLOCKCHAIN ====================
+# Web3 & Blockchain
+web3==6.11.3
+eth-account==0.10.0
+eth-utils==2.3.1
+
+# Anthropic Claude AI
+anthropic==0.18.1
+
+# Binance (optional for CEX trading)
+python-binance==1.0.19
+
+# ==================== DATA ANALYSIS & TECHNICAL INDICATORS ====================
+# Data Processing
+pandas==2.1.4
+numpy==1.26.2
+
+# Technical Analysis
+ta==0.11.0  # Technical Analysis Library
+TA-Lib==0.4.28  # Advanced Technical Analysis (optional, requires system install)
+
+# ==================== UTILITIES ====================
+# Date & Time
+python-dateutil==2.8.2
+
+# JSON & Data Validation
+jsonschema==4.20.0
+
+# Async Support
+aiohttp==3.9.1
+
+# Rate Limiting
+ratelimit==2.2.1
+
+# ==================== DEVELOPMENT & TESTING (OPTIONAL) ====================
+# Testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+
+# Code Quality
+black==23.12.1
+flake8==6.1.0
+pylint==3.0.3
+
+# Environment Variables
+python-dotenv==1.0.0
+
+# ==================== DEPLOYMENT (OPTIONAL) ====================
+# Production Server
+gunicorn==21.2.0  # For production deployment
+gevent==23.9.1  # Async workers
+
+# ==================== NOTES ====================
+# Installation Instructions:
+# 
+# 1. Basic Installation (minimum requirements):
+#    pip install -r requirements.txt
+#
+# 2. TA-Lib System Dependencies (if using TA-Lib):
+#    - Ubuntu/Debian: sudo apt-get install ta-lib
+#    - macOS: brew install ta-lib
+#    - Windows: Download from https://github.com/mrjbq7/ta-lib#windows
+#
+# 3. Development Installation (with dev tools):
+#    pip install -r requirements.txt
+#
+# 4. Production Deployment:
+#    Use gunicorn: gunicorn -w 4 -k gevent app:app
+#
+# ==================== VERSION NOTES ====================
+# - Flask 3.0.0: Latest stable version with improved performance
+# - Web3 6.11.3: Latest with Ethereum support
+# - Anthropic 0.18.1: Latest Claude API version
+# - Pandas 2.1.4: High-performance data analysis
+# - NumPy 1.26.2: Scientific computing foundation
+#
+# ==================== COMPATIBILITY ====================
+# Python Version Required: 3.9+
+# Tested on: Python 3.9, 3.10, 3.11
+#
+# ==================== OPTIONAL DEPENDENCIES ====================
+# Remove these if not needed:
+# - python-binance: Only if trading on Binance CEX
+# - TA-Lib: Can use 'ta' library instead (simpler)
+# - Development tools: pytest, black, flake8, pylint
+#
+# ==================== TROUBLESHOOTING ====================
+# If you encounter installation errors:
+#
+# 1. TA-Lib error:
+#    - Option A: Remove TA-Lib line (use 'ta' instead)
+#    - Option B: Install system dependencies first
+#
+# 2. Web3 compilation errors:
+#    - Update pip: pip install --upgrade pip
+#    - Install build tools: pip install wheel setuptools
+#
+# 3. Anthropic API errors:
+#    - Ensure you have valid API key in environment
+#    - Set ANTHROPIC_API_KEY in .env file
+#
+# 4. Memory errors during install:
+#    - Install packages one by one
+#    - Use: pip install --no-cache-dir -r requirements.txt

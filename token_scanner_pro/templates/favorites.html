@@ -3,71 +3,285 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mes Favoris - Token Scanner Pro</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <title>Favoris - Token Scanner Pro</title>
     <style>
-        .favorites-header {
+        /* ==================== MODERN CSS VARIABLES ==================== */
+        :root {
+            /* Palette Moderne (Vercel/Linear style) */
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #13131a;
+            --bg-tertiary: #1a1a24;
+            --bg-card: rgba(26, 26, 36, 0.7);
+            --bg-glass: rgba(255, 255, 255, 0.03);
+            
+            /* Glassmorphism */
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            
+            /* Gradients Premium */
+            --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-success: linear-gradient(135deg, #0cebeb 0%, #20e3b2 100%);
+            --gradient-danger: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --gradient-warning: linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%);
+            
+            /* Text Colors */
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0b2;
+            --text-tertiary: #6b6b80;
+            
+            /* Accents */
+            --accent-primary: #667eea;
+            --accent-success: #20e3b2;
+            --accent-danger: #f5576c;
+            --accent-warning: #fbc2eb;
+            --accent-blue: #4c9aff;
+            
+            /* Borders */
+            --border-subtle: rgba(255, 255, 255, 0.05);
+            --border-strong: rgba(255, 255, 255, 0.1);
+        }
+
+        /* ==================== RESET & BASE ==================== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Animated Background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(102, 126, 234, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(118, 75, 162, 0.15) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ==================== HEADER ==================== */
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-subtle);
+            padding: 1.5rem 2rem;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 32px;
         }
 
-        .favorites-title {
-            font-size: 32px;
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
             font-weight: 700;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
-        .favorites-count {
-            font-size: 18px;
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--gradient-primary);
+            color: white;
+            box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-strong);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-glass);
+            border-color: var(--accent-primary);
+        }
+
+        /* ==================== MAIN CONTENT ==================== */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ==================== PAGE HEADER ==================== */
+        .page-header {
+            margin-bottom: 3rem;
+        }
+
+        .page-title {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #ffffff 0%, #a0a0b2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .page-subtitle {
+            font-size: 1.1rem;
             color: var(--text-secondary);
         }
 
-        .favorites-actions {
+        /* ==================== STATS CARDS ==================== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 2rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent-primary);
+            box-shadow: 0 12px 40px rgba(102, 126, 234, 0.2);
+        }
+
+        .stat-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* ==================== TOOLBAR ==================== */
+        .toolbar {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
             display: flex;
-            gap: 12px;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
         }
 
         .search-box {
-            display: flex;
-            align-items: center;
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 8px 16px;
-            gap: 8px;
-            margin-bottom: 24px;
-        }
-
-        .search-box input {
-            background: none;
-            border: none;
-            color: var(--text-primary);
-            font-size: 14px;
             flex: 1;
+            min-width: 250px;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.875rem 1rem 0.875rem 3rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            transition: all 0.3s;
+        }
+
+        .search-input:focus {
             outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
-        .search-box input::placeholder {
-            color: var(--text-secondary);
+        .search-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-tertiary);
+            font-size: 1.2rem;
         }
 
-        .sort-controls {
+        .sort-buttons {
             display: flex;
-            gap: 12px;
-            margin-bottom: 24px;
+            gap: 0.5rem;
             flex-wrap: wrap;
         }
 
         .sort-btn {
-            padding: 8px 16px;
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
+            padding: 0.75rem 1.25rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 10px;
             color: var(--text-secondary);
-            font-size: 13px;
             cursor: pointer;
-            transition: all 0.3s ease;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .sort-btn:hover {
+            border-color: var(--accent-primary);
+            color: var(--text-primary);
         }
 
         .sort-btn.active {
@@ -76,356 +290,493 @@
             border-color: transparent;
         }
 
-        .favorite-item {
+        /* ==================== FAVORITES GRID ==================== */
+        .favorites-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+            gap: 2rem;
+        }
+
+        .favorite-card {
             background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 24px;
-            margin-bottom: 16px;
-            transition: all 0.3s ease;
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 2rem;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
             overflow: hidden;
         }
 
-        .favorite-item::before {
+        .favorite-card::before {
             content: '';
             position: absolute;
             top: 0;
             left: 0;
-            right: 0;
-            height: 4px;
+            width: 100%;
+            height: 100%;
+            background: var(--gradient-primary);
+            opacity: 0;
+            transition: opacity 0.4s;
+            pointer-events: none;
         }
 
-        .favorite-item.safe::before {
-            background: var(--accent-green);
+        .favorite-card:hover {
+            transform: translateY(-8px);
+            border-color: var(--accent-primary);
+            box-shadow: 0 20px 60px rgba(102, 126, 234, 0.3);
         }
 
-        .favorite-item.warning::before {
-            background: var(--accent-orange);
+        .favorite-card:hover::before {
+            opacity: 0.03;
         }
 
-        .favorite-item.danger::before {
-            background: var(--accent-red);
-        }
-
-        .favorite-item:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-md);
-            border-color: var(--accent-blue);
-        }
-
-        .favorite-content {
-            display: grid;
-            grid-template-columns: auto 1fr auto;
-            gap: 24px;
-            align-items: start;
-        }
-
-        .favorite-left {
+        .card-header {
             display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 12px;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1.5rem;
+            position: relative;
+            z-index: 1;
         }
 
-        .favorite-icon {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            overflow: hidden;
-            border: 3px solid var(--border-color);
-            background: var(--bg-secondary);
+        .token-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border-strong);
             display: flex;
             align-items: center;
             justify-content: center;
+            font-size: 1.8rem;
         }
 
-        .favorite-icon img {
+        .token-icon img {
             width: 100%;
             height: 100%;
+            border-radius: 14px;
             object-fit: cover;
         }
 
-        .favorite-icon-placeholder {
-            font-size: 40px;
+        .card-actions {
+            display: flex;
+            gap: 0.5rem;
         }
 
-        .risk-circle-large {
-            width: 80px;
-            height: 80px;
-            position: relative;
+        .icon-btn {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 10px;
+            color: var(--text-secondary);
+            cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
+            font-size: 1.1rem;
+            transition: all 0.3s;
         }
 
-        .risk-circle-large svg {
-            transform: rotate(-90deg);
-        }
-
-        .risk-circle-large .risk-circle-text {
-            position: absolute;
-            font-size: 20px;
-            font-weight: 700;
-        }
-
-        .favorite-main {
-            flex: 1;
-        }
-
-        .favorite-header-section {
-            margin-bottom: 20px;
-        }
-
-        .favorite-address {
-            font-size: 18px;
-            font-weight: 600;
-            font-family: 'Courier New', monospace;
-            margin-bottom: 8px;
-        }
-
-        .favorite-date {
-            font-size: 12px;
-            color: var(--text-secondary);
-        }
-
-        .favorite-metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-
-        .favorite-security-grid {
-            display: grid;
-            grid-template-columns: repeat(6, 1fr);
-            gap: 8px;
-            padding: 16px;
-            background: var(--bg-secondary);
-            border-radius: 12px;
-            margin-bottom: 20px;
-        }
-
-        .security-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-            padding: 8px;
-            border-radius: 8px;
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-        }
-
-        .security-icon {
-            font-size: 24px;
-        }
-
-        .security-label {
-            font-size: 10px;
-            color: var(--text-secondary);
-            text-align: center;
-        }
-
-        .twitter-mini {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 12px;
-            padding: 16px;
-            background: var(--bg-secondary);
-            border-radius: 12px;
-        }
-
-        .twitter-mini-stat {
-            text-align: center;
-        }
-
-        .twitter-mini-value {
-            font-size: 18px;
-            font-weight: 700;
-            margin-bottom: 4px;
-        }
-
-        .twitter-mini-label {
-            font-size: 11px;
-            color: var(--text-secondary);
-        }
-
-        .twitter-bio {
-            margin-top: 12px;
-            padding: 12px;
-            background: var(--bg-card);
-            border-radius: 8px;
-            font-size: 13px;
-            line-height: 1.6;
-            border: 1px solid var(--border-color);
-        }
-
-        .favorite-right {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            min-width: 150px;
-        }
-
-        .favorite-notes {
-            position: relative;
-        }
-
-        .notes-display {
-            font-size: 13px;
-            color: var(--text-secondary);
-            font-style: italic;
-            cursor: pointer;
-            padding: 8px 12px;
-            background: var(--bg-secondary);
-            border-radius: 6px;
-            border: 1px solid var(--border-color);
-            min-height: 40px;
-            display: flex;
-            align-items: center;
-        }
-
-        .notes-display:hover {
-            border-color: var(--accent-blue);
-        }
-
-        .notes-display.empty {
-            color: var(--text-secondary);
-            opacity: 0.5;
-        }
-
-        .notes-input {
-            width: 100%;
-            padding: 8px 12px;
-            background: var(--bg-secondary);
-            border: 1px solid var(--accent-blue);
-            border-radius: 6px;
+        .icon-btn:hover {
+            background: var(--bg-glass);
             color: var(--text-primary);
-            font-size: 13px;
-            resize: vertical;
-            min-height: 60px;
+            transform: scale(1.1);
         }
 
-        .notes-input:focus {
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+        .icon-btn.danger:hover {
+            background: var(--accent-danger);
+            color: white;
+            border-color: var(--accent-danger);
         }
 
-        .notes-actions {
-            display: flex;
-            gap: 8px;
-            margin-top: 8px;
+        .token-info {
+            margin-bottom: 1.5rem;
+            position: relative;
+            z-index: 1;
         }
 
-        .favorite-actions {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
+        .token-address {
+            font-size: 0.85rem;
+            color: var(--text-tertiary);
+            font-family: 'Monaco', 'Courier New', monospace;
+            margin-bottom: 0.5rem;
         }
 
-        .no-favorites {
+        .token-chain {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.4rem 0.9rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .risk-badge {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            z-index: 1;
+        }
+
+        .risk-safe {
+            background: rgba(32, 227, 178, 0.15);
+            color: var(--accent-success);
+            border: 1px solid rgba(32, 227, 178, 0.3);
+        }
+
+        .risk-warning {
+            background: rgba(251, 194, 235, 0.15);
+            color: var(--accent-warning);
+            border: 1px solid rgba(251, 194, 235, 0.3);
+        }
+
+        .risk-danger {
+            background: rgba(245, 87, 108, 0.15);
+            color: var(--accent-danger);
+            border: 1px solid rgba(245, 87, 108, 0.3);
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .metric {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 1rem;
+        }
+
+        .metric-label {
+            font-size: 0.8rem;
+            color: var(--text-tertiary);
+            margin-bottom: 0.4rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .metric-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .metric-value.positive {
+            color: var(--accent-success);
+        }
+
+        .metric-value.negative {
+            color: var(--accent-danger);
+        }
+
+        /* ==================== EMPTY STATE ==================== */
+        .empty-state {
             text-align: center;
-            padding: 80px 20px;
+            padding: 5rem 2rem;
         }
 
-        .no-favorites-icon {
-            font-size: 64px;
-            margin-bottom: 24px;
+        .empty-icon {
+            font-size: 6rem;
+            margin-bottom: 2rem;
             opacity: 0.3;
         }
 
-        @media (max-width: 1200px) {
-            .favorite-content {
+        .empty-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .empty-text {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+        }
+
+        /* ==================== MODAL ==================== */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .modal.active {
+            display: flex;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-strong);
+            border-radius: 24px;
+            max-width: 800px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            padding: 2rem;
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+
+        .modal-close {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: var(--bg-tertiary);
+            border-radius: 10px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .modal-close:hover {
+            background: var(--accent-danger);
+            color: white;
+            transform: rotate(90deg);
+        }
+
+        .modal-body {
+            padding: 2rem;
+        }
+
+        .detail-section {
+            margin-bottom: 2rem;
+        }
+
+        .detail-section-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .detail-item {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 1rem;
+        }
+
+        .detail-label {
+            font-size: 0.85rem;
+            color: var(--text-tertiary);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .detail-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* ==================== RESPONSIVE ==================== */
+        @media (max-width: 768px) {
+            .container {
+                padding: 2rem 1rem;
+            }
+
+            .page-title {
+                font-size: 2rem;
+            }
+
+            .favorites-grid {
                 grid-template-columns: 1fr;
             }
 
-            .favorite-left {
-                flex-direction: row;
-                justify-content: center;
+            .toolbar {
+                flex-direction: column;
+                align-items: stretch;
             }
 
-            .favorite-metrics-grid {
-                grid-template-columns: repeat(2, 1fr);
+            .sort-buttons {
+                width: 100%;
+                justify-content: space-between;
             }
 
-            .favorite-security-grid {
-                grid-template-columns: repeat(3, 1fr);
+            .stats-grid {
+                grid-template-columns: 1fr;
             }
+        }
 
-            .twitter-mini {
-                grid-template-columns: repeat(2, 1fr);
+        /* ==================== ANIMATIONS ==================== */
+        @keyframes shimmer {
+            0% {
+                background-position: -1000px 0;
             }
+            100% {
+                background-position: 1000px 0;
+            }
+        }
+
+        .loading {
+            animation: shimmer 2s infinite linear;
+            background: linear-gradient(
+                to right,
+                var(--bg-tertiary) 0%,
+                var(--bg-glass) 50%,
+                var(--bg-tertiary) 100%
+            );
+            background-size: 1000px 100%;
         }
     </style>
 </head>
 <body>
     <!-- Header -->
-    <div class="header">
+    <header class="header">
         <div class="header-content">
             <div class="logo">
-                <div class="logo-icon">🔍</div>
-                <span>Token Scanner Pro</span>
+                ⭐ Token Scanner Pro
             </div>
             <div class="header-actions">
-                <button class="btn btn-secondary" onclick="window.location.href='/'">
-                    🏠 Accueil
-                </button>
-                <button class="btn btn-icon active" onclick="window.location.href='/favorites'" title="Mes favoris">
-                    ⭐
-                </button>
-                <button class="btn btn-icon" onclick="showProfile()" title="Mon profil">
-                    👤
-                </button>
-                <button class="btn btn-secondary" onclick="logout()">
-                    🚪 Déconnexion
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Container -->
-    <div class="container">
-        <!-- Header -->
-        <div class="favorites-header">
-            <div>
-                <h1 class="favorites-title">⭐ Mes Favoris</h1>
-                <p class="favorites-count" id="favoritesCount">Chargement...</p>
-            </div>
-            <div class="favorites-actions">
-                <button class="btn btn-secondary" onclick="clearAllFavorites()">
-                    🗑️ Tout supprimer
-                </button>
+                <a href="/" class="btn btn-secondary">🏠 Accueil</a>
                 <button class="btn btn-primary" onclick="exportFavorites()">
-                    📥 Exporter
+                    💾 Exporter
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1 class="page-title">Mes Favoris</h1>
+            <p class="page-subtitle">Gérez vos tokens favoris et suivez leur évolution</p>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <div class="stat-icon">⭐</div>
+                <div class="stat-value" id="totalFavorites">0</div>
+                <div class="stat-label">Total Favoris</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">✅</div>
+                <div class="stat-value" id="safeFavorites">0</div>
+                <div class="stat-label">Tokens Sûrs</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">⚠️</div>
+                <div class="stat-value" id="riskyFavorites">0</div>
+                <div class="stat-label">Tokens Risqués</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📊</div>
+                <div class="stat-value" id="avgRisk">0</div>
+                <div class="stat-label">Risque Moyen</div>
+            </div>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input 
+                    type="text" 
+                    class="search-input" 
+                    id="searchInput" 
+                    placeholder="Rechercher par adresse, chaîne ou notes..."
+                    oninput="searchFavorites()"
+                >
+            </div>
+            <div class="sort-buttons">
+                <button class="sort-btn active" data-sort="recent" onclick="sortFavorites('recent')">
+                    🕐 Récents
+                </button>
+                <button class="sort-btn" data-sort="risk-low" onclick="sortFavorites('risk-low')">
+                    ✅ Moins Risqués
+                </button>
+                <button class="sort-btn" data-sort="risk-high" onclick="sortFavorites('risk-high')">
+                    ⚠️ Plus Risqués
+                </button>
+                <button class="sort-btn" data-sort="liquidity" onclick="sortFavorites('liquidity')">
+                    💰 Liquidité
                 </button>
             </div>
         </div>
 
-        <!-- Search -->
-        <div class="search-box">
-            <span>🔍</span>
-            <input type="text" id="searchInput" placeholder="Rechercher par adresse, chaîne..." onkeyup="filterFavorites()">
-        </div>
-
-        <!-- Sort Controls -->
-        <div class="sort-controls">
-            <span style="color: var(--text-secondary); margin-right: 8px;">Trier par:</span>
-            <button class="sort-btn active" data-sort="recent" onclick="sortFavorites('recent')">➕ Récents</button>
-            <button class="sort-btn" data-sort="risk-low" onclick="sortFavorites('risk-low')">✅ Risque faible</button>
-            <button class="sort-btn" data-sort="risk-high" onclick="sortFavorites('risk-high')">⚠️ Risque élevé</button>
-            <button class="sort-btn" data-sort="liquidity" onclick="sortFavorites('liquidity')">💧 Liquidité</button>
-        </div>
-
-        <!-- Favorites List -->
-        <div id="favoritesList">
-            <div class="no-favorites">
-                <div class="no-favorites-icon">⭐</div>
-                <h3 class="empty-title">Aucun favori</h3>
-                <p class="empty-text">Ajoutez des tokens à vos favoris depuis la page d'accueil</p>
-                <button class="btn btn-primary" onclick="window.location.href='/'">
-                    🏠 Retour à l'accueil
-                </button>
+        <!-- Favorites Grid -->
+        <div class="favorites-grid" id="favoritesGrid">
+            <!-- Empty State -->
+            <div class="empty-state" style="grid-column: 1/-1;">
+                <div class="empty-icon">⭐</div>
+                <h3 class="empty-title">Aucun favori pour le moment</h3>
+                <p class="empty-text">Ajoutez vos premiers tokens favoris depuis la page de scan</p>
+                <a href="/" class="btn btn-primary">🔍 Scanner des tokens</a>
             </div>
         </div>
     </div>
@@ -434,366 +785,138 @@
     <div class="modal" id="tokenModal">
         <div class="modal-content">
             <div class="modal-header">
-                <div class="modal-title-section">
-                    <h2 class="modal-title" id="modalAddress" style="font-family: 'Courier New', monospace;"></h2>
-                    <span class="chain-badge" id="modalChain"></span>
-                </div>
+                <h2 class="modal-title">Détails du Token</h2>
                 <button class="modal-close" onclick="closeModal()">✕</button>
             </div>
-            <div class="modal-body" id="modalBody"></div>
+            <div class="modal-body" id="modalBody">
+                <!-- Content will be injected by JavaScript -->
+            </div>
         </div>
     </div>
 
-    <!-- JavaScript -->
     <script>
-        const API_URL = window.location.origin + '/api';
         let allFavorites = [];
         let currentSort = 'recent';
 
-        // Vérifier l'authentification
-        window.addEventListener('load', async () => {
-            await checkAuth();
-            await loadFavorites();
+        // Charger les favoris au démarrage
+        window.addEventListener('DOMContentLoaded', () => {
+            loadFavorites();
         });
 
-        async function checkAuth() {
-            try {
-                const response = await fetch(`${API_URL}/auth/me`, {
-                    credentials: 'include'
-                });
-                const data = await response.json();
-                
-                if (!data.success) {
-                    alert('Vous devez être connecté pour voir vos favoris');
-                    window.location.href = '/';
-                }
-            } catch (error) {
-                alert('Erreur de connexion');
-                window.location.href = '/';
-            }
-        }
-
-        async function logout() {
-            await fetch(`${API_URL}/auth/logout`, {
-                method: 'POST',
-                credentials: 'include'
-            });
-            window.location.href = '/';
-        }
-
-        function showProfile() {
-            alert('Page profil à venir !');
-        }
-
-        // Charger les favoris
+        // Charger les favoris depuis l'API
         async function loadFavorites() {
             try {
-                const response = await fetch(`${API_URL}/favorites`, {
+                const response = await fetch('/api/favorites', {
                     credentials: 'include'
                 });
+
+                if (!response.ok) {
+                    throw new Error('Erreur chargement favoris');
+                }
+
                 const data = await response.json();
 
                 if (data.success) {
                     allFavorites = data.favorites;
-                    document.getElementById('favoritesCount').textContent = 
-                        `${allFavorites.length} token${allFavorites.length > 1 ? 's' : ''} favori${allFavorites.length > 1 ? 's' : ''}`;
+                    updateStats();
                     displayFavorites(allFavorites);
                 } else {
-                    console.error('Erreur chargement favoris');
+                    console.error('Erreur:', data.error);
                 }
             } catch (error) {
-                console.error('Erreur:', error);
+                console.error('Erreur chargement:', error);
             }
         }
 
+        // Mettre à jour les statistiques
+        function updateStats() {
+            const total = allFavorites.length;
+            const safe = allFavorites.filter(f => f.token_data.risk_score < 50).length;
+            const risky = total - safe;
+            const avgRisk = total > 0 
+                ? Math.round(allFavorites.reduce((sum, f) => sum + f.token_data.risk_score, 0) / total)
+                : 0;
+
+            document.getElementById('totalFavorites').textContent = total;
+            document.getElementById('safeFavorites').textContent = safe;
+            document.getElementById('riskyFavorites').textContent = risky;
+            document.getElementById('avgRisk').textContent = avgRisk;
+        }
+
+        // Afficher les favoris
         function displayFavorites(favorites) {
-            const container = document.getElementById('favoritesList');
+            const grid = document.getElementById('favoritesGrid');
 
             if (favorites.length === 0) {
-                container.innerHTML = `
-                    <div class="no-favorites">
-                        <div class="no-favorites-icon">⭐</div>
-                        <h3 class="empty-title">Aucun favori</h3>
-                        <p class="empty-text">Ajoutez des tokens à vos favoris depuis la page d'accueil</p>
-                        <button class="btn btn-primary" onclick="window.location.href='/'">
-                            🏠 Retour à l'accueil
-                        </button>
+                grid.innerHTML = `
+                    <div class="empty-state" style="grid-column: 1/-1;">
+                        <div class="empty-icon">⭐</div>
+                        <h3 class="empty-title">Aucun favori trouvé</h3>
+                        <p class="empty-text">Essayez de modifier votre recherche</p>
                     </div>
                 `;
                 return;
             }
 
-            container.innerHTML = '';
-
-            favorites.forEach(fav => {
+            grid.innerHTML = favorites.map(fav => {
                 const token = fav.token_data;
-                const item = createFavoriteItem(fav, token);
-                container.appendChild(item);
-            });
-        }
+                const riskClass = token.risk_score < 50 ? 'safe' : token.risk_score < 80 ? 'warning' : 'danger';
+                const riskLabel = token.risk_score < 50 ? '✅ Sûr' : token.risk_score < 80 ? '⚠️ Modéré' : '🚨 Danger';
 
-        function createFavoriteItem(fav, token) {
-            const div = document.createElement('div');
-            
-            let riskClass = 'safe';
-            if (token.risk_score >= 50) riskClass = 'danger';
-            else if (token.risk_score >= 20) riskClass = 'warning';
-
-            div.className = `favorite-item ${riskClass}`;
-
-            const shortAddr = fav.token_address.substring(0, 12) + '...' + fav.token_address.substring(fav.token_address.length - 8);
-            const addedDate = new Date(fav.added_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
-
-            // Icon HTML
-            const iconHtml = token.icon 
-                ? `<img src="${token.icon}" alt="${token.chain}" onerror="this.parentElement.innerHTML='<span class=\\'favorite-icon-placeholder\\'>🪙</span>'">`
-                : `<span class="favorite-icon-placeholder">🪙</span>`;
-
-            // Cercle de progression
-            const circumference = 2 * Math.PI * 32;
-            const offset = circumference - (token.risk_score / 100) * circumference;
-
-            div.innerHTML = `
-                <div class="favorite-content">
-                    <!-- Left Section -->
-                    <div class="favorite-left">
-                        <div class="favorite-icon">
-                            ${iconHtml}
-                        </div>
+                return `
+                    <div class="favorite-card">
+                        <div class="risk-badge risk-${riskClass}">${riskLabel}</div>
                         
-                        <div class="risk-circle-large">
-                            <svg width="80" height="80">
-                                <circle class="risk-circle-bg" cx="40" cy="40" r="32"></circle>
-                                <circle class="risk-circle-progress ${riskClass}" 
-                                        cx="40" cy="40" r="32"
-                                        stroke-dasharray="${circumference}"
-                                        stroke-dashoffset="${offset}"></circle>
-                            </svg>
-                            <div class="risk-circle-text">${token.risk_score}</div>
+                        <div class="card-header">
+                            <div class="token-icon">
+                                ${token.icon ? `<img src="${token.icon}" alt="icon">` : '🪙'}
+                            </div>
+                            <div class="card-actions">
+                                <button class="icon-btn" onclick="openModal(${escapeJson(token)})" title="Détails">
+                                    👁️
+                                </button>
+                                <button class="icon-btn danger" onclick="removeFavorite(${fav.id})" title="Supprimer">
+                                    🗑️
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="token-info">
+                            <div class="token-address">${token.address}</div>
+                            <span class="token-chain">⛓️ ${token.chain.toUpperCase()}</span>
+                        </div>
+
+                        <div class="metrics-grid">
+                            <div class="metric">
+                                <div class="metric-label">Prix USD</div>
+                                <div class="metric-value">
+                                    ${token.market?.price_usd ? '$' + token.market.price_usd.toFixed(8) : 'N/A'}
+                                </div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">Variation 24h</div>
+                                <div class="metric-value ${token.market?.price_change_24h >= 0 ? 'positive' : 'negative'}">
+                                    ${token.market?.price_change_24h ? token.market.price_change_24h.toFixed(2) + '%' : '0%'}
+                                </div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">Liquidité</div>
+                                <div class="metric-value">
+                                    ${formatNumber(token.market?.liquidity_usd || 0)}
+                                </div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">Score Risque</div>
+                                <div class="metric-value">${token.risk_score}/100</div>
+                            </div>
                         </div>
                     </div>
-
-                    <!-- Main Section -->
-                    <div class="favorite-main">
-                        <div class="favorite-header-section">
-                            <div class="favorite-address">${shortAddr}</div>
-                            <span class="chain-badge">${fav.token_chain.toUpperCase()}</span>
-                            <div class="favorite-date">⭐ Ajouté le ${addedDate}</div>
-                        </div>
-
-                        <!-- Metrics -->
-                        <div class="favorite-metrics-grid">
-                            <div class="metric">
-                                <div class="metric-label">💸 Prix USD</div>
-                                <div class="metric-value">$${token.market?.price_usd ? token.market.price_usd.toFixed(8) : 'N/A'}</div>
-                            </div>
-                            <div class="metric">
-                                <div class="metric-label">📈 Variation 24h</div>
-                                <div class="metric-value" style="color: ${(token.market?.price_change_24h || 0) >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'}">
-                                    ${token.market?.price_change_24h ? token.market.price_change_24h.toFixed(2) : '0'}%
-                                </div>
-                            </div>
-                            <div class="metric">
-                                <div class="metric-label">💧 Liquidité</div>
-                                <div class="metric-value">$${formatNumber(token.market?.liquidity_usd || 0)}</div>
-                            </div>
-                            <div class="metric">
-                                <div class="metric-label">📊 Volume 24h</div>
-                                <div class="metric-value">$${formatNumber(token.market?.volume_24h || 0)}</div>
-                            </div>
-                            <div class="metric">
-                                <div class="metric-label">💰 Market Cap</div>
-                                <div class="metric-value">$${formatNumber(token.market?.market_cap || 0)}</div>
-                            </div>
-                            <div class="metric">
-                                <div class="metric-label">👥 Holders</div>
-                                <div class="metric-value">${token.security?.holder_count || 'N/A'}</div>
-                            </div>
-                        </div>
-
-                        <!-- Security -->
-                        <div class="favorite-security-grid">
-                            <div class="security-item">
-                                <div class="security-icon" style="color: ${token.security?.is_honeypot ? 'var(--accent-red)' : 'var(--accent-green)'}">
-                                    ${token.security?.is_honeypot ? '⚠️' : '✅'}
-                                </div>
-                                <div class="security-label">Honeypot</div>
-                            </div>
-                            <div class="security-item">
-                                <div class="security-icon" style="color: ${token.security?.is_open_source ? 'var(--accent-green)' : 'var(--accent-orange)'}">
-                                    ${token.security?.is_open_source ? '✅' : '⚠️'}
-                                </div>
-                                <div class="security-label">Vérifié</div>
-                            </div>
-                            <div class="security-item">
-                                <div class="security-icon" style="color: ${token.security?.is_mintable ? 'var(--accent-orange)' : 'var(--accent-green)'}">
-                                    ${token.security?.is_mintable ? '⚠️' : '✅'}
-                                </div>
-                                <div class="security-label">Mintable</div>
-                            </div>
-                            <div class="security-item">
-                                <div class="security-icon" style="color: ${token.security?.hidden_owner ? 'var(--accent-red)' : 'var(--accent-green)'}">
-                                    ${token.security?.hidden_owner ? '⚠️' : '✅'}
-                                </div>
-                                <div class="security-label">Owner</div>
-                            </div>
-                            <div class="security-item">
-                                <div class="security-icon" style="color: ${(token.security?.buy_tax || 0) > 10 ? 'var(--accent-red)' : 'var(--accent-green)'}">
-                                    ${token.security?.buy_tax || 0}%
-                                </div>
-                                <div class="security-label">Tax Buy</div>
-                            </div>
-                            <div class="security-item">
-                                <div class="security-icon" style="color: ${(token.security?.sell_tax || 0) > 10 ? 'var(--accent-red)' : 'var(--accent-green)'}">
-                                    ${token.security?.sell_tax || 0}%
-                                </div>
-                                <div class="security-label">Tax Sell</div>
-                            </div>
-                        </div>
-
-                        <!-- Twitter Section -->
-                        ${token.social_score > 0 ? `
-                        <div class="twitter-mini">
-                            <div class="twitter-mini-stat">
-                                <div class="twitter-mini-value">${formatNumber(token.social_details?.followers || 0)}</div>
-                                <div class="twitter-mini-label">Followers</div>
-                            </div>
-                            <div class="twitter-mini-stat">
-                                <div class="twitter-mini-value">${formatNumber(token.social_details?.following || 0)}</div>
-                                <div class="twitter-mini-label">Following</div>
-                            </div>
-                            <div class="twitter-mini-stat">
-                                <div class="twitter-mini-value">${formatNumber(token.social_details?.tweets || 0)}</div>
-                                <div class="twitter-mini-label">Tweets</div>
-                            </div>
-                            <div class="twitter-mini-stat">
-                                <div class="twitter-mini-value">${token.social_score}/100</div>
-                                <div class="twitter-mini-label">Score</div>
-                            </div>
-                        </div>
-                        ${token.twitter_data?.bio ? `
-                        <div class="twitter-bio">
-                            📝 ${token.twitter_data.bio}
-                        </div>
-                        ` : ''}
-                        ` : ''}
-                    </div>
-
-                    <!-- Right Section -->
-                    <div class="favorite-right">
-                        <div class="favorite-notes">
-                            <div class="notes-display ${fav.notes ? '' : 'empty'}" id="notes-display-${fav.id}" onclick="editNotes(${fav.id}, '${fav.token_address}', '${fav.token_chain}', \`${(fav.notes || '').replace(/`/g, '\\`')}\`)">
-                                ${fav.notes || '📝 Ajouter une note...'}
-                            </div>
-                        </div>
-
-                        <div class="favorite-actions">
-                            <button class="btn btn-primary" onclick='openModal(${JSON.stringify(token).replace(/'/g, "&#39;")})'>
-                                👁️ Détails
-                            </button>
-                            <button class="btn btn-secondary" onclick="removeFavorite('${fav.token_address}', '${fav.token_chain}')">
-                                🗑️ Retirer
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            return div;
+                `;
+            }).join('');
         }
 
-        // Éditer les notes
-        function editNotes(id, address, chain, currentNotes) {
-            const display = document.getElementById(`notes-display-${id}`);
-            
-            display.innerHTML = `
-                <textarea class="notes-input" id="notes-input-${id}">${currentNotes}</textarea>
-                <div class="notes-actions">
-                    <button class="btn btn-primary btn-small" onclick="saveNotes(${id}, '${address}', '${chain}')">💾 Sauver</button>
-                    <button class="btn btn-secondary btn-small" onclick="cancelEditNotes(${id}, \`${currentNotes.replace(/`/g, '\\`')}\`)">❌ Annuler</button>
-                </div>
-            `;
-
-            document.getElementById(`notes-input-${id}`).focus();
-        }
-
-        function cancelEditNotes(id, originalNotes) {
-            const display = document.getElementById(`notes-display-${id}`);
-            display.innerHTML = originalNotes || '📝 Ajouter une note...';
-            display.className = `notes-display ${originalNotes ? '' : 'empty'}`;
-        }
-
-        async function saveNotes(id, address, chain) {
-            const notes = document.getElementById(`notes-input-${id}`).value;
-
-            try {
-                const response = await fetch(`${API_URL}/favorites/notes`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify({
-                        token_address: address,
-                        token_chain: chain,
-                        notes: notes
-                    })
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    await loadFavorites();
-                } else {
-                    alert('Erreur lors de la sauvegarde');
-                }
-            } catch (error) {
-                alert('Erreur de connexion');
-            }
-        }
-
-        // Retirer un favori
-        async function removeFavorite(address, chain) {
-            if (!confirm('Êtes-vous sûr de vouloir retirer ce token de vos favoris ?')) {
-                return;
-            }
-
-            try {
-                const response = await fetch(`${API_URL}/favorites/remove`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify({
-                        token_address: address,
-                        token_chain: chain
-                    })
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    await loadFavorites();
-                } else {
-                    alert('Erreur lors de la suppression');
-                }
-            } catch (error) {
-                alert('Erreur de connexion');
-            }
-        }
-
-        // Tout supprimer
-        async function clearAllFavorites() {
-            if (!confirm(`Êtes-vous sûr de vouloir supprimer TOUS vos favoris (${allFavorites.length}) ?`)) {
-                return;
-            }
-
-            for (const fav of allFavorites) {
-                await removeFavorite(fav.token_address, fav.token_chain);
-            }
-
-            await loadFavorites();
-        }
-
-        // Filtrer
-        function filterFavorites() {
+        // Rechercher dans les favoris
+        function searchFavorites() {
             const search = document.getElementById('searchInput').value.toLowerCase();
             
             const filtered = allFavorites.filter(fav => {
@@ -805,7 +928,7 @@
             displayFavorites(filtered);
         }
 
-        // Trier
+        // Trier les favoris
         function sortFavorites(sortType) {
             currentSort = sortType;
 
@@ -833,7 +956,34 @@
             displayFavorites(sorted);
         }
 
-        // Exporter
+        // Supprimer un favori
+        async function removeFavorite(favoriteId) {
+            if (!confirm('Êtes-vous sûr de vouloir supprimer ce favori ?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/favorites/${favoriteId}`, {
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    allFavorites = allFavorites.filter(f => f.id !== favoriteId);
+                    updateStats();
+                    displayFavorites(allFavorites);
+                } else {
+                    alert('Erreur: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Erreur suppression:', error);
+                alert('Erreur lors de la suppression');
+            }
+        }
+
+        // Exporter les favoris
         function exportFavorites() {
             const dataStr = JSON.stringify(allFavorites, null, 2);
             const dataBlob = new Blob([dataStr], {type: 'application/json'});
@@ -844,76 +994,80 @@
             link.click();
         }
 
-        // Modal détails du token (copié depuis app.js)
+        // Modal détails du token
         function openModal(token) {
             const modal = document.getElementById('tokenModal');
             const modalBody = document.getElementById('modalBody');
 
-            document.getElementById('modalAddress').textContent = token.address;
-            document.getElementById('modalChain').textContent = token.chain;
-
             let riskClass = 'safe';
-            let riskLabel = 'Sûr';
-            if (token.risk_score >= 50) {
+            let riskLabel = '✅ Sûr';
+            if (token.risk_score >= 80) {
                 riskClass = 'danger';
-                riskLabel = 'Dangereux';
-            } else if (token.risk_score >= 20) {
+                riskLabel = '🚨 Dangereux';
+            } else if (token.risk_score >= 50) {
                 riskClass = 'warning';
-                riskLabel = 'Modéré';
+                riskLabel = '⚠️ Modéré';
             }
 
-            // Icon dans le modal
             const iconHtml = token.icon 
                 ? `<img src="${token.icon}" alt="${token.chain}" style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid var(--border-color);" onerror="this.style.display='none'">`
                 : '';
 
             modalBody.innerHTML = `
-                ${iconHtml ? `<div style="text-align: center; margin-bottom: 24px;">${iconHtml}</div>` : ''}
-                
+                ${iconHtml ? `<div style="text-align: center; margin-bottom: 2rem;">${iconHtml}</div>` : ''}
+
                 <div class="detail-section">
-                    <div class="detail-section-title">🎯 Score de Risque</div>
+                    <div class="detail-section-title">📊 Informations Générales</div>
                     <div class="detail-grid">
-                        <div class="detail-item" style="grid-column: span 2;">
-                            <div class="detail-label">Score Total</div>
-                            <div class="detail-value">
-                                <span class="risk-badge ${riskClass}" style="font-size: 24px;">
-                                    ${token.risk_score}/100 - ${riskLabel}
-                                </span>
-                            </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Adresse</div>
+                            <div class="detail-value" style="font-size: 0.9rem; word-break: break-all;">${token.address}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Blockchain</div>
+                            <div class="detail-value">${token.chain.toUpperCase()}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Score de Risque</div>
+                            <div class="detail-value" style="color: ${token.risk_score < 50 ? 'var(--accent-success)' : token.risk_score < 80 ? 'var(--accent-warning)' : 'var(--accent-danger)'}">${token.risk_score}/100</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Statut</div>
+                            <div class="detail-value">${riskLabel}</div>
                         </div>
                     </div>
                 </div>
 
                 <div class="detail-section">
-                    <div class="detail-section-title">💹 Données de Marché</div>
+                    <div class="detail-section-title">💰 Données de Marché</div>
                     <div class="detail-grid">
                         <div class="detail-item">
                             <div class="detail-label">Prix USD</div>
-                            <div class="detail-value">${token.market.price_usd ? token.market.price_usd.toFixed(8) : 'N/A'}</div>
+                            <div class="detail-value">${token.market?.price_usd ? '$' + token.market.price_usd.toFixed(8) : 'N/A'}</div>
                         </div>
                         <div class="detail-item">
                             <div class="detail-label">Variation 24h</div>
-                            <div class="detail-value" style="color: ${token.market.price_change_24h >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'}">
-                                ${token.market.price_change_24h ? token.market.price_change_24h.toFixed(2) : '0'}%
+                            <div class="detail-value" style="color: ${token.market?.price_change_24h >= 0 ? 'var(--accent-success)' : 'var(--accent-danger)'}">
+                                ${token.market?.price_change_24h ? token.market.price_change_24h.toFixed(2) + '%' : '0%'}
                             </div>
                         </div>
                         <div class="detail-item">
                             <div class="detail-label">Liquidité USD</div>
-                            <div class="detail-value">${formatNumber(token.market.liquidity_usd || 0)}</div>
+                            <div class="detail-value">${formatNumber(token.market?.liquidity_usd || 0)}</div>
                         </div>
                         <div class="detail-item">
                             <div class="detail-label">Volume 24h</div>
-                            <div class="detail-value">${formatNumber(token.market.volume_24h || 0)}</div>
+                            <div class="detail-value">${formatNumber(token.market?.volume_24h || 0)}</div>
                         </div>
                         <div class="detail-item">
                             <div class="detail-label">Market Cap</div>
-                            <div class="detail-value">${formatNumber(token.market.market_cap || 0)}</div>
+                            <div class="detail-value">${formatNumber(token.market?.market_cap || 0)}</div>
                         </div>
                         <div class="detail-item">
                             <div class="detail-label">Transactions 24h</div>
                             <div class="detail-value">
-                                <span style="color: var(--accent-green);">↑${token.market.txns_24h_buys || 0}</span> / 
-                                <span style="color: var(--accent-red);">↓${token.market.txns_24h_sells || 0}</span>
+                                <span style="color: var(--accent-success);">↑${token.market?.txns_24h_buys || 0}</span> / 
+                                <span style="color: var(--accent-danger);">↓${token.market?.txns_24h_sells || 0}</span>
                             </div>
                         </div>
                     </div>
@@ -924,178 +1078,52 @@
                     <div class="detail-grid">
                         <div class="detail-item">
                             <div class="detail-label">Honeypot</div>
-                            <div class="detail-value" style="color: ${token.security.is_honeypot ? 'var(--accent-red)' : 'var(--accent-green)'}">
-                                ${token.security.is_honeypot ? '⚠️ OUI' : '✅ NON'}
+                            <div class="detail-value" style="color: ${token.security?.is_honeypot ? 'var(--accent-danger)' : 'var(--accent-success)'}">
+                                ${token.security?.is_honeypot ? '⚠️ OUI' : '✅ NON'}
                             </div>
                         </div>
                         <div class="detail-item">
                             <div class="detail-label">Code Open Source</div>
-                            <div class="detail-value" style="color: ${token.security.is_open_source ? 'var(--accent-green)' : 'var(--accent-orange)'}">
-                                ${token.security.is_open_source ? '✅ OUI' : '⚠️ NON'}
+                            <!-- ✅ CORRECTION : Ternaire JavaScript complété -->
+                            <div class="detail-value" style="color: ${token.security?.is_open_source ? 'var(--accent-green)' : 'var(--accent-orange)'}">
+                                ${token.security?.is_open_source ? '✅ OUI' : '⚠️ NON'}
                             </div>
                         </div>
                         <div class="detail-item">
                             <div class="detail-label">Mintable</div>
-                            <div class="detail-value" style="color: ${token.security.is_mintable ? 'var(--accent-orange)' : 'var(--accent-green)'}">
-                                ${token.security.is_mintable ? '⚠️ OUI' : '✅ NON'}
+                            <div class="detail-value" style="color: ${token.security?.is_mintable ? 'var(--accent-warning)' : 'var(--accent-success)'}">
+                                ${token.security?.is_mintable ? '⚠️ OUI' : '✅ NON'}
                             </div>
                         </div>
                         <div class="detail-item">
                             <div class="detail-label">Propriétaire Caché</div>
-                            <div class="detail-value" style="color: ${token.security.hidden_owner ? 'var(--accent-red)' : 'var(--accent-green)'}">
-                                ${token.security.hidden_owner ? '⚠️ OUI' : '✅ NON'}
+                            <div class="detail-value" style="color: ${token.security?.hidden_owner ? 'var(--accent-danger)' : 'var(--accent-success)'}">
+                                ${token.security?.hidden_owner ? '⚠️ OUI' : '✅ NON'}
                             </div>
                         </div>
                         <div class="detail-item">
                             <div class="detail-label">Taxe Achat</div>
-                            <div class="detail-value" style="color: ${token.security.buy_tax > 10 ? 'var(--accent-red)' : 'var(--accent-green)'}">
-                                ${token.security.buy_tax || 0}%
+                            <div class="detail-value" style="color: ${token.security?.buy_tax > 10 ? 'var(--accent-danger)' : 'var(--accent-success)'}">
+                                ${token.security?.buy_tax || 0}%
                             </div>
                         </div>
                         <div class="detail-item">
                             <div class="detail-label">Taxe Vente</div>
-                            <div class="detail-value" style="color: ${token.security.sell_tax > 10 ? 'var(--accent-red)' : 'var(--accent-green)'}">
-                                ${token.security.sell_tax || 0}%
-                            </div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="detail-label">Holders</div>
-                            <div class="detail-value">${token.security.holder_count || 'N/A'}</div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="detail-label">Destructible</div>
-                            <div class="detail-value" style="color: ${token.security.selfdestruct ? 'var(--accent-red)' : 'var(--accent-green)'}">
-                                ${token.security.selfdestruct ? '⚠️ OUI' : '✅ NON'}
+                            <div class="detail-value" style="color: ${token.security?.sell_tax > 10 ? 'var(--accent-danger)' : 'var(--accent-success)'}">
+                                ${token.security?.sell_tax || 0}%
                             </div>
                         </div>
                     </div>
                 </div>
 
                 ${token.warnings && token.warnings.length > 0 ? `
-                <div class="detail-section">
-                    <div class="detail-section-title">⚠️ Alertes Détectées (${token.warnings.length})</div>
-                    <div class="warning-list">
-                        ${token.warnings.map(w => `
-                            <div class="warning-item">
-                                <span class="warning-icon">⚠️</span>
-                                <span>${w}</span>
-                            </div>
-                        `).join('')}
+                    <div class="detail-section">
+                        <div class="detail-section-title">⚠️ Avertissements</div>
+                        <div style="background: var(--bg-tertiary); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 1rem;">
+                            ${token.warnings.map(w => `<div style="padding: 0.5rem 0; color: var(--accent-warning);">• ${w}</div>`).join('')}
+                        </div>
                     </div>
-                </div>
                 ` : ''}
-
-                ${token.twitter ? `
-                <div class="detail-section">
-                    <div class="detail-section-title">🐦 Analyse Twitter</div>
-                    <div class="twitter-section">
-                        <div class="detail-item" style="margin-bottom: 16px;">
-                            <div class="detail-label">Compte Twitter</div>
-                            <div class="detail-value">
-                                <a href="${token.twitter}" target="_blank" style="color: var(--accent-blue); text-decoration: none;">
-                                    ${token.twitter}
-                                </a>
-                            </div>
-                        </div>
-                        
-                        ${token.social_score > 0 ? `
-                        <div class="detail-item" style="margin-bottom: 16px;">
-                            <div class="detail-label">Score Social Global</div>
-                            <div class="detail-value">
-                                <span class="risk-badge ${token.social_score >= 60 ? 'safe' : token.social_score >= 30 ? 'warning' : 'danger'}">
-                                    ${token.social_score}/100
-                                </span>
-                            </div>
-                        </div>
-
-                        <div class="twitter-stats">
-                            <div class="twitter-stat">
-                                <div class="twitter-stat-value">${formatNumber(token.social_details.followers || 0)}</div>
-                                <div class="twitter-stat-label">Followers</div>
-                            </div>
-                            <div class="twitter-stat">
-                                <div class="twitter-stat-value">${formatNumber(token.social_details.following || 0)}</div>
-                                <div class="twitter-stat-label">Following</div>
-                            </div>
-                            <div class="twitter-stat">
-                                <div class="twitter-stat-value">${formatNumber(token.social_details.tweets || 0)}</div>
-                                <div class="twitter-stat-label">Tweets</div>
-                            </div>
-                        </div>
-
-                        <div class="detail-grid" style="margin-top: 16px;">
-                            <div class="detail-item">
-                                <div class="detail-label">Évaluation Followers</div>
-                                <div class="detail-value">${token.social_details.followers_score || 'N/A'}</div>
-                            </div>
-                            <div class="detail-item">
-                                <div class="detail-label">Ratio F/F</div>
-                                <div class="detail-value">${token.social_details.ratio_score || 'N/A'}</div>
-                            </div>
-                            <div class="detail-item">
-                                <div class="detail-label">Activité</div>
-                                <div class="detail-value">${token.social_details.activity_score || 'N/A'}</div>
-                            </div>
-                            <div class="detail-item">
-                                <div class="detail-label">Vérifié</div>
-                                <div class="detail-value">${token.social_details.verified || 'Non'}</div>
-                            </div>
-                        </div>
-
-                        ${token.twitter_data && token.twitter_data.bio ? `
-                        <div class="detail-item" style="margin-top: 16px;">
-                            <div class="detail-label">Bio</div>
-                            <div class="detail-value" style="font-size: 14px; line-height: 1.6;">
-                                ${token.twitter_data.bio}
-                            </div>
-                        </div>
-                        ` : ''}
-                        ` : '<p style="color: var(--text-secondary);">Données Twitter non disponibles</p>'}
-                    </div>
-                </div>
-                ` : ''}
-
-                ${token.description && token.description !== 'N/A' ? `
-                <div class="detail-section">
-                    <div class="detail-section-title">📝 Description</div>
-                    <div class="detail-item">
-                        <div class="detail-value" style="font-size: 14px; line-height: 1.8;">
-                            ${token.description}
-                        </div>
-                    </div>
-                </div>
-                ` : ''}
-
-                <div class="detail-section">
-                    <div class="detail-section-title">🔗 Liens</div>
-                    <div class="detail-grid">
-                        ${token.url ? `
-                        <div class="detail-item">
-                            <div class="detail-label">DexScreener</div>
-                            <div class="detail-value">
-                                <a href="${token.url}" target="_blank" style="color: var(--accent-blue); text-decoration: none;">
-                                    Voir sur DexScreener →
-                                </a>
-                            </div>
-                        </div>
-                        ` : ''}
-                        <div class="detail-item">
-                            <div class="detail-label">Adresse Contrat</div>
-                            <div class="detail-value" style="font-family: 'Courier New', monospace; font-size: 12px; word-break: break-all;">
-                                ${token.address}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="detail-section">
-                    <div class="detail-item">
-                        <div class="detail-label">Analysé le</div>
-                        <div class="detail-value" style="font-size: 14px;">
-                            ${new Date(token.timestamp).toLocaleString('fr-FR')}
-                        </div>
-                    </div>
-                </div>
             `;
 
             modal.classList.add('active');
@@ -1105,26 +1133,23 @@
             document.getElementById('tokenModal').classList.remove('active');
         }
 
-        // Fermer modal au clic extérieur et ESC
-        document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('tokenModal').addEventListener('click', (e) => {
-                if (e.target.id === 'tokenModal') {
-                    closeModal();
-                }
-            });
-
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape') {
-                    closeModal();
-                }
-            });
+        // Fermer modal en cliquant en dehors
+        document.getElementById('tokenModal').addEventListener('click', (e) => {
+            if (e.target.id === 'tokenModal') {
+                closeModal();
+            }
         });
 
+        // Utilitaires
         function formatNumber(num) {
-            if (num >= 1000000000) return (num / 1000000000).toFixed(2) + 'B';
-            if (num >= 1000000) return (num / 1000000).toFixed(2) + 'M';
-            if (num >= 1000) return (num / 1000).toFixed(2) + 'K';
-            return num.toFixed(2);
+            if (num >= 1e9) return '$' + (num / 1e9).toFixed(2) + 'B';
+            if (num >= 1e6) return '$' + (num / 1e6).toFixed(2) + 'M';
+            if (num >= 1e3) return '$' + (num / 1e3).toFixed(2) + 'K';
+            return '$' + num.toFixed(2);
+        }
+
+        function escapeJson(obj) {
+            return JSON.stringify(obj).replace(/'/g, "\\'");
         }
     </script>
 </body>
