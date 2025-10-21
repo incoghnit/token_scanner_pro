@@ -190,25 +190,30 @@ class Database:
                 SELECT id, username, email, password, is_premium, role, is_active, scan_count
                 FROM users WHERE email = ?
             ''', (email,))
-            
+
             row = cursor.fetchone()
             conn.close()
-            
+
             if row and check_password_hash(row[3], password):
                 if not row[6]:
                     return None
-                
+
                 return {
                     'id': row[0],
                     'username': row[1],
                     'email': row[2],
                     'is_premium': row[4],
                     'role': row[5],
+                    'is_admin': row[5] == 'admin',
                     'scan_count': row[7] if len(row) > 7 else 0
                 }
             return None
         except sqlite3.Error:
             return None
+
+    def authenticate_user(self, email, password):
+        """Authentifie un utilisateur par email et mot de passe (alias pour verify_password_with_email)"""
+        return self.verify_password_with_email(email, password)
     
     def is_admin(self, user_id):
         """Vérifie si un utilisateur est admin"""

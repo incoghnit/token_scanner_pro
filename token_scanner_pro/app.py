@@ -15,13 +15,26 @@ from datetime import datetime
 import threading
 import secrets
 from functools import wraps
+import os
+from dotenv import load_dotenv
+
+# Charger les variables d'environnement depuis .env
+load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = secrets.token_hex(32)
+
+# Configuration sécurisée
+app.secret_key = os.getenv('SECRET_KEY', secrets.token_hex(32))
+if not os.getenv('SECRET_KEY'):
+    print("⚠️ WARNING: SECRET_KEY not set in .env - using temporary key (sessions will be lost on restart)")
+
 CORS(app, supports_credentials=True)
 
 # Configuration
-app.config['CLAUDE_API_KEY'] = 'votre_clé_claude_api'
+app.config['CLAUDE_API_KEY'] = os.getenv('CLAUDE_API_KEY')
+app.config['ANTHROPIC_API_KEY'] = os.getenv('ANTHROPIC_API_KEY')
+app.config['FLASK_ENV'] = os.getenv('FLASK_ENV', 'development')
+app.config['FLASK_DEBUG'] = os.getenv('FLASK_DEBUG', 'false').lower() == 'true'
 
 # Instances globales
 db = Database()
@@ -36,29 +49,81 @@ try:
     from auto_scanner_service import AutoScannerService
     from scheduler_service import SchedulerService
     from auto_scan_routes import register_auto_scan_routes
-    
-    # Initialiser les services
-    mongodb_manager = MongoDBManager()
+
+    # Initialiser les services avec configuration depuis .env
+    mongodb_uri = os.getenv('MONGODB_URI', 'mongodb://localhost:27017/')
+    mongodb_manager = MongoDBManager(connection_string=mongodb_uri)
+
+    scan_interval = int(os.getenv('AUTO_SCAN_INTERVAL', 300))
+    tokens_per_scan = int(os.getenv('TOKENS_PER_SCAN', 10))
+
     auto_scanner = AutoScannerService(
         mongodb=mongodb_manager,
-        scan_interval=300,  # 5 minutes
-        tokens_per_scan=10
+        scan_interval=scan_interval,
+        tokens_per_scan=tokens_per_scan
     )
     scheduler = SchedulerService()
-    
-    # Initialiser les modules du scanner
-    auto_scanner.initialize_modules()
-    
+
+    # Initialiser les modules du scanner avec Nitter URL depuis .env
+    nitter_url = os.getenv('NITTER_URL', 'http://localhost:8080')
+    auto_scanner.initialize_modules(nitter_url=nitter_url)
+
     # Enregistrer les routes auto-scan
     register_auto_scan_routes(app, auto_scanner, scheduler, mongodb_manager)
-    
+
+    # Auto-start scanner si configuré
+    if os.getenv('AUTO_START_SCANNER', 'false').lower() == 'true':
+        auto_scanner.start()
+        print("✅ Auto-scanner démarré automatiquement")
+
     print("✅ Services auto-scan initialisés et routes enregistrées")
-    
+
 except ImportError as e:
     print(f"⚠️ Auto-scan non disponible: {e}")
     mongodb_manager = None
     auto_scanner = None
     scheduler = None
+except Exception as e:
+    print(f"❌ Erreur initialisation auto-scan: {e}")
+    mongodb_manager = None
+    auto_scanner = None
+    scheduler = None
+
+# ==================== SYSTÈME D'ALERTES ====================
+try:
+    from alert_system import AlertSystem
+
+    # Initialiser le système d'alertes avec configuration depuis .env
+    smtp_server = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
+    smtp_port = int(os.getenv('SMTP_PORT', 587))
+    smtp_user = os.getenv('SMTP_USER', '')
+    smtp_password = os.getenv('SMTP_PASSWORD', '')
+
+    alert_system = AlertSystem(
+        smtp_server=smtp_server,
+        smtp_port=smtp_port,
+        smtp_user=smtp_user,
+        smtp_password=smtp_password
+    )
+
+    # Démarrer la surveillance si configuré
+    if os.getenv('ENABLE_ALERTS', 'false').lower() == 'true':
+        if smtp_user and smtp_password:
+            alert_system.start_monitoring()
+            print("✅ Système d'alertes démarré automatiquement")
+        else:
+            print("⚠️ Alertes activées mais SMTP non configuré (manque SMTP_USER/SMTP_PASSWORD)")
+    else:
+        print("ℹ️ Système d'alertes initialisé mais non démarré (ENABLE_ALERTS=false)")
+
+    print("✅ Système d'alertes initialisé")
+
+except ImportError as e:
+    print(f"⚠️ Système d'alertes non disponible: {e}")
+    alert_system = None
+except Exception as e:
+    print(f"❌ Erreur initialisation système d'alertes: {e}")
+    alert_system = None
 
 # ==================== DÉCORATEURS ====================
 

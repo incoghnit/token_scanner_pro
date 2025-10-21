@@ -9,9 +9,10 @@ requests==2.31.0
 
 # Database
 #sqlite3  # Built-in Python module (no install needed)
+pymongo==4.6.0  # MongoDB driver
 
 # Security & Authentication
-werkzeug==3.0.1  # For password hashing
+# werkzeug already listed above (line 5)
 
 # ==================== TRADING & BLOCKCHAIN ====================
 # Web3 & Blockchain
