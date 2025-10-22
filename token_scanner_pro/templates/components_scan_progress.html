@@ -1,0 +1,276 @@
+<!-- ==================== BARRE DE PROGRESSION AUTO-SCAN (Discrète) ==================== -->
+<style>
+    .scan-progress-bar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 9999;
+        background: rgba(13, 13, 20, 0.95);
+        backdrop-filter: blur(20px);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        padding: 0.5rem 1rem;
+        display: none;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .scan-progress-bar.active {
+        display: block;
+        animation: slideDown 0.3s ease-out;
+    }
+
+    @keyframes slideDown {
+        from {
+            transform: translateY(-100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    .scan-progress-content {
+        max-width: 1600px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .scan-progress-icon {
+        font-size: 1.25rem;
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.7; transform: scale(1.1); }
+    }
+
+    .scan-progress-info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .scan-progress-text {
+        font-size: 0.875rem;
+        color: var(--text-primary);
+        font-weight: 500;
+    }
+
+    .scan-progress-track {
+        height: 4px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 2px;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .scan-progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        border-radius: 2px;
+        transition: width 0.3s ease-out;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .scan-progress-fill::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(255, 255, 255, 0.3),
+            transparent
+        );
+        animation: shimmer 2s infinite;
+    }
+
+    @keyframes shimmer {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+    }
+
+    .scan-progress-stats {
+        display: flex;
+        gap: 1rem;
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+    }
+
+    .scan-progress-stat {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .scan-progress-dismiss {
+        padding: 0.375rem 0.75rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 0.375rem;
+        color: var(--text-secondary);
+        font-size: 0.75rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .scan-progress-dismiss:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: var(--text-primary);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .scan-progress-stats {
+            display: none;
+        }
+    }
+</style>
+
+<!-- Barre de progression -->
+<div class="scan-progress-bar" id="scan-progress-bar">
+    <div class="scan-progress-content">
+        <div class="scan-progress-icon">🔍</div>
+
+        <div class="scan-progress-info">
+            <div class="scan-progress-text" id="scan-progress-text">
+                Auto-scan en cours...
+            </div>
+            <div class="scan-progress-track">
+                <div class="scan-progress-fill" id="scan-progress-fill" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <div class="scan-progress-stats">
+            <div class="scan-progress-stat">
+                <span>⏱️</span>
+                <span id="scan-time-elapsed">0s</span>
+            </div>
+            <div class="scan-progress-stat">
+                <span>📊</span>
+                <span id="scan-tokens-found">0 tokens</span>
+            </div>
+        </div>
+
+        <button class="scan-progress-dismiss" id="scan-progress-dismiss">
+            Masquer
+        </button>
+    </div>
+</div>
+
+<script>
+// ==================== GESTION BARRE DE PROGRESSION AUTO-SCAN ====================
+(function() {
+    const progressBar = document.getElementById('scan-progress-bar');
+    const progressFill = document.getElementById('scan-progress-fill');
+    const progressText = document.getElementById('scan-progress-text');
+    const timeElapsed = document.getElementById('scan-time-elapsed');
+    const tokensFound = document.getElementById('scan-tokens-found');
+    const dismissBtn = document.getElementById('scan-progress-dismiss');
+
+    let pollInterval = null;
+    let startTime = null;
+    let isDismissed = false;
+
+    // Masquer la barre
+    dismissBtn?.addEventListener('click', () => {
+        progressBar.classList.remove('active');
+        isDismissed = true;
+        // Continuer le polling en arrière-plan
+    });
+
+    // Vérifier le statut du scan
+    async function checkScanStatus() {
+        try {
+            const response = await fetch('/api/auto-scan/status');
+            const data = await response.json();
+
+            if (!data.success || !data.status) {
+                return;
+            }
+
+            const status = data.status;
+
+            // Si scan en cours
+            if (status.is_running) {
+                if (!isDismissed) {
+                    progressBar.classList.add('active');
+                }
+
+                // Calculer la progression (basée sur le temps depuis le dernier scan)
+                const nextScanIn = status.next_scan_in || 0;
+                const scanInterval = status.scan_interval || 300;
+                const elapsed = scanInterval - nextScanIn;
+                const progress = Math.min((elapsed / scanInterval) * 100, 95);
+
+                // Mettre à jour la barre
+                progressFill.style.width = `${progress}%`;
+
+                // Mettre à jour le texte
+                const tokensPerScan = status.tokens_per_scan || 10;
+                progressText.textContent = `Auto-scan actif · Scan de ${tokensPerScan} tokens toutes les ${Math.floor(scanInterval / 60)} min`;
+
+                // Stats
+                if (!startTime) {
+                    startTime = Date.now();
+                }
+                const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+                timeElapsed.textContent = elapsedSeconds < 60
+                    ? `${elapsedSeconds}s`
+                    : `${Math.floor(elapsedSeconds / 60)}m ${elapsedSeconds % 60}s`;
+
+                // Tokens trouvés (depuis les stats)
+                if (status.stats && status.stats.total_tokens_found) {
+                    tokensFound.textContent = `${status.stats.total_tokens_found} tokens`;
+                }
+
+                // Prochain scan
+                if (nextScanIn < 10 && progress > 90) {
+                    progressText.textContent = `Préparation du prochain scan...`;
+                    progressFill.style.width = '100%';
+                }
+            } else {
+                // Pas de scan en cours
+                progressBar.classList.remove('active');
+                startTime = null;
+            }
+
+        } catch (error) {
+            console.log('Auto-scan non disponible ou arrêté');
+            progressBar.classList.remove('active');
+        }
+    }
+
+    // Démarrer le polling
+    function startPolling() {
+        // Vérifier immédiatement
+        checkScanStatus();
+
+        // Puis toutes les 2 secondes
+        pollInterval = setInterval(checkScanStatus, 2000);
+    }
+
+    // Arrêter le polling quand on quitte la page
+    window.addEventListener('beforeunload', () => {
+        if (pollInterval) {
+            clearInterval(pollInterval);
+        }
+    });
+
+    // Lancer au chargement de la page
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', startPolling);
+    } else {
+        startPolling();
+    }
+})();
+</script>
