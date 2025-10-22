@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Passer Premium - Token Scanner Pro</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body data-page="premium">
+    {% include 'components_nav.html' %}
+
+    <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 2rem;">
+        <!-- Hero -->
+        <div style="text-align: center; padding: 4rem 0 3rem;">
+            <div style="display: inline-block; padding: 0.5rem 1.5rem; background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%); border-radius: 2rem; font-weight: 700; margin-bottom: 1.5rem;">
+                💎 PASSER PREMIUM
+            </div>
+            <h1 style="font-size: 3.5rem; font-weight: 900; margin-bottom: 1rem;">
+                Débloquez le <span style="background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Potentiel Maximum</span>
+            </h1>
+            <p style="font-size: 1.5rem; color: #a0a0b2; margin-bottom: 2rem;">
+                Auto-scan 24/7, alertes instantanées, trading automatique et bien plus
+            </p>
+            <div style="display: flex; gap: 1rem; justify-content: center; align-items: center; flex-wrap: wrap;">
+                <span style="color: #20e3b2;">✓ 500+ traders actifs</span>
+                <span style="color: #20e3b2;">✓ $2M+ profits cumulés</span>
+                <span style="color: #20e3b2;">✓ 4.9/5 étoiles</span>
+            </div>
+        </div>
+
+        <!-- Pricing Cards -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-bottom: 4rem;">
+            <!-- Free Plan -->
+            <div style="background: rgba(26, 26, 36, 0.7); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1rem; padding: 2rem; backdrop-filter: blur(20px);">
+                <div style="text-align: center; margin-bottom: 1.5rem;">
+                    <h3 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem;">Gratuit</h3>
+                    <div style="font-size: 3rem; font-weight: 900;">$0</div>
+                    <div style="color: #a0a0b2;">par mois</div>
+                </div>
+                <ul style="list-style: none; margin-bottom: 1.5rem;">
+                    <li style="padding: 0.5rem 0; color: #20e3b2;">✓ Scan manuel illimité</li>
+                    <li style="padding: 0.5rem 0; color: #20e3b2;">✓ Analyse de base</li>
+                    <li style="padding: 0.5rem 0; color: #20e3b2;">✓ 10 favoris max</li>
+                    <li style="padding: 0.5rem 0; color: #6b6b80;">✗ Auto-scan</li>
+                    <li style="padding: 0.5rem 0; color: #6b6b80;">✗ Alertes email</li>
+                    <li style="padding: 0.5rem 0; color: #6b6b80;">✗ Trading automatique</li>
+                </ul>
+                <button disabled style="width: 100%; padding: 0.75rem; background: rgba(255, 255, 255, 0.1); color: #a0a0b2; border: none; border-radius: 0.5rem; font-weight: 600; cursor: not-allowed;">
+                    Plan Actuel
+                </button>
+            </div>
+
+            <!-- Pro Plan (Highlighted) -->
+            <div style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%); border: 2px solid #667eea; border-radius: 1rem; padding: 2rem; position: relative; transform: scale(1.05);">
+                <div style="position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 0.25rem 1rem; border-radius: 1rem; font-size: 0.875rem; font-weight: 700;">
+                    🔥 LE PLUS POPULAIRE
+                </div>
+                <div style="text-align: center; margin-bottom: 1.5rem;">
+                    <h3 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                        Pro
+                    </h3>
+                    <div style="font-size: 3rem; font-weight: 900; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                        $29
+                    </div>
+                    <div style="color: #a0a0b2;">par mois</div>
+                </div>
+                <ul style="list-style: none; margin-bottom: 1.5rem;">
+                    <li style="padding: 0.5rem 0; color: #20e3b2;">✓ Tout du plan Gratuit</li>
+                    <li style="padding: 0.5rem 0; color: #20e3b2;">✓ <strong>Auto-scan 24/7</strong></li>
+                    <li style="padding: 0.5rem 0; color: #20e3b2;">✓ <strong>Alertes email instantanées</strong></li>
+                    <li style="padding: 0.5rem 0; color: #20e3b2;">✓ Favoris illimités</li>
+                    <li style="padding: 0.5rem 0; color: #20e3b2;">✓ Validation IA (Claude)</li>
+                    <li style="padding: 0.5rem 0; color: #20e3b2;">✓ Support prioritaire</li>
+                    <li style="padding: 0.5rem 0; color: #6b6b80;">✗ Trading automatique</li>
+                </ul>
+                <button onclick="upgradeToPro()" style="width: 100%; padding: 0.75rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 0.5rem; font-weight: 600; cursor: pointer; font-size: 1rem;">
+                    🚀 Passer Pro
+                </button>
+            </div>
+
+            <!-- Elite Plan -->
+            <div style="background: linear-gradient(135deg, rgba(247, 151, 30, 0.1) 0%, rgba(255, 210, 0, 0.1) 100%); border: 2px solid #f7971e; border-radius: 1rem; padding: 2rem;">
+                <div style="text-align: center; margin-bottom: 1.5rem;">
+                    <h3 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                        Elite
+                    </h3>
+                    <div style="font-size: 3rem; font-weight: 900; background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                        $99
+                    </div>
+                    <div style="color: #a0a0b2;">par mois</div>
+                </div>
+                <ul style="list-style: none; margin-bottom: 1.5rem;">
+                    <li style="padding: 0.5rem 0; color: #20e3b2;">✓ Tout du plan Pro</li>
+                    <li style="padding: 0.5rem 0; color: #ffd200;">⚡ <strong>Trading automatique</strong></li>
+                    <li style="padding: 0.5rem 0; color: #ffd200;">⚡ <strong>Bot de trading IA</strong></li>
+                    <li style="padding: 0.5rem 0; color: #20e3b2;">✓ Positions illimitées</li>
+                    <li style="padding: 0.5rem 0; color: #20e3b2;">✓ API access complète</li>
+                    <li style="padding: 0.5rem 0; color: #20e3b2;">✓ Support VIP 24/7</li>
+                    <li style="padding: 0.5rem 0; color: #20e3b2;">✓ Accès anticipé features</li>
+                </ul>
+                <button onclick="upgradeToElite()" style="width: 100%; padding: 0.75rem; background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%); color: #000; border: none; border-radius: 0.5rem; font-weight: 700; cursor: pointer; font-size: 1rem;">
+                    💎 Passer Elite
+                </button>
+            </div>
+        </div>
+
+        <!-- Feature Comparison Table -->
+        <div style="background: rgba(26, 26, 36, 0.7); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1rem; padding: 2rem; backdrop-filter: blur(20px); margin-bottom: 4rem; overflow-x: auto;">
+            <h2 style="font-size: 2rem; font-weight: 700; margin-bottom: 2rem; text-align: center;">📊 Comparaison Détaillée</h2>
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="border-bottom: 2px solid rgba(255, 255, 255, 0.1);">
+                        <th style="padding: 1rem; text-align: left;">Fonctionnalité</th>
+                        <th style="padding: 1rem; text-align: center;">Gratuit</th>
+                        <th style="padding: 1rem; text-align: center; background: rgba(102, 126, 234, 0.1);">Pro</th>
+                        <th style="padding: 1rem; text-align: center; background: rgba(247, 151, 30, 0.1);">Elite</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+                        <td style="padding: 1rem;">Scans manuels</td>
+                        <td style="padding: 1rem; text-align: center;">Illimité</td>
+                        <td style="padding: 1rem; text-align: center;">Illimité</td>
+                        <td style="padding: 1rem; text-align: center;">Illimité</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+                        <td style="padding: 1rem;">Auto-scan 24/7</td>
+                        <td style="padding: 1rem; text-align: center;">❌</td>
+                        <td style="padding: 1rem; text-align: center;">✅</td>
+                        <td style="padding: 1rem; text-align: center;">✅</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+                        <td style="padding: 1rem;">Favoris</td>
+                        <td style="padding: 1rem; text-align: center;">10 max</td>
+                        <td style="padding: 1rem; text-align: center;">Illimité</td>
+                        <td style="padding: 1rem; text-align: center;">Illimité</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+                        <td style="padding: 1rem;">Alertes email</td>
+                        <td style="padding: 1rem; text-align: center;">❌</td>
+                        <td style="padding: 1rem; text-align: center;">✅</td>
+                        <td style="padding: 1rem; text-align: center;">✅</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+                        <td style="padding: 1rem;">Validation IA Claude</td>
+                        <td style="padding: 1rem; text-align: center;">❌</td>
+                        <td style="padding: 1rem; text-align: center;">10/jour</td>
+                        <td style="padding: 1rem; text-align: center;">Illimité</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+                        <td style="padding: 1rem;">Trading automatique</td>
+                        <td style="padding: 1rem; text-align: center;">❌</td>
+                        <td style="padding: 1rem; text-align: center;">❌</td>
+                        <td style="padding: 1rem; text-align: center;">✅</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 1rem;">Support</td>
+                        <td style="padding: 1rem; text-align: center;">Email</td>
+                        <td style="padding: 1rem; text-align: center;">Prioritaire</td>
+                        <td style="padding: 1rem; text-align: center;">VIP 24/7</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- FAQ -->
+        <div style="max-width: 800px; margin: 0 auto;">
+            <h2 style="font-size: 2rem; font-weight: 700; margin-bottom: 2rem; text-align: center;">❓ Questions Fréquentes</h2>
+            <div style="display: grid; gap: 1rem;">
+                <details style="background: rgba(26, 26, 36, 0.7); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 0.5rem; padding: 1rem;">
+                    <summary style="font-weight: 600; cursor: pointer;">Comment fonctionne l'auto-scan ?</summary>
+                    <p style="margin-top: 1rem; color: #a0a0b2;">Le système scanne automatiquement les nouveaux tokens toutes les 5 minutes et vous alerte en cas d'opportunité.</p>
+                </details>
+                <details style="background: rgba(26, 26, 36, 0.7); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 0.5rem; padding: 1rem;">
+                    <summary style="font-weight: 600; cursor: pointer;">Puis-je annuler à tout moment ?</summary>
+                    <p style="margin-top: 1rem; color: #a0a0b2;">Oui, sans engagement. Annulation possible en un clic depuis vos paramètres.</p>
+                </details>
+                <details style="background: rgba(26, 26, 36, 0.7); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 0.5rem; padding: 1rem;">
+                    <summary style="font-weight: 600; cursor: pointer;">Le trading automatique est-il sûr ?</summary>
+                    <p style="margin-top: 1rem; color: #a0a0b2;">Vous gardez le contrôle total. Le bot exécute selon vos paramètres et vous pouvez tout arrêter à tout moment.</p>
+                </details>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function upgradeToPro() {
+            alert('🚀 Redirection vers le paiement...\n\n(Système de paiement à implémenter avec Stripe/PayPal)');
+        }
+
+        function upgradeToElite() {
+            alert('💎 Redirection vers le paiement Elite...\n\n(Système de paiement à implémenter avec Stripe/PayPal)');
+        }
+
+        // Check if already premium
+        async function checkPremiumStatus() {
+            try {
+                const response = await fetch('/api/me');
+                const data = await response.json();
+                if (data.authenticated && data.user && data.user.is_premium) {
+                    // Show active plan indicator
+                    const hero = document.querySelector('.container > div');
+                    hero.innerHTML = `
+                        <div style="text-align: center; padding: 4rem 0;">
+                            <div style="font-size: 4rem; margin-bottom: 1rem;">💎</div>
+                            <h1 style="font-size: 3rem; font-weight: 900; margin-bottom: 1rem; background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                                Vous êtes Premium !
+                            </h1>
+                            <p style="font-size: 1.25rem; color: #a0a0b2;">Profitez de toutes les fonctionnalités avancées</p>
+                        </div>
+                    ` + hero.innerHTML;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        checkPremiumStatus();
+    </script>
+</body>
+</html>

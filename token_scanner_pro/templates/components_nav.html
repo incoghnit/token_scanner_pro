@@ -1,0 +1,510 @@
+<!-- ==================== NAVIGATION COMPONENT (Réutilisable) ==================== -->
+<!-- À inclure dans toutes les pages avec: {% include 'components_nav.html' %} -->
+
+<style>
+    /* Navigation Styles */
+    .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        background: rgba(26, 26, 36, 0.95);
+        backdrop-filter: blur(20px);
+        border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .topbar-content {
+        max-width: 1600px;
+        margin: 0 auto;
+        padding: 1rem 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 2rem;
+    }
+
+    .logo-nav {
+        display: flex;
+        align-items: center;
+        gap: 3rem;
+    }
+
+    .logo {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-size: 1.5rem;
+        font-weight: 800;
+        text-decoration: none;
+        background: var(--gradient-primary);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        white-space: nowrap;
+    }
+
+    .main-nav {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    .nav-link {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1rem;
+        text-decoration: none;
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        font-weight: 500;
+        border-radius: 0.5rem;
+        transition: all 0.2s;
+        white-space: nowrap;
+    }
+
+    .nav-link:hover {
+        color: var(--text-primary);
+        background: var(--bg-glass);
+    }
+
+    .nav-link.active {
+        color: var(--text-primary);
+        background: var(--gradient-primary);
+    }
+
+    .nav-link .badge {
+        background: var(--accent-danger);
+        color: white;
+        font-size: 0.75rem;
+        padding: 0.125rem 0.375rem;
+        border-radius: 1rem;
+        font-weight: 600;
+    }
+
+    .topbar-actions {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .search-box {
+        position: relative;
+    }
+
+    .search-input {
+        background: var(--bg-glass);
+        border: 1px solid var(--border-subtle);
+        border-radius: 0.5rem;
+        padding: 0.5rem 1rem 0.5rem 2.5rem;
+        color: var(--text-primary);
+        width: 250px;
+        transition: all 0.2s;
+    }
+
+    .search-input:focus {
+        outline: none;
+        border-color: var(--accent-primary);
+        width: 320px;
+    }
+
+    .search-icon {
+        position: absolute;
+        left: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-tertiary);
+    }
+
+    .notification-btn {
+        position: relative;
+        background: var(--bg-glass);
+        border: 1px solid var(--border-subtle);
+        border-radius: 0.5rem;
+        padding: 0.625rem;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .notification-btn:hover {
+        color: var(--text-primary);
+        border-color: var(--accent-primary);
+    }
+
+    .notification-count {
+        position: absolute;
+        top: -0.25rem;
+        right: -0.25rem;
+        background: var(--accent-danger);
+        color: white;
+        font-size: 0.625rem;
+        font-weight: 700;
+        padding: 0.125rem 0.375rem;
+        border-radius: 1rem;
+        border: 2px solid var(--bg-primary);
+    }
+
+    .user-menu {
+        position: relative;
+    }
+
+    .user-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        background: var(--bg-glass);
+        border: 1px solid var(--border-subtle);
+        border-radius: 0.75rem;
+        padding: 0.5rem 1rem;
+        color: var(--text-primary);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .user-btn:hover {
+        border-color: var(--accent-primary);
+    }
+
+    .user-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: var(--gradient-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.875rem;
+    }
+
+    .premium-badge {
+        background: var(--gradient-gold);
+        color: var(--bg-primary);
+        font-size: 0.625rem;
+        padding: 0.125rem 0.5rem;
+        border-radius: 1rem;
+        font-weight: 700;
+    }
+
+    .user-dropdown {
+        position: absolute;
+        top: calc(100% + 0.5rem);
+        right: 0;
+        background: var(--bg-card);
+        border: 1px solid var(--border-subtle);
+        border-radius: 0.75rem;
+        padding: 0.5rem;
+        min-width: 200px;
+        display: none;
+        backdrop-filter: blur(20px);
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .user-dropdown.active {
+        display: block;
+    }
+
+    .dropdown-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem 1rem;
+        color: var(--text-secondary);
+        text-decoration: none;
+        border-radius: 0.5rem;
+        transition: all 0.2s;
+        font-size: 0.875rem;
+    }
+
+    .dropdown-item:hover {
+        background: var(--bg-glass);
+        color: var(--text-primary);
+    }
+
+    .dropdown-divider {
+        height: 1px;
+        background: var(--border-subtle);
+        margin: 0.5rem 0;
+    }
+
+    /* Mobile Menu */
+    .mobile-menu-btn {
+        display: none;
+        background: var(--bg-glass);
+        border: 1px solid var(--border-subtle);
+        border-radius: 0.5rem;
+        padding: 0.625rem;
+        color: var(--text-primary);
+        cursor: pointer;
+    }
+
+    @media (max-width: 1024px) {
+        .main-nav {
+            display: none;
+        }
+
+        .mobile-menu-btn {
+            display: block;
+        }
+
+        .search-input {
+            width: 180px;
+        }
+
+        .search-input:focus {
+            width: 220px;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .topbar-content {
+            padding: 0.75rem 1rem;
+        }
+
+        .search-box {
+            display: none;
+        }
+    }
+</style>
+
+<nav class="topbar">
+    <div class="topbar-content">
+        <!-- Logo + Navigation -->
+        <div class="logo-nav">
+            <a href="/" class="logo">
+                <span>🔍</span>
+                <span>Token Scanner Pro</span>
+            </a>
+
+            <div class="main-nav">
+                <a href="/" class="nav-link" data-page="home">
+                    <span>🏠</span>
+                    <span>Dashboard</span>
+                </a>
+                <a href="/auto-scan" class="nav-link" data-page="auto-scan">
+                    <span>🤖</span>
+                    <span>Auto-Scan</span>
+                    <span class="badge" id="auto-scan-badge" style="display: none;">NEW</span>
+                </a>
+                <a href="/favorites" class="nav-link" data-page="favorites">
+                    <span>⭐</span>
+                    <span>Favoris</span>
+                    <span class="badge" id="favorites-count-badge" style="display: none;"></span>
+                </a>
+                <a href="/alerts" class="nav-link" data-page="alerts">
+                    <span>🚨</span>
+                    <span>Alertes</span>
+                    <span class="badge" id="alerts-count-badge" style="display: none;"></span>
+                </a>
+                <a href="/dashboard" class="nav-link" data-page="trading">
+                    <span>💼</span>
+                    <span>Trading</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="topbar-actions">
+            <!-- Search -->
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input
+                    type="text"
+                    class="search-input"
+                    placeholder="Rechercher un token..."
+                    id="global-search"
+                >
+            </div>
+
+            <!-- Notifications -->
+            <button class="notification-btn" id="notifications-btn">
+                <span>🔔</span>
+                <span class="notification-count" id="notification-count" style="display: none;">0</span>
+            </button>
+
+            <!-- User Menu -->
+            <div class="user-menu">
+                <button class="user-btn" id="user-menu-btn">
+                    <div class="user-avatar" id="user-avatar">?</div>
+                    <span id="user-name">Connexion</span>
+                    <span class="premium-badge" id="premium-badge" style="display: none;">💎 PRO</span>
+                </button>
+
+                <div class="user-dropdown" id="user-dropdown">
+                    <!-- Logged In -->
+                    <div id="logged-in-menu" style="display: none;">
+                        <a href="/settings" class="dropdown-item">
+                            <span>⚙️</span>
+                            <span>Paramètres</span>
+                        </a>
+                        <a href="/premium" class="dropdown-item" id="upgrade-link">
+                            <span>💎</span>
+                            <span>Passer Premium</span>
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <a href="/admin" class="dropdown-item" id="admin-link" style="display: none;">
+                            <span>🛡️</span>
+                            <span>Admin</span>
+                        </a>
+                        <div class="dropdown-divider" id="admin-divider" style="display: none;"></div>
+                        <a href="#" class="dropdown-item" id="logout-btn">
+                            <span>🚪</span>
+                            <span>Déconnexion</span>
+                        </a>
+                    </div>
+
+                    <!-- Logged Out -->
+                    <div id="logged-out-menu">
+                        <a href="#" class="dropdown-item" onclick="showLoginModal(); return false;">
+                            <span>🔐</span>
+                            <span>Connexion</span>
+                        </a>
+                        <a href="#" class="dropdown-item" onclick="showRegisterModal(); return false;">
+                            <span>✨</span>
+                            <span>Inscription</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mobile Menu Button -->
+            <button class="mobile-menu-btn" id="mobile-menu-btn">
+                <span>☰</span>
+            </button>
+        </div>
+    </div>
+</nav>
+
+<script>
+// Navigation Component JavaScript
+(function() {
+    // Toggle User Dropdown
+    const userMenuBtn = document.getElementById('user-menu-btn');
+    const userDropdown = document.getElementById('user-dropdown');
+
+    userMenuBtn?.addEventListener('click', () => {
+        userDropdown.classList.toggle('active');
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.user-menu')) {
+            userDropdown?.classList.remove('active');
+        }
+    });
+
+    // Logout
+    document.getElementById('logout-btn')?.addEventListener('click', async (e) => {
+        e.preventDefault();
+        try {
+            const response = await fetch('/api/logout', { method: 'POST' });
+            if (response.ok) {
+                window.location.href = '/';
+            }
+        } catch (error) {
+            console.error('Logout error:', error);
+        }
+    });
+
+    // Load user info and update nav
+    async function loadUserInfo() {
+        try {
+            const response = await fetch('/api/me');
+            const data = await response.json();
+
+            if (data.authenticated && data.user) {
+                const user = data.user;
+
+                // Update user display
+                document.getElementById('user-name').textContent = user.username;
+                document.getElementById('user-avatar').textContent = user.username.charAt(0).toUpperCase();
+
+                // Show/hide premium badge
+                if (user.is_premium) {
+                    document.getElementById('premium-badge').style.display = 'block';
+                    document.getElementById('upgrade-link').style.display = 'none';
+                } else {
+                    document.getElementById('premium-badge').style.display = 'none';
+                    document.getElementById('upgrade-link').style.display = 'flex';
+                }
+
+                // Show admin link if admin
+                if (user.is_admin) {
+                    document.getElementById('admin-link').style.display = 'flex';
+                    document.getElementById('admin-divider').style.display = 'block';
+                }
+
+                // Toggle menu visibility
+                document.getElementById('logged-in-menu').style.display = 'block';
+                document.getElementById('logged-out-menu').style.display = 'none';
+
+                // Load favorites count
+                loadFavoritesCount();
+
+                // Load notifications count
+                loadNotificationsCount();
+
+            } else {
+                // Not logged in
+                document.getElementById('user-name').textContent = 'Connexion';
+                document.getElementById('logged-in-menu').style.display = 'none';
+                document.getElementById('logged-out-menu').style.display = 'block';
+            }
+        } catch (error) {
+            console.error('Error loading user info:', error);
+        }
+    }
+
+    // Load favorites count
+    async function loadFavoritesCount() {
+        try {
+            const response = await fetch('/api/favorites');
+            const data = await response.json();
+            if (data.success && data.favorites.length > 0) {
+                const badge = document.getElementById('favorites-count-badge');
+                badge.textContent = data.favorites.length;
+                badge.style.display = 'inline-block';
+            }
+        } catch (error) {
+            console.error('Error loading favorites:', error);
+        }
+    }
+
+    // Load notifications count (placeholder for future implementation)
+    function loadNotificationsCount() {
+        // TODO: Implement when alerts API is exposed
+        // For now, simulate
+        const count = 0;
+        if (count > 0) {
+            document.getElementById('notification-count').textContent = count;
+            document.getElementById('notification-count').style.display = 'block';
+        }
+    }
+
+    // Highlight active nav link
+    function highlightActiveNav() {
+        const currentPage = document.body.dataset.page;
+        if (currentPage) {
+            document.querySelectorAll('.nav-link').forEach(link => {
+                if (link.dataset.page === currentPage) {
+                    link.classList.add('active');
+                }
+            });
+        }
+    }
+
+    // Global search
+    const searchInput = document.getElementById('global-search');
+    searchInput?.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            const query = e.target.value.trim();
+            if (query) {
+                window.location.href = `/?search=${encodeURIComponent(query)}`;
+            }
+        }
+    });
+
+    // Initialize on load
+    loadUserInfo();
+    highlightActiveNav();
+})();
+</script>

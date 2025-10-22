@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mes Alertes - Token Scanner Pro</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body data-page="alerts">
+    {% include 'components_nav.html' %}
+
+    <div class="container" style="max-width: 1400px; margin: 0 auto; padding: 2rem;">
+        <!-- Hero Section -->
+        <div style="text-align: center; padding: 3rem 0 2rem;">
+            <h1 style="font-size: 3rem; font-weight: 900; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 1rem;">
+                🚨 Système d'Alertes Premium
+            </h1>
+            <p style="font-size: 1.25rem; color: #a0a0b2; margin-bottom: 2rem;">
+                Soyez notifié instantanément des opportunités sur vos tokens favoris
+            </p>
+        </div>
+
+        <!-- Premium Required Message -->
+        <div id="premium-required" style="display: none; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); padding: 2rem; border-radius: 1rem; text-align: center; margin-bottom: 2rem;">
+            <h2 style="font-size: 1.5rem; margin-bottom: 1rem;">💎 Fonctionnalité Premium</h2>
+            <p style="margin-bottom: 1.5rem;">Les alertes automatiques sont réservées aux membres Premium</p>
+            <a href="/premium" style="display: inline-block; padding: 0.75rem 2rem; background: white; color: #000; font-weight: 700; border-radius: 0.5rem; text-decoration: none;">
+                Passer Premium
+            </a>
+        </div>
+
+        <!-- Alert Stats -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+            <div style="background: rgba(26, 26, 36, 0.7); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1rem; padding: 1.5rem; backdrop-filter: blur(20px);">
+                <div style="font-size: 0.875rem; color: #a0a0b2; margin-bottom: 0.5rem;">Alertes Totales</div>
+                <div style="font-size: 2.5rem; font-weight: 700; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;" id="total-alerts">0</div>
+            </div>
+            <div style="background: rgba(26, 26, 36, 0.7); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1rem; padding: 1.5rem; backdrop-filter: blur(20px);">
+                <div style="font-size: 0.875rem; color: #a0a0b2; margin-bottom: 0.5rem;">Non Lues</div>
+                <div style="font-size: 2.5rem; font-weight: 700; color: #f5576c;" id="unread-alerts">0</div>
+            </div>
+            <div style="background: rgba(26, 26, 36, 0.7); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1rem; padding: 1.5rem; backdrop-filter: blur(20px);">
+                <div style="font-size: 0.875rem; color: #a0a0b2; margin-bottom: 0.5rem;">Tokens Surveillés</div>
+                <div style="font-size: 2.5rem; font-weight: 700; color: #20e3b2;" id="watched-tokens">0</div>
+            </div>
+        </div>
+
+        <!-- Alerts Config -->
+        <div id="alerts-config" style="background: rgba(26, 26, 36, 0.7); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1rem; padding: 2rem; backdrop-filter: blur(20px); margin-bottom: 2rem;">
+            <h2 style="font-size: 1.5rem; margin-bottom: 1.5rem; font-weight: 700;">⚙️ Configuration des Alertes</h2>
+            <div style="display: grid; gap: 1.5rem;">
+                <div>
+                    <label style="display: block; font-size: 0.875rem; color: #a0a0b2; margin-bottom: 0.5rem;">
+                        📧 Email de Réception
+                    </label>
+                    <input type="email" id="alert-email" placeholder="votre@email.com"
+                           style="width: 100%; padding: 0.75rem; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 0.5rem; color: white;">
+                </div>
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <input type="checkbox" id="enable-email-alerts" style="width: 20px; height: 20px;">
+                    <label for="enable-email-alerts">Activer les alertes email</label>
+                </div>
+                <button onclick="saveAlertConfig()" style="padding: 0.75rem 2rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 0.5rem; font-weight: 600; cursor: pointer;">
+                    💾 Enregistrer la Configuration
+                </button>
+            </div>
+        </div>
+
+        <!-- Alerts List -->
+        <div>
+            <h2 style="font-size: 1.5rem; margin-bottom: 1.5rem; font-weight: 700;">📬 Historique des Alertes</h2>
+            <div id="alerts-list" style="display: grid; gap: 1rem;"></div>
+            <div id="no-alerts" style="text-align: center; padding: 4rem; color: #a0a0b2;">
+                <div style="font-size: 4rem; margin-bottom: 1rem;">📭</div>
+                <h3>Aucune alerte pour le moment</h3>
+                <p>Ajoutez des tokens à vos favoris pour recevoir des alertes !</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function checkPremium() {
+            try {
+                const response = await fetch('/api/me');
+                const data = await response.json();
+                if (data.authenticated && data.user) {
+                    if (!data.user.is_premium) {
+                        document.getElementById('premium-required').style.display = 'block';
+                        document.getElementById('alerts-config').style.display = 'none';
+                    } else {
+                        loadFavorites();
+                    }
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        async function loadFavorites() {
+            try {
+                const response = await fetch('/api/favorites');
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('watched-tokens').textContent = data.favorites.length;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        function saveAlertConfig() {
+            alert('Configuration sauvegardée ! (API à implémenter)');
+        }
+
+        checkPremium();
+    </script>
+</body>
+</html>

@@ -174,6 +174,26 @@ def dashboard():
     """Dashboard de trading"""
     return render_template('trading_dashboard.html')
 
+@app.route('/auto-scan')
+def auto_scan_page():
+    """Page Auto-Scan 24/7"""
+    return render_template('auto_scan.html')
+
+@app.route('/alerts')
+def alerts_page():
+    """Page Alertes Premium"""
+    return render_template('alerts.html')
+
+@app.route('/settings')
+def settings_page():
+    """Page Paramètres"""
+    return render_template('settings.html')
+
+@app.route('/premium')
+def premium_page():
+    """Page Premium/Pricing"""
+    return render_template('premium.html')
+
 # ==================== ROUTES API AUTH ====================
 
 @app.route('/api/me', methods=['GET'])

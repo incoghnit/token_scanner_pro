@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paramètres - Token Scanner Pro</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body data-page="settings">
+    {% include 'components_nav.html' %}
+
+    <div class="container" style="max-width: 1000px; margin: 0 auto; padding: 2rem;">
+        <h1 style="font-size: 3rem; font-weight: 900; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 2rem;">
+            ⚙️ Paramètres
+        </h1>
+
+        <!-- Profile Section -->
+        <section style="background: rgba(26, 26, 36, 0.7); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1rem; padding: 2rem; backdrop-filter: blur(20px); margin-bottom: 2rem;">
+            <h2 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 1.5rem;">👤 Profil</h2>
+            <div style="display: grid; gap: 1.5rem;">
+                <div>
+                    <label style="display: block; font-size: 0.875rem; color: #a0a0b2; margin-bottom: 0.5rem;">Nom d'utilisateur</label>
+                    <input type="text" id="username" readonly style="width: 100%; padding: 0.75rem; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 0.5rem; color: white;">
+                </div>
+                <div>
+                    <label style="display: block; font-size: 0.875rem; color: #a0a0b2; margin-bottom: 0.5rem;">Email</label>
+                    <input type="email" id="email" readonly style="width: 100%; padding: 0.75rem; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 0.5rem; color: white;">
+                </div>
+                <div style="padding: 1rem; background: rgba(118, 75, 162, 0.1); border: 1px solid #764ba2; border-radius: 0.5rem;">
+                    <div style="font-size: 0.875rem; color: #a0a0b2; margin-bottom: 0.25rem;">Statut du compte</div>
+                    <div style="font-size: 1.25rem; font-weight: 700;" id="account-status">Gratuit</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Trading Config -->
+        <section style="background: rgba(26, 26, 36, 0.7); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1rem; padding: 2rem; backdrop-filter: blur(20px); margin-bottom: 2rem;">
+            <h2 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 1.5rem;">💼 Configuration Trading</h2>
+            <div style="display: grid; gap: 1.5rem;">
+                <div>
+                    <label style="display: block; font-size: 0.875rem; color: #a0a0b2; margin-bottom: 0.5rem;">Slippage par défaut (%)</label>
+                    <input type="number" id="slippage" value="1.0" step="0.1" min="0.1" max="10" style="width: 100%; padding: 0.75rem; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 0.5rem; color: white;">
+                </div>
+                <div>
+                    <label style="display: block; font-size: 0.875rem; color: #a0a0b2; margin-bottom: 0.5rem;">Stop Loss par défaut (%)</label>
+                    <input type="number" id="stop-loss" value="10.0" step="1" min="1" max="50" style="width: 100%; padding: 0.75rem; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 0.5rem; color: white;">
+                </div>
+                <div>
+                    <label style="display: block; font-size: 0.875rem; color: #a0a0b2; margin-bottom: 0.5rem;">Take Profit par défaut (%)</label>
+                    <input type="number" id="take-profit" value="20.0" step="1" min="1" max="100" style="width: 100%; padding: 0.75rem; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 0.5rem; color: white;">
+                </div>
+                <button onclick="saveTradingConfig()" style="padding: 0.75rem 2rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 0.5rem; font-weight: 600; cursor: pointer;">
+                    💾 Enregistrer Configuration Trading
+                </button>
+            </div>
+        </section>
+
+        <!-- Risk Profile -->
+        <section style="background: rgba(26, 26, 36, 0.7); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1rem; padding: 2rem; backdrop-filter: blur(20px); margin-bottom: 2rem;">
+            <h2 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 1.5rem;">📊 Profil de Risque</h2>
+            <div style="display: grid; gap: 1rem;">
+                <label style="display: flex; align-items: center; gap: 1rem; padding: 1rem; border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 0.5rem; cursor: pointer;">
+                    <input type="radio" name="risk" value="conservative" style="width: 20px; height: 20px;">
+                    <div>
+                        <div style="font-weight: 600;">🛡️ Conservateur</div>
+                        <div style="font-size: 0.875rem; color: #a0a0b2;">Faible risque, retours modérés</div>
+                    </div>
+                </label>
+                <label style="display: flex; align-items: center; gap: 1rem; padding: 1rem; border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 0.5rem; cursor: pointer;">
+                    <input type="radio" name="risk" value="moderate" checked style="width: 20px; height: 20px;">
+                    <div>
+                        <div style="font-weight: 600;">⚖️ Modéré</div>
+                        <div style="font-size: 0.875rem; color: #a0a0b2;">Équilibre risque/rendement</div>
+                    </div>
+                </label>
+                <label style="display: flex; align-items: center; gap: 1rem; padding: 1rem; border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 0.5rem; cursor: pointer;">
+                    <input type="radio" name="risk" value="aggressive" style="width: 20px; height: 20px;">
+                    <div>
+                        <div style="font-weight: 600;">🚀 Agressif</div>
+                        <div style="font-size: 0.875rem; color: #a0a0b2;">Haut risque, potentiel élevé</div>
+                    </div>
+                </label>
+            </div>
+        </section>
+
+        <!-- Notifications -->
+        <section style="background: rgba(26, 26, 36, 0.7); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1rem; padding: 2rem; backdrop-filter: blur(20px);">
+            <h2 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 1.5rem;">🔔 Notifications</h2>
+            <div style="display: grid; gap: 1rem;">
+                <label style="display: flex; align-items: center; gap: 1rem;">
+                    <input type="checkbox" id="notify-scan" checked style="width: 20px; height: 20px;">
+                    <span>Notifier à la fin des scans</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 1rem;">
+                    <input type="checkbox" id="notify-trade" checked style="width: 20px; height: 20px;">
+                    <span>Notifier des opportunités de trading</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 1rem;">
+                    <input type="checkbox" id="notify-alerts" checked style="width: 20px; height: 20px;">
+                    <span>Alertes sur mes favoris (Premium)</span>
+                </label>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        async function loadUserSettings() {
+            try {
+                const response = await fetch('/api/me');
+                const data = await response.json();
+                if (data.authenticated && data.user) {
+                    document.getElementById('username').value = data.user.username;
+                    document.getElementById('email').value = data.user.email || '';
+                    document.getElementById('account-status').textContent =
+                        data.user.is_premium ? '💎 Premium' : 'Gratuit';
+
+                    if (data.user.is_premium) {
+                        document.getElementById('account-status').style.background =
+                            'linear-gradient(135deg, #f7971e 0%, #ffd200 100%)';
+                        document.getElementById('account-status').style.webkitBackgroundClip = 'text';
+                        document.getElementById('account-status').style.webkitTextFillColor = 'transparent';
+                    }
+                }
+
+                // Load trading config
+                const configResponse = await fetch('/api/config');
+                const configData = await configResponse.json();
+                if (configData.success) {
+                    document.getElementById('slippage').value = configData.config.default_slippage || 1.0;
+                    document.getElementById('stop-loss').value = configData.config.default_stop_loss || 10.0;
+                    document.getElementById('take-profit').value = configData.config.default_take_profit || 20.0;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        async function saveTradingConfig() {
+            try {
+                const config = {
+                    default_slippage: parseFloat(document.getElementById('slippage').value),
+                    default_stop_loss: parseFloat(document.getElementById('stop-loss').value),
+                    default_take_profit: parseFloat(document.getElementById('take-profit').value),
+                    risk_tolerance: document.querySelector('input[name="risk"]:checked').value,
+                    notifications_enabled: document.getElementById('notify-scan').checked
+                };
+
+                const response = await fetch('/api/config/update', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    alert('✅ Configuration sauvegardée !');
+                } else {
+                    alert('❌ Erreur: ' + (data.error || 'Échec'));
+                }
+            } catch (error) {
+                alert('❌ Erreur réseau');
+            }
+        }
+
+        loadUserSettings();
+    </script>
+</body>
+</html>
