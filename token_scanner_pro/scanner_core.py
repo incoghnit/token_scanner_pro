@@ -255,14 +255,28 @@ class TokenScanner:
         """Récupère les données de marché via DexScreener"""
         try:
             url = f"{self.dexscreener_api}/tokens/{address}"
-            response = requests.get(url, timeout=10)
-            
+            print(f"\n📡 DexScreener Market Data API Call:")
+            print(f"   URL: {url}")
+
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept': 'application/json'
+            }
+
+            response = requests.get(url, headers=headers, timeout=10)
+
+            print(f"   HTTP Status: {response.status_code}")
+            print(f"   Response Headers: {dict(response.headers)}")
+
             if response.status_code != 200:
-                return {"error": "API non disponible"}
-            
+                print(f"   ❌ Error Response: {response.text[:200]}")
+                return {"error": f"API error: HTTP {response.status_code}"}
+
             data = response.json()
-            
+            print(f"   ✅ Response: {len(data.get('pairs', []))} pairs found")
+
             if "pairs" not in data or not data["pairs"]:
+                print(f"   ⚠️ No pairs in response")
                 return {"error": "Aucune paire trouvée"}
             
             pairs = data["pairs"]
@@ -293,24 +307,39 @@ class TokenScanner:
             "arbitrum": "42161",
             "solana": "solana"
         }
-        
+
         chain_id = chain_ids.get(chain.lower(), chain)
-        
+
         try:
             url = f"{self.goplus_api}/token_security/{chain_id}?contract_addresses={address}"
+            print(f"\n🔒 GoPlus Security API Call:")
+            print(f"   URL: {url}")
+            print(f"   Chain: {chain} -> {chain_id}")
+
             response = requests.get(url, timeout=10)
-            
+
+            print(f"   HTTP Status: {response.status_code}")
+
             if response.status_code != 200:
-                return {"error": "API non disponible"}
-            
+                print(f"   ❌ Error Response: {response.text[:200]}")
+                return {"error": f"API error: HTTP {response.status_code}"}
+
             data = response.json()
-            
+            print(f"   Response Code: {data.get('code')}")
+
             # ✅ CORRECTION : Ajout du "if" manquant à la ligne 186
             if data.get("code") != 1:
+                print(f"   ⚠️ Token not found in security check")
                 return {"error": "Token non trouvé"}
             
             result = data.get("result", {}).get(address.lower(), {})
-            
+
+            if not result:
+                print(f"   ⚠️ No security data for this token address")
+                return {"error": "No security data available"}
+
+            print(f"   ✅ Security data retrieved")
+
             return {
                 "is_honeypot": result.get("is_honeypot", "unknown") == "1",
                 "is_open_source": result.get("is_open_source", "0") == "1",
@@ -524,15 +553,38 @@ class TokenScanner:
         address = token_info['address']
         chain = token_info['chain']
         icon = token_info.get('icon', '')
-        
+
+        print(f"\n{'='*80}")
+        print(f"🔎 Analyzing Token {self.current_progress + 1}/{self.total_tokens}")
+        print(f"   Address: {address}")
+        print(f"   Chain: {chain}")
+        print(f"   Description: {token_info.get('description', 'N/A')[:80]}")
+        print(f"{'='*80}")
+
+        # Market data
+        print(f"\n📊 Step 1/4: Fetching market data...")
         market = self.get_market_data(address)
+        if "error" in market:
+            print(f"   ⚠️ Market data error: {market['error']}")
+        else:
+            print(f"   ✅ Market data retrieved successfully")
         time.sleep(0.5)
-        
+
+        # Security check
+        print(f"\n🛡️ Step 2/4: Checking security...")
         security = self.check_security(address, chain)
+        if "error" in security:
+            print(f"   ⚠️ Security check error: {security['error']}")
+        else:
+            print(f"   ✅ Security check completed")
         time.sleep(0.5)
-        
+
+        # Risk scoring
+        print(f"\n⚖️ Step 3/4: Calculating risk score...")
         risk_score, warnings = self.calculate_risk_score(security, market)
-        
+        print(f"   Risk Score: {risk_score}/100")
+        print(f"   Warnings: {len(warnings)}")
+
         pair_created_at = market.get("pair_created_at", "N/A")
         pump_dump_analysis = self.detect_pump_dump(market, security, pair_created_at)
         
@@ -540,16 +592,27 @@ class TokenScanner:
         social_score = 0
         social_details = {}
         
+        # Twitter/Social analysis
+        print(f"\n🐦 Step 4/4: Checking social media...")
         if token_info.get('twitter'):
             username = self.extract_twitter_username(token_info['twitter'])
             if username:
                 twitter_data = self.scrape_twitter_profile(username)
                 if "error" not in twitter_data:
                     social_score, social_details = self.calculate_social_score(twitter_data)
+                    print(f"   ✅ Twitter: @{username}, Social Score: {social_score}/100")
+                else:
+                    print(f"   ⚠️ Twitter error: {twitter_data.get('error')}")
                 time.sleep(1)
-        
+        else:
+            print(f"   ℹ️ No Twitter account")
+
         self.current_progress += 1
-        
+
+        print(f"\n✅ Token Analysis Complete!")
+        print(f"   Risk: {risk_score}/100 ({'SAFE' if risk_score < 50 else 'RISKY'})")
+        print(f"   Pump/Dump: {pump_dump_analysis['pump_dump_risk']}")
+
         return {
             "address": address,
             "chain": chain,
@@ -604,20 +667,31 @@ class TokenScanner:
             try:
                 result = self.analyze_token(token)
                 results.append(result)
-                
+
                 if result['is_safe']:
                     safe_tokens.append(result)
                 else:
                     dangerous_tokens.append(result)
-                
+
                 if result['is_pump_dump_suspect']:
                     pump_dump_suspects.append(result)
-                    
+
             except Exception as e:
-                print(f"Erreur analyse token: {e}")
+                print(f"❌ Erreur analyse token: {e}")
+                import traceback
+                traceback.print_exc()
                 continue
-        
-        return {
+
+        print(f"\n{'='*80}")
+        print(f"🎯 SCAN COMPLETE - FINAL SUMMARY")
+        print(f"{'='*80}")
+        print(f"   Total Analyzed: {len(results)}")
+        print(f"   Safe Tokens: {len(safe_tokens)}")
+        print(f"   Risky Tokens: {len(dangerous_tokens)}")
+        print(f"   Pump/Dump Suspects: {len(pump_dump_suspects)}")
+        print(f"{'='*80}\n")
+
+        final_result = {
             "success": True,
             "total_analyzed": len(results),
             "safe_count": len(safe_tokens),
@@ -629,6 +703,9 @@ class TokenScanner:
             "pump_dump_suspects": sorted(pump_dump_suspects, key=lambda x: x['pump_dump_score'], reverse=True),
             "timestamp": datetime.now().isoformat()
         }
+
+        print(f"📤 Returning {len(results)} tokens to caller")
+        return final_result
 
 
 if __name__ == "__main__":
