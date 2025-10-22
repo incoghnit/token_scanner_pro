@@ -353,7 +353,7 @@ def start_scan():
         try:
             scan_in_progress = True
             scanner = TokenScanner(nitter_url=nitter_url)
-            current_scan_results = scanner.scan_tokens(max_tokens=max_tokens)
+            current_scan_results = scanner.scan_tokens(max_tokens=max_tokens, chain_filter="solana")
             scan_in_progress = False
             last_scan_timestamp = datetime.now().isoformat()
             
