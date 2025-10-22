@@ -808,17 +808,95 @@
             const container = document.getElementById('scan-results');
             container.style.display = 'block';
 
+            console.log('📊 Displaying scan results:', data);
+
             if (data.results && data.results.length > 0) {
+                // Build tokens list
+                const tokensHTML = data.results.map((token, index) => {
+                    const hasMarketData = token.market && !token.market.error;
+                    const hasPriceChange = hasMarketData && token.market.price_change_24h !== undefined;
+                    const priceChange = hasPriceChange ? token.market.price_change_24h : 0;
+                    const priceColor = priceChange >= 0 ? '#22c55e' : '#ef4444';
+                    const liquidity = hasMarketData ? (token.market.liquidity_usd || 0) : 0;
+
+                    const riskColor = token.risk_score < 30 ? '#22c55e' :
+                                     token.risk_score < 70 ? '#f59e0b' : '#ef4444';
+
+                    return `
+                        <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 1rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+                                <div>
+                                    <h4 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem;">
+                                        ${token.description || 'Token ' + (index + 1)}
+                                    </h4>
+                                    <div style="font-family: monospace; font-size: 0.75rem; color: var(--text-tertiary);">
+                                        ${token.address.substring(0, 8)}...${token.address.substring(token.address.length - 6)}
+                                    </div>
+                                    <div style="margin-top: 0.5rem;">
+                                        <span style="background: var(--bg-glass); padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.75rem; text-transform: uppercase;">
+                                            ${token.chain}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="background: ${riskColor}; color: white; padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: 700; margin-bottom: 0.5rem;">
+                                        Risk: ${token.risk_score}/100
+                                    </div>
+                                    ${hasPriceChange ? `
+                                        <div style="color: ${priceColor}; font-weight: 600;">
+                                            ${priceChange > 0 ? '+' : ''}${priceChange.toFixed(2)}% 24h
+                                        </div>
+                                    ` : '<div style="color: var(--text-tertiary); font-size: 0.875rem;">No price data</div>'}
+                                </div>
+                            </div>
+
+                            ${hasMarketData ? `
+                                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 1rem;">
+                                    <div>
+                                        <div style="font-size: 0.75rem; color: var(--text-tertiary);">Liquidity</div>
+                                        <div style="font-weight: 600;">$${liquidity.toLocaleString()}</div>
+                                    </div>
+                                    <div>
+                                        <div style="font-size: 0.75rem; color: var(--text-tertiary);">Volume 24h</div>
+                                        <div style="font-weight: 600;">$${(token.market.volume_24h || 0).toLocaleString()}</div>
+                                    </div>
+                                </div>
+                            ` : `
+                                <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 0.5rem; padding: 0.75rem; margin-bottom: 1rem;">
+                                    <div style="color: #ef4444; font-size: 0.875rem;">
+                                        ⚠️ Market data unavailable (API blocked)
+                                    </div>
+                                </div>
+                            `}
+
+                            ${token.warnings && token.warnings.length > 0 ? `
+                                <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 0.5rem; padding: 0.75rem; margin-bottom: 1rem;">
+                                    <div style="font-weight: 600; margin-bottom: 0.5rem;">⚠️ Warnings:</div>
+                                    ${token.warnings.map(w => `<div style="font-size: 0.875rem;">• ${w}</div>`).join('')}
+                                </div>
+                            ` : ''}
+
+                            <div style="display: flex; gap: 0.5rem;">
+                                ${token.url ? `
+                                    <a href="${token.url}" target="_blank" style="flex: 1; text-align: center; padding: 0.75rem; background: var(--gradient-primary); color: white; text-decoration: none; border-radius: 0.5rem; font-weight: 600;">
+                                        View on DexScreener →
+                                    </a>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
                 container.innerHTML = `
-                    <div style="background: var(--bg-glass); border: 1px solid var(--border-subtle); border-radius: 0.75rem; padding: 1.5rem;">
-                        <h3 style="margin-bottom: 1rem;">✅ Scan terminé !</h3>
-                        <p style="color: var(--text-secondary); margin-bottom: 1rem;">
-                            ${data.results.length} token(s) analysé(s)
+                    <div style="background: var(--bg-glass); border: 1px solid var(--border-subtle); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 1.5rem;">
+                        <h3 style="margin-bottom: 0.5rem;">✅ Scan Completed!</h3>
+                        <p style="color: var(--text-secondary);">
+                            Found ${data.results.length} token(s) •
+                            ${data.safe_count || 0} safe •
+                            ${data.dangerous_count || 0} risky
                         </p>
-                        <a href="/favorites" class="btn btn-primary">
-                            Voir les résultats détaillés →
-                        </a>
                     </div>
+                    ${tokensHTML}
                 `;
 
                 // Refresh stats
