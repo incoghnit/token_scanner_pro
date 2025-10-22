@@ -28,7 +28,13 @@ app.secret_key = os.getenv('SECRET_KEY', secrets.token_hex(32))
 if not os.getenv('SECRET_KEY'):
     print("⚠️ WARNING: SECRET_KEY not set in .env - using temporary key (sessions will be lost on restart)")
 
-CORS(app, supports_credentials=True)
+# CORS configuration sécurisée
+allowed_origins = os.getenv('ALLOWED_ORIGINS', 'http://localhost:5000,http://127.0.0.1:5000').split(',')
+CORS(app,
+     supports_credentials=True,
+     origins=allowed_origins,
+     methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+     allow_headers=['Content-Type', 'Authorization'])
 
 # Configuration
 app.config['CLAUDE_API_KEY'] = os.getenv('CLAUDE_API_KEY')
@@ -330,7 +336,7 @@ def start_scan():
     
     data = request.json or {}
     max_tokens = data.get('max_tokens', 10)
-    nitter_url = data.get('nitter_url', 'http://192.168.1.19:8080')
+    nitter_url = data.get('nitter_url', os.getenv('NITTER_URL', 'http://localhost:8080'))
     
     user_id = session.get('user_id')
     if not user_id:
@@ -608,14 +614,13 @@ if __name__ == '__main__':
     
     hostname = socket.gethostname()
     local_ip = socket.gethostbyname(hostname)
-    
-    print("""
+
+    print(f"""
     ╔═══════════════════════════════════════════════════════════╗
     ║   TOKEN SCANNER PRO - UX PREMIUM + AUTO-SCAN             ║
     ║                                                           ║
     ║   🌐 Accès local:    http://localhost:5000               ║
-    ║   🌐 Accès réseau:   http://192.168.1.19:5000           ║
-    ║   🌐 IP détectée:    http://""" + local_ip + """:5000     ║
+    ║   🌐 Accès réseau:   http://{local_ip}:5000              ║
     ║                                                           ║
     ║   ✅ Système d'authentification activé                    ║
     ║   ✅ Auto-scan + Cache MongoDB activé                     ║

@@ -8,16 +8,17 @@ import requests
 import json
 import time
 import re
+import os
 from html import unescape
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 
 class TokenScanner:
-    def __init__(self, nitter_url: str = "http://192.168.1.19:8080"):
+    def __init__(self, nitter_url: str = None):
         self.dexscreener_profiles_api = "https://api.dexscreener.com/token-profiles/latest/v1"
         self.goplus_api = "https://api.gopluslabs.io/api/v1"
         self.dexscreener_api = "https://api.dexscreener.com/latest/dex"
-        self.nitter_instance = nitter_url
+        self.nitter_instance = nitter_url or os.getenv('NITTER_URL', 'http://localhost:8080')
         self.current_progress = 0
         self.total_tokens = 0
     
