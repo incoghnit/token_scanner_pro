@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Auto-Scan 24/7 - Token Scanner Pro</title>
     <style>
+        /* Include token modal styles */
         :root {
             --bg-primary: #0a0a0f;
             --bg-secondary: #13131a;
@@ -448,6 +449,9 @@
     <!-- Include Navigation Component -->
     {% include 'components_nav.html' %}
 
+    <!-- Include Token Modal -->
+    {% include 'components_token_modal.html' %}
+
     <div class="container">
         <!-- Hero Section -->
         <div class="hero">
@@ -710,20 +714,26 @@
             const riskBadgeClass = token.is_safe ? 'safe' : 'risky';
             const riskText = token.is_safe ? '✅ Sûr' : '⚠️ Risqué';
 
-            const priceChange = token.market?.price_change_24h || 0;
+            const priceChange = token.market?.price_change_24h || token.market_data?.price_change_24h || 0;
             const priceClass = priceChange >= 0 ? 'positive' : 'negative';
             const priceSign = priceChange >= 0 ? '+' : '';
 
-            const liquidity = token.market?.liquidity_usd || 0;
+            const liquidity = token.market?.liquidity_usd || token.market_data?.liquidity_usd || 0;
+
+            // Proper icon display with fallback
+            let iconHTML = '🪙';
+            if (token.icon && token.icon !== '') {
+                iconHTML = `<img src="${token.icon}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" onerror="this.style.display='none'; this.parentElement.innerHTML='🪙'">`;
+            }
 
             card.innerHTML = `
                 <div class="token-header">
                     <div class="token-info">
                         <div class="token-icon">
-                            ${token.icon ? `<img src="${token.icon}" style="width: 100%; height: 100%; border-radius: 50%;">` : '🪙'}
+                            ${iconHTML}
                         </div>
                         <div class="token-details">
-                            <h3>${token.chain.toUpperCase()}</h3>
+                            <h3>${token.name || token.chain.toUpperCase()}</h3>
                             <div class="token-address">${token.address.substring(0, 8)}...${token.address.substring(token.address.length - 6)}</div>
                         </div>
                     </div>
@@ -745,21 +755,14 @@
                     </div>
                     <div class="metric">
                         <span class="metric-label">P&D Score</span>
-                        <span class="metric-value">${token.pump_dump_score}/100</span>
+                        <span class="metric-value">${token.pump_dump_score || 0}/100</span>
                     </div>
                 </div>
             `;
 
-            card.addEventListener('click', () => showTokenDetails(token));
+            card.addEventListener('click', () => openTokenModal(token));
 
             return card;
-        }
-
-        // Show token details (reuse existing modal if available)
-        function showTokenDetails(token) {
-            // TODO: Implement detailed modal or redirect
-            console.log('Token details:', token);
-            alert(`Token: ${token.address}\nRisque: ${token.risk_score}/100`);
         }
 
         // Filter buttons
