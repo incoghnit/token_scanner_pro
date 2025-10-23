@@ -594,6 +594,12 @@
                     🚀 Démarrer le Scan
                 </button>
 
+                <!-- Auto-scan countdown indicator -->
+                <div id="auto-scan-countdown" style="margin-top: 1rem; text-align: center; padding: 0.75rem; background: var(--bg-glass); border-radius: 0.5rem; font-size: 0.875rem; color: var(--text-secondary); display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                    <span style="opacity: 0.6;">⏰</span>
+                    <span>Prochain scan automatique dans <strong id="countdown-timer" style="color: var(--accent-primary);">5:00</strong></span>
+                </div>
+
                 <div id="scan-progress" style="margin-top: 1.5rem; display: none;">
                     <div class="loading">
                         <div class="spinner"></div>
@@ -737,6 +743,12 @@
 
         // Start scan
         async function startScan() {
+            // Reset auto-scan countdown to 5 minutes when manual scan starts
+            if (typeof secondsRemaining !== 'undefined') {
+                secondsRemaining = 300;
+                updateCountdown();
+            }
+
             const nitterUrl = document.getElementById('nitter-url').value;
             const maxTokens = parseInt(document.getElementById('max-tokens').value);
 
@@ -803,7 +815,7 @@
             }
         }
 
-        // Display scan results
+        // Display scan results - ENHANCED WITH ALL AVAILABLE DATA
         function displayScanResults(data) {
             const container = document.getElementById('scan-results');
             container.style.display = 'block';
@@ -811,89 +823,271 @@
             console.log('📊 Displaying scan results:', data);
 
             if (data.results && data.results.length > 0) {
-                // Build tokens list
+                // Build enriched tokens list
                 const tokensHTML = data.results.map((token, index) => {
                     const hasMarketData = token.market && !token.market.error;
-                    const hasPriceChange = hasMarketData && token.market.price_change_24h !== undefined;
-                    const priceChange = hasPriceChange ? token.market.price_change_24h : 0;
-                    const priceColor = priceChange >= 0 ? '#22c55e' : '#ef4444';
-                    const liquidity = hasMarketData ? (token.market.liquidity_usd || 0) : 0;
+                    const hasSecurity = token.security && !token.security.error;
+                    const hasTwitter = token.twitter_data && !token.twitter_data.error;
 
+                    // Price & changes
+                    const price = hasMarketData ? token.market.price_usd : 0;
+                    const change24h = hasMarketData ? (token.market.price_change_24h || 0) : 0;
+                    const change6h = hasMarketData ? (token.market.price_change_6h || 0) : 0;
+                    const change1h = hasMarketData ? (token.market.price_change_1h || 0) : 0;
+
+                    // Market data
+                    const liquidity = hasMarketData ? (token.market.liquidity_usd || 0) : 0;
+                    const volume24h = hasMarketData ? (token.market.volume_24h || 0) : 0;
+                    const volume6h = hasMarketData ? (token.market.volume_6h || 0) : 0;
+                    const marketCap = hasMarketData ? (token.market.market_cap || 0) : 0;
+                    const buys = hasMarketData ? (token.market.txns_24h_buys || 0) : 0;
+                    const sells = hasMarketData ? (token.market.txns_24h_sells || 0) : 0;
+                    const pairAge = hasMarketData ? token.market.pair_created_at : 'N/A';
+
+                    // Security data
+                    const buyTax = hasSecurity ? (token.security.buy_tax || 0) : 0;
+                    const sellTax = hasSecurity ? (token.security.sell_tax || 0) : 0;
+                    const holders = hasSecurity ? (token.security.holder_count || 'N/A') : 'N/A';
+                    const isHoneypot = hasSecurity ? token.security.is_honeypot : false;
+                    const isMintable = hasSecurity ? token.security.is_mintable : false;
+                    const isOpenSource = hasSecurity ? token.security.is_open_source : false;
+
+                    // Social data
+                    const socialScore = token.social_score || 0;
+                    const followers = hasTwitter ? (token.twitter_data.followers || 0) : 0;
+                    const tweets = hasTwitter ? (token.twitter_data.tweets || 0) : 0;
+
+                    // Pump & Dump data
+                    const pumpScore = token.pump_dump_score || 0;
+                    const pumpRisk = token.pump_dump_risk || 'UNKNOWN';
+
+                    // Risk score color
                     const riskColor = token.risk_score < 30 ? '#22c55e' :
                                      token.risk_score < 70 ? '#f59e0b' : '#ef4444';
+                    const pumpColor = pumpRisk === 'FAIBLE' ? '#22c55e' :
+                                      pumpRisk === 'MOYEN' ? '#f59e0b' : '#ef4444';
+
+                    // Format numbers
+                    const formatNumber = (num) => {
+                        if (num >= 1000000) return (num / 1000000).toFixed(2) + 'M';
+                        if (num >= 1000) return (num / 1000).toFixed(2) + 'K';
+                        return num.toFixed(2);
+                    };
+
+                    const formatPrice = (p) => {
+                        if (p >= 1) return '$' + p.toFixed(4);
+                        if (p >= 0.0001) return '$' + p.toFixed(6);
+                        return '$' + p.toExponential(2);
+                    };
+
+                    const colorChange = (val) => val >= 0 ? '#22c55e' : '#ef4444';
+                    const formatChange = (val) => (val >= 0 ? '+' : '') + val.toFixed(2) + '%';
 
                     return `
-                        <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 1rem;">
-                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
-                                <div>
-                                    <h4 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem;">
-                                        ${token.description || 'Token ' + (index + 1)}
-                                    </h4>
-                                    <div style="font-family: monospace; font-size: 0.75rem; color: var(--text-tertiary);">
-                                        ${token.address.substring(0, 8)}...${token.address.substring(token.address.length - 6)}
-                                    </div>
-                                    <div style="margin-top: 0.5rem;">
-                                        <span style="background: var(--bg-glass); padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.75rem; text-transform: uppercase;">
-                                            ${token.chain}
-                                        </span>
+                        <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 1rem; padding: 1.5rem; margin-bottom: 1.5rem; backdrop-filter: blur(20px);">
+                            <!-- Header with Icon -->
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1.5rem;">
+                                <div style="display: flex; gap: 1rem; align-items: start; flex: 1;">
+                                    ${token.icon ? `
+                                        <img src="${token.icon}" alt="Token Icon" style="width: 64px; height: 64px; border-radius: 1rem; background: var(--bg-glass); padding: 0.5rem;" onerror="this.style.display='none'">
+                                    ` : `
+                                        <div style="width: 64px; height: 64px; border-radius: 1rem; background: var(--gradient-primary); display: flex; align-items: center; justify-content: center; font-size: 2rem;">🪙</div>
+                                    `}
+                                    <div style="flex: 1;">
+                                        <h4 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem;">
+                                            ${token.description || 'Token ' + (index + 1)}
+                                        </h4>
+                                        <div style="font-family: monospace; font-size: 0.875rem; color: var(--text-tertiary); margin-bottom: 0.5rem;">
+                                            ${token.address.substring(0, 12)}...${token.address.substring(token.address.length - 8)}
+                                        </div>
+                                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                            <span style="background: var(--bg-glass); padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">
+                                                ${token.chain}
+                                            </span>
+                                            ${token.is_safe ? '<span style="background: rgba(34, 197, 94, 0.2); color: #22c55e; padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.75rem; font-weight: 600;">✅ SAFE</span>' : '<span style="background: rgba(239, 68, 68, 0.2); color: #ef4444; padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.75rem; font-weight: 600;">⚠️ RISKY</span>'}
+                                            ${token.is_pump_dump_suspect ? '<span style="background: rgba(239, 68, 68, 0.2); color: #ef4444; padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.75rem; font-weight: 600;">🚨 P&D</span>' : ''}
+                                        </div>
                                     </div>
                                 </div>
                                 <div style="text-align: right;">
-                                    <div style="background: ${riskColor}; color: white; padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: 700; margin-bottom: 0.5rem;">
-                                        Risk: ${token.risk_score}/100
+                                    <div style="background: ${riskColor}; color: white; padding: 0.75rem 1.25rem; border-radius: 0.75rem; font-weight: 700; font-size: 1.125rem; margin-bottom: 0.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+                                        Risk ${token.risk_score}/100
                                     </div>
-                                    ${hasPriceChange ? `
-                                        <div style="color: ${priceColor}; font-weight: 600;">
-                                            ${priceChange > 0 ? '+' : ''}${priceChange.toFixed(2)}% 24h
+                                    ${hasMarketData ? `
+                                        <div style="font-size: 1.25rem; font-weight: 700; margin-bottom: 0.25rem;">
+                                            ${formatPrice(price)}
+                                        </div>
+                                        <div style="color: ${colorChange(change24h)}; font-weight: 600; font-size: 1rem;">
+                                            ${formatChange(change24h)} 24h
                                         </div>
                                     ` : '<div style="color: var(--text-tertiary); font-size: 0.875rem;">No price data</div>'}
                                 </div>
                             </div>
 
-                            ${hasMarketData ? `
-                                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 1rem;">
-                                    <div>
-                                        <div style="font-size: 0.75rem; color: var(--text-tertiary);">Liquidity</div>
-                                        <div style="font-weight: 600;">$${liquidity.toLocaleString()}</div>
-                                    </div>
-                                    <div>
-                                        <div style="font-size: 0.75rem; color: var(--text-tertiary);">Volume 24h</div>
-                                        <div style="font-weight: 600;">$${(token.market.volume_24h || 0).toLocaleString()}</div>
-                                    </div>
-                                </div>
-                            ` : `
-                                <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 0.5rem; padding: 0.75rem; margin-bottom: 1rem;">
-                                    <div style="color: #ef4444; font-size: 0.875rem;">
+                            ${!hasMarketData ? `
+                                <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 0.75rem; padding: 1rem; margin-bottom: 1.5rem;">
+                                    <div style="color: #ef4444; font-weight: 600;">
                                         ⚠️ Market data unavailable (API blocked)
                                     </div>
                                 </div>
-                            `}
+                            ` : ''}
 
-                            ${token.warnings && token.warnings.length > 0 ? `
-                                <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 0.5rem; padding: 0.75rem; margin-bottom: 1rem;">
-                                    <div style="font-weight: 600; margin-bottom: 0.5rem;">⚠️ Warnings:</div>
-                                    ${token.warnings.map(w => `<div style="font-size: 0.875rem;">• ${w}</div>`).join('')}
+                            <!-- Price Changes -->
+                            ${hasMarketData ? `
+                                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
+                                    <div style="background: var(--bg-glass); border-radius: 0.75rem; padding: 1rem; text-align: center;">
+                                        <div style="font-size: 0.75rem; color: var(--text-tertiary); margin-bottom: 0.25rem;">1H Change</div>
+                                        <div style="font-size: 1.125rem; font-weight: 700; color: ${colorChange(change1h)};">${formatChange(change1h)}</div>
+                                    </div>
+                                    <div style="background: var(--bg-glass); border-radius: 0.75rem; padding: 1rem; text-align: center;">
+                                        <div style="font-size: 0.75rem; color: var(--text-tertiary); margin-bottom: 0.25rem;">6H Change</div>
+                                        <div style="font-size: 1.125rem; font-weight: 700; color: ${colorChange(change6h)};">${formatChange(change6h)}</div>
+                                    </div>
+                                    <div style="background: var(--bg-glass); border-radius: 0.75rem; padding: 1rem; text-align: center;">
+                                        <div style="font-size: 0.75rem; color: var(--text-tertiary); margin-bottom: 0.25rem;">24H Change</div>
+                                        <div style="font-size: 1.125rem; font-weight: 700; color: ${colorChange(change24h)};">${formatChange(change24h)}</div>
+                                    </div>
                                 </div>
                             ` : ''}
 
-                            <div style="display: flex; gap: 0.5rem;">
-                                <button onclick="analyzeTokenWithAI('${token.address}', '${token.chain}', ${JSON.stringify(token)}, this)" style="flex: 1; text-align: center; padding: 0.75rem; background: var(--gradient-primary); color: white; border: none; border-radius: 0.5rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-                                    <span>🤖</span>
+                            <!-- Market Stats Grid -->
+                            ${hasMarketData ? `
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                                    <div style="background: var(--bg-glass); border-radius: 0.75rem; padding: 1rem;">
+                                        <div style="font-size: 0.75rem; color: var(--text-tertiary); margin-bottom: 0.25rem;">💧 Liquidity</div>
+                                        <div style="font-weight: 700; font-size: 1rem;">$${formatNumber(liquidity)}</div>
+                                    </div>
+                                    <div style="background: var(--bg-glass); border-radius: 0.75rem; padding: 1rem;">
+                                        <div style="font-size: 0.75rem; color: var(--text-tertiary); margin-bottom: 0.25rem;">📊 Volume 24h</div>
+                                        <div style="font-weight: 700; font-size: 1rem;">$${formatNumber(volume24h)}</div>
+                                    </div>
+                                    <div style="background: var(--bg-glass); border-radius: 0.75rem; padding: 1rem;">
+                                        <div style="font-size: 0.75rem; color: var(--text-tertiary); margin-bottom: 0.25rem;">📈 Volume 6h</div>
+                                        <div style="font-weight: 700; font-size: 1rem;">$${formatNumber(volume6h)}</div>
+                                    </div>
+                                    <div style="background: var(--bg-glass); border-radius: 0.75rem; padding: 1rem;">
+                                        <div style="font-size: 0.75rem; color: var(--text-tertiary); margin-bottom: 0.25rem;">💎 Market Cap</div>
+                                        <div style="font-weight: 700; font-size: 1rem;">$${formatNumber(marketCap)}</div>
+                                    </div>
+                                    <div style="background: var(--bg-glass); border-radius: 0.75rem; padding: 1rem;">
+                                        <div style="font-size: 0.75rem; color: var(--text-tertiary); margin-bottom: 0.25rem;">🟢 Buys 24h</div>
+                                        <div style="font-weight: 700; font-size: 1rem; color: #22c55e;">${buys}</div>
+                                    </div>
+                                    <div style="background: var(--bg-glass); border-radius: 0.75rem; padding: 1rem;">
+                                        <div style="font-size: 0.75rem; color: var(--text-tertiary); margin-bottom: 0.25rem;">🔴 Sells 24h</div>
+                                        <div style="font-weight: 700; font-size: 1rem; color: #ef4444;">${sells}</div>
+                                    </div>
+                                    <div style="background: var(--bg-glass); border-radius: 0.75rem; padding: 1rem;">
+                                        <div style="font-size: 0.75rem; color: var(--text-tertiary); margin-bottom: 0.25rem;">⏰ Pair Age</div>
+                                        <div style="font-weight: 700; font-size: 0.875rem;">${pairAge !== 'N/A' ? new Date(pairAge * 1000).toLocaleDateString() : 'N/A'}</div>
+                                    </div>
+                                    ${hasSecurity ? `
+                                        <div style="background: var(--bg-glass); border-radius: 0.75rem; padding: 1rem;">
+                                            <div style="font-size: 0.75rem; color: var(--text-tertiary); margin-bottom: 0.25rem;">👥 Holders</div>
+                                            <div style="font-weight: 700; font-size: 1rem;">${holders !== 'N/A' ? formatNumber(parseInt(holders)) : 'N/A'}</div>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            ` : ''}
+
+                            <!-- Security Section -->
+                            ${hasSecurity ? `
+                                <div style="background: var(--bg-glass); border-radius: 0.75rem; padding: 1.25rem; margin-bottom: 1.5rem;">
+                                    <h5 style="font-weight: 700; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                                        <span>🔒</span> Security Analysis
+                                    </h5>
+                                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0;">
+                                            <span style="color: var(--text-secondary);">Buy Tax</span>
+                                            <span style="font-weight: 600; color: ${buyTax > 10 ? '#ef4444' : '#22c55e'};">${buyTax.toFixed(1)}%</span>
+                                        </div>
+                                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0;">
+                                            <span style="color: var(--text-secondary);">Sell Tax</span>
+                                            <span style="font-weight: 600; color: ${sellTax > 10 ? '#ef4444' : '#22c55e'};">${sellTax.toFixed(1)}%</span>
+                                        </div>
+                                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0;">
+                                            <span style="color: var(--text-secondary);">Honeypot</span>
+                                            <span style="font-weight: 600; color: ${isHoneypot ? '#ef4444' : '#22c55e'};">${isHoneypot ? '❌ Yes' : '✅ No'}</span>
+                                        </div>
+                                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0;">
+                                            <span style="color: var(--text-secondary);">Mintable</span>
+                                            <span style="font-weight: 600; color: ${isMintable ? '#f59e0b' : '#22c55e'};">${isMintable ? '⚠️ Yes' : '✅ No'}</span>
+                                        </div>
+                                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0;">
+                                            <span style="color: var(--text-secondary);">Open Source</span>
+                                            <span style="font-weight: 600; color: ${isOpenSource ? '#22c55e' : '#f59e0b'};">${isOpenSource ? '✅ Yes' : '⚠️ No'}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ` : ''}
+
+                            <!-- Social & Pump/Dump Scores -->
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                                ${hasTwitter ? `
+                                    <div style="background: linear-gradient(135deg, rgba(29, 161, 242, 0.1) 0%, rgba(29, 161, 242, 0.05) 100%); border: 1px solid rgba(29, 161, 242, 0.3); border-radius: 0.75rem; padding: 1.25rem;">
+                                        <h5 style="font-weight: 700; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+                                            <span>🐦</span> Social Score
+                                        </h5>
+                                        <div style="font-size: 2rem; font-weight: 700; color: #1da1f2; margin-bottom: 0.5rem;">${socialScore}/100</div>
+                                        <div style="display: flex; justify-content: space-between; font-size: 0.875rem; color: var(--text-secondary);">
+                                            <span>👥 ${formatNumber(followers)} followers</span>
+                                            <span>💬 ${formatNumber(tweets)} tweets</span>
+                                        </div>
+                                    </div>
+                                ` : ''}
+                                <div style="background: linear-gradient(135deg, ${pumpColor}22 0%, ${pumpColor}11 100%); border: 1px solid ${pumpColor}; border-radius: 0.75rem; padding: 1.25rem;">
+                                    <h5 style="font-weight: 700; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+                                        <span>🚨</span> Pump & Dump Risk
+                                    </h5>
+                                    <div style="font-size: 2rem; font-weight: 700; color: ${pumpColor}; margin-bottom: 0.5rem;">${pumpScore}/100</div>
+                                    <div style="font-size: 0.875rem; font-weight: 600; color: ${pumpColor};">${pumpRisk}</div>
+                                </div>
+                            </div>
+
+                            <!-- Warnings -->
+                            ${token.warnings && token.warnings.length > 0 ? `
+                                <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 0.75rem; padding: 1.25rem; margin-bottom: 1.5rem;">
+                                    <div style="font-weight: 700; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+                                        <span>⚠️</span> Risk Warnings
+                                    </div>
+                                    ${token.warnings.map(w => `<div style="font-size: 0.875rem; margin-bottom: 0.5rem; padding-left: 1.5rem;">• ${w}</div>`).join('')}
+                                </div>
+                            ` : ''}
+
+                            ${token.pump_dump_warnings && token.pump_dump_warnings.length > 0 ? `
+                                <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 0.75rem; padding: 1.25rem; margin-bottom: 1.5rem;">
+                                    <div style="font-weight: 700; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+                                        <span>🚨</span> Pump & Dump Indicators
+                                    </div>
+                                    ${token.pump_dump_warnings.map(w => `<div style="font-size: 0.875rem; margin-bottom: 0.5rem; padding-left: 1.5rem;">• ${w}</div>`).join('')}
+                                </div>
+                            ` : ''}
+
+                            <!-- Action Buttons -->
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem;">
+                                <button onclick="analyzeTokenWithAI('${token.address}', '${token.chain}', ${JSON.stringify(token).replace(/'/g, "\\'")}), this)" style="padding: 1rem; background: var(--gradient-primary); color: white; border: none; border-radius: 0.75rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: all 0.3s;">
+                                    <span style="font-size: 1.25rem;">🤖</span>
                                     <span>Scan par IA</span>
                                 </button>
                                 ${token.url ? `
-                                    <a href="${token.url}" target="_blank" style="flex: 1; text-align: center; padding: 0.75rem; background: var(--bg-glass); border: 1px solid var(--border-subtle); color: var(--text-primary); text-decoration: none; border-radius: 0.5rem; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-                                        <span>📊</span>
+                                    <a href="${token.url}" target="_blank" style="padding: 1rem; background: var(--bg-glass); border: 1px solid var(--border-subtle); color: var(--text-primary); text-decoration: none; border-radius: 0.75rem; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: all 0.3s;">
+                                        <span style="font-size: 1.25rem;">📊</span>
                                         <span>DexScreener</span>
+                                    </a>
+                                ` : ''}
+                                ${token.twitter ? `
+                                    <a href="${token.twitter}" target="_blank" style="padding: 1rem; background: rgba(29, 161, 242, 0.1); border: 1px solid rgba(29, 161, 242, 0.3); color: #1da1f2; text-decoration: none; border-radius: 0.75rem; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: all 0.3s;">
+                                        <span style="font-size: 1.25rem;">🐦</span>
+                                        <span>Twitter</span>
                                     </a>
                                 ` : ''}
                             </div>
 
                             <!-- AI Analysis Result -->
-                            <div id="ai-result-${token.address}" style="display: none; margin-top: 1rem; background: var(--bg-glass); border: 1px solid var(--border-subtle); border-radius: 0.5rem; padding: 1rem;">
-                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
-                                    <span style="font-size: 1.25rem;">🤖</span>
-                                    <h5 style="font-weight: 700;">Analyse Claude IA</h5>
+                            <div id="ai-result-${token.address}" style="display: none; margin-top: 1.5rem; background: var(--bg-glass); border: 1px solid var(--border-subtle); border-radius: 0.75rem; padding: 1.25rem;">
+                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
+                                    <span style="font-size: 1.5rem;">🤖</span>
+                                    <h5 style="font-weight: 700; font-size: 1.125rem;">Analyse Claude IA</h5>
                                 </div>
                                 <div id="ai-content-${token.address}" style="color: var(--text-secondary); line-height: 1.8; white-space: pre-wrap;"></div>
                             </div>
@@ -902,12 +1096,13 @@
                 }).join('');
 
                 container.innerHTML = `
-                    <div style="background: var(--bg-glass); border: 1px solid var(--border-subtle); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 1.5rem;">
-                        <h3 style="margin-bottom: 0.5rem;">✅ Scan Completed!</h3>
-                        <p style="color: var(--text-secondary);">
-                            Found ${data.results.length} token(s) •
-                            ${data.safe_count || 0} safe •
-                            ${data.dangerous_count || 0} risky
+                    <div style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%); border: 1px solid var(--accent-primary); border-radius: 1rem; padding: 2rem; margin-bottom: 2rem; text-align: center;">
+                        <h3 style="font-size: 1.75rem; font-weight: 900; margin-bottom: 0.5rem;">✅ Scan Terminé !</h3>
+                        <p style="color: var(--text-secondary); font-size: 1.125rem;">
+                            ${data.results.length} token(s) analysé(s) •
+                            <span style="color: #22c55e; font-weight: 600;">${data.safe_count || 0} sûrs</span> •
+                            <span style="color: #ef4444; font-weight: 600;">${data.dangerous_count || 0} risqués</span> •
+                            <span style="color: #f59e0b; font-weight: 600;">${data.pump_dump_suspects_count || 0} P&D suspects</span>
                         </p>
                     </div>
                     ${tokensHTML}
@@ -964,8 +1159,105 @@
             }
         }
 
+        // ==================== AUTO-SCAN SYSTEM ====================
+        let autoScanInterval = null;
+        let countdownInterval = null;
+        let secondsRemaining = 300; // 5 minutes = 300 seconds
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function updateCountdown() {
+            const timerElement = document.getElementById('countdown-timer');
+            if (timerElement) {
+                timerElement.textContent = formatTime(secondsRemaining);
+
+                // Color change based on time remaining
+                if (secondsRemaining <= 30) {
+                    timerElement.style.color = '#ef4444'; // Red when <30s
+                } else if (secondsRemaining <= 60) {
+                    timerElement.style.color = '#f59e0b'; // Orange when <1min
+                } else {
+                    timerElement.style.color = 'var(--accent-primary)'; // Normal
+                }
+            }
+
+            secondsRemaining--;
+
+            if (secondsRemaining < 0) {
+                // Time's up! Trigger auto-scan
+                secondsRemaining = 300; // Reset to 5 minutes
+                triggerAutoScan();
+            }
+        }
+
+        async function triggerAutoScan() {
+            console.log('🤖 Auto-scan triggered!');
+
+            // Check if already scanning
+            const btn = document.getElementById('start-scan-btn');
+            if (btn.disabled) {
+                console.log('⏸️ Scan already in progress, skipping auto-scan');
+                return;
+            }
+
+            // Trigger scan with notification
+            const countdownDiv = document.getElementById('auto-scan-countdown');
+            const originalHTML = countdownDiv.innerHTML;
+
+            // Show auto-scan message
+            countdownDiv.innerHTML = `
+                <span>🤖</span>
+                <span>Scan automatique en cours...</span>
+            `;
+            countdownDiv.style.background = 'linear-gradient(135deg, rgba(102, 126, 234, 0.2), rgba(118, 75, 162, 0.2))';
+            countdownDiv.style.borderColor = 'var(--accent-primary)';
+
+            // Start scan
+            await startScan();
+
+            // Wait a bit before resetting display
+            setTimeout(() => {
+                countdownDiv.innerHTML = originalHTML;
+                countdownDiv.style.background = 'var(--bg-glass)';
+                countdownDiv.style.borderColor = '';
+            }, 3000);
+        }
+
+        function startAutoScanSystem() {
+            console.log('🚀 Auto-scan system initialized (5-minute intervals)');
+
+            // Start countdown
+            if (countdownInterval) clearInterval(countdownInterval);
+            countdownInterval = setInterval(updateCountdown, 1000);
+
+            // Initial countdown display
+            updateCountdown();
+        }
+
+        function stopAutoScanSystem() {
+            if (autoScanInterval) {
+                clearInterval(autoScanInterval);
+                autoScanInterval = null;
+            }
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+            }
+            console.log('⏹️ Auto-scan system stopped');
+        }
+
         // Initialize
         loadUserInfo();
+        startAutoScanSystem();
+
+        // Stop auto-scan when user leaves page
+        window.addEventListener('beforeunload', () => {
+            stopAutoScanSystem();
+        });
     </script>
 
     <!-- Auth Modal (Login/Register) -->
