@@ -499,7 +499,8 @@ def start_scan():
             scanner = TokenScanner(nitter_url=nitter_url)
             set_scanner_state('scanner', scanner)
 
-            results = scanner.scan_tokens(max_tokens=max_tokens, chain_filter="solana")
+            # FIXED: scan_tokens() doesn't accept chain_filter parameter
+            results = scanner.scan_tokens(max_tokens=max_tokens)
 
             update_scanner_state(
                 current_scan_results=results,
@@ -540,7 +541,9 @@ def scan_progress():
         percentage = 50  # Estimation
         return jsonify({
             "success": True,
+            "in_progress": True,  # FIXED: Frontend expects in_progress not scanning
             "scanning": True,
+            "message": "Scan en cours...",
             "progress": {
                 "percentage": percentage,
                 "message": "Scan en cours..."
@@ -549,7 +552,9 @@ def scan_progress():
     elif current_scan_results:
         return jsonify({
             "success": True,
+            "in_progress": False,
             "scanning": False,
+            "message": "Scan terminé",
             "progress": {
                 "percentage": 100,
                 "message": "Scan terminé"
@@ -558,7 +563,9 @@ def scan_progress():
     else:
         return jsonify({
             "success": True,
+            "in_progress": False,
             "scanning": False,
+            "message": "Aucun scan en cours",
             "progress": {
                 "percentage": 0,
                 "message": "Aucun scan en cours"
