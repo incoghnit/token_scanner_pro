@@ -8,6 +8,8 @@ Serveur Flask pour l'interface web du Token Scanner Pro
 
 from flask import Flask, render_template, jsonify, request, session
 from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from scanner_core import TokenScanner
 from database import Database
 import json
@@ -16,10 +18,81 @@ import threading
 import secrets
 from functools import wraps
 import os
+import re
 from dotenv import load_dotenv
 
 # Charger les variables d'environnement depuis .env
 load_dotenv()
+
+# ==================== INPUT VALIDATION HELPERS ====================
+
+def validate_email(email: str) -> bool:
+    """Valide le format d'un email"""
+    if not email or len(email) > 255:
+        return False
+    # RFC 5322 simplified regex
+    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    return bool(re.match(pattern, email))
+
+def validate_username(username: str) -> tuple[bool, str]:
+    """Valide un nom d'utilisateur
+    Returns: (is_valid, error_message)
+    """
+    if not username:
+        return False, "Username is required"
+    if len(username) < 3:
+        return False, "Username must be at least 3 characters"
+    if len(username) > 50:
+        return False, "Username must be less than 50 characters"
+    if not re.match(r'^[a-zA-Z0-9_-]+$', username):
+        return False, "Username can only contain letters, numbers, underscores and hyphens"
+    return True, ""
+
+def validate_password(password: str) -> tuple[bool, str]:
+    """Valide un mot de passe
+    Returns: (is_valid, error_message)
+    """
+    if not password:
+        return False, "Password is required"
+    if len(password) < 8:
+        return False, "Password must be at least 8 characters"
+    if len(password) > 128:
+        return False, "Password must be less than 128 characters"
+    # Check for at least one letter and one number
+    if not re.search(r'[a-zA-Z]', password):
+        return False, "Password must contain at least one letter"
+    if not re.search(r'[0-9]', password):
+        return False, "Password must contain at least one number"
+    return True, ""
+
+def validate_token_address(address: str, chain: str = None) -> bool:
+    """Valide une adresse de token
+    Basic validation - can be extended for chain-specific validation
+    """
+    if not address or not isinstance(address, str):
+        return False
+    # Remove whitespace
+    address = address.strip()
+    # Ethereum/BSC/Polygon addresses (0x + 40 hex chars)
+    if chain in ['ethereum', 'bsc', 'polygon', 'arbitrum', 'base']:
+        return bool(re.match(r'^0x[a-fA-F0-9]{40}$', address))
+    # Solana addresses (base58, 32-44 chars)
+    elif chain == 'solana':
+        return bool(re.match(r'^[1-9A-HJ-NP-Za-km-z]{32,44}$', address))
+    # Generic validation if chain not specified
+    else:
+        # Accept both Ethereum-style and Solana-style addresses
+        eth_pattern = r'^0x[a-fA-F0-9]{40}$'
+        sol_pattern = r'^[1-9A-HJ-NP-Za-km-z]{32,44}$'
+        return bool(re.match(eth_pattern, address) or re.match(sol_pattern, address))
+
+def sanitize_string(value: str, max_length: int = 1000) -> str:
+    """Sanitize a string input by removing dangerous characters"""
+    if not value or not isinstance(value, str):
+        return ""
+    # Remove null bytes and limit length
+    sanitized = value.replace('\x00', '')[:max_length]
+    return sanitized.strip()
 
 app = Flask(__name__)
 
@@ -36,18 +109,53 @@ CORS(app,
      methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
      allow_headers=['Content-Type', 'Authorization'])
 
+# Rate Limiter configuration - Protection contre attaques brute force
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://",  # Use Redis in production: redis://localhost:6379
+    strategy="fixed-window"
+)
+
 # Configuration
 app.config['CLAUDE_API_KEY'] = os.getenv('CLAUDE_API_KEY')
 app.config['ANTHROPIC_API_KEY'] = os.getenv('ANTHROPIC_API_KEY')
 app.config['FLASK_ENV'] = os.getenv('FLASK_ENV', 'development')
 app.config['FLASK_DEBUG'] = os.getenv('FLASK_DEBUG', 'false').lower() == 'true'
 
-# Instances globales
+# ==================== APPLICATION STATE ====================
+# NOTE: In production with multiple workers, use Redis or MongoDB for shared state
+# This implementation uses thread locks for single-server deployments
+
+import threading as thread_module
+
+# Database instance (thread-safe)
 db = Database()
-scanner = None
-scan_in_progress = False
-current_scan_results = None
-last_scan_timestamp = None
+
+# Scanner state with thread safety
+_scanner_lock = thread_module.Lock()
+_scanner_state = {
+    'scanner': None,
+    'scan_in_progress': False,
+    'current_scan_results': None,
+    'last_scan_timestamp': None
+}
+
+def get_scanner_state(key: str):
+    """Thread-safe getter for scanner state"""
+    with _scanner_lock:
+        return _scanner_state.get(key)
+
+def set_scanner_state(key: str, value):
+    """Thread-safe setter for scanner state"""
+    with _scanner_lock:
+        _scanner_state[key] = value
+
+def update_scanner_state(**kwargs):
+    """Thread-safe bulk update for scanner state"""
+    with _scanner_lock:
+        _scanner_state.update(kwargs)
 
 # ==================== IMPORTS POUR AUTO-SCAN ====================
 try:
@@ -234,24 +342,39 @@ def get_current_user():
         })
 
 @app.route('/api/login', methods=['POST'])
+@limiter.limit("5 per minute")  # Max 5 login attempts per minute
 def login():
     """Connexion utilisateur"""
     data = request.get_json()
-    email = data.get('email')
-    password = data.get('password')
-    
+    email = sanitize_string(data.get('email', ''), 255)
+    password = data.get('password', '')
+
+    # Validate inputs
     if not email or not password:
         return jsonify({
             "success": False,
             "error": "Email et mot de passe requis"
         }), 400
+
+    if not validate_email(email):
+        return jsonify({
+            "success": False,
+            "error": "Format d'email invalide"
+        }), 400
     
     user = db.authenticate_user(email, password)
-    
+
     if user:
+        # SECURITY: Regenerate session ID to prevent session fixation attacks
+        # Clear old session to force Flask to create a new session ID
+        session.clear()
+
+        # Set new session data - Flask automatically generates new session ID
         session['user_id'] = user['id']
         session['username'] = user['username']
-        
+        session.permanent = False  # Session expires when browser closes
+        session.modified = True  # Force session update
+
         return jsonify({
             "success": True,
             "message": "Connexion réussie",
@@ -270,31 +393,55 @@ def login():
         }), 401
 
 @app.route('/api/register', methods=['POST'])
+@limiter.limit("3 per hour")  # Max 3 registrations per hour
 def register():
     """Inscription d'un nouvel utilisateur"""
     data = request.get_json()
-    username = data.get('username')
-    email = data.get('email')
-    password = data.get('password')
-    
+    username = sanitize_string(data.get('username', ''), 50)
+    email = sanitize_string(data.get('email', ''), 255)
+    password = data.get('password', '')
+
+    # Validate all inputs
     if not username or not email or not password:
         return jsonify({
             "success": False,
             "error": "Tous les champs sont requis"
         }), 400
-    
-    if len(password) < 6:
+
+    # Validate email format
+    if not validate_email(email):
         return jsonify({
             "success": False,
-            "error": "Le mot de passe doit contenir au moins 6 caractères"
+            "error": "Format d'email invalide"
+        }), 400
+
+    # Validate username
+    username_valid, username_error = validate_username(username)
+    if not username_valid:
+        return jsonify({
+            "success": False,
+            "error": username_error
+        }), 400
+
+    # Validate password strength
+    password_valid, password_error = validate_password(password)
+    if not password_valid:
+        return jsonify({
+            "success": False,
+            "error": password_error
         }), 400
     
     user_id = db.create_user(username, email, password)
-    
+
     if user_id:
+        # SECURITY: Regenerate session ID to prevent session fixation attacks
+        session.clear()
+
         session['user_id'] = user_id
         session['username'] = username
-        
+        session.permanent = False
+        session.modified = True
+
         return jsonify({
             "success": True,
             "message": "Compte créé avec succès",
@@ -326,9 +473,7 @@ def logout():
 @app.route('/api/scan/start', methods=['POST'])
 def start_scan():
     """Démarre un nouveau scan"""
-    global scanner, scan_in_progress, current_scan_results, last_scan_timestamp
-    
-    if scan_in_progress:
+    if get_scanner_state('scan_in_progress'):
         return jsonify({
             "success": False,
             "error": "Un scan est déjà en cours"
@@ -349,26 +494,33 @@ def start_scan():
         }), 400
     
     def run_scan():
-        global scanner, scan_in_progress, current_scan_results, last_scan_timestamp
         try:
-            scan_in_progress = True
+            set_scanner_state('scan_in_progress', True)
             scanner = TokenScanner(nitter_url=nitter_url)
-            current_scan_results = scanner.scan_tokens(max_tokens=max_tokens, chain_filter="solana")
-            scan_in_progress = False
-            last_scan_timestamp = datetime.now().isoformat()
-            
-            if user_id and current_scan_results.get('success'):
-                db.save_scan_history(user_id, current_scan_results)
+            set_scanner_state('scanner', scanner)
+
+            results = scanner.scan_tokens(max_tokens=max_tokens, chain_filter="solana")
+
+            update_scanner_state(
+                current_scan_results=results,
+                scan_in_progress=False,
+                last_scan_timestamp=datetime.now().isoformat()
+            )
+
+            if user_id and results.get('success'):
+                db.save_scan_history(user_id, results)
                 db.update_scan_count(user_id)
-                
+
         except Exception as e:
-            scan_in_progress = False
-            current_scan_results = {
-                "success": False,
-                "error": str(e)
-            }
-    
-    scan_in_progress = True
+            update_scanner_state(
+                scan_in_progress=False,
+                current_scan_results={
+                    "success": False,
+                    "error": str(e)
+                }
+            )
+
+    set_scanner_state('scan_in_progress', True)
     thread = threading.Thread(target=run_scan)
     thread.daemon = True
     thread.start()
@@ -381,8 +533,9 @@ def start_scan():
 @app.route('/api/scan/progress', methods=['GET'])
 def scan_progress():
     """Récupère la progression du scan"""
-    global scan_in_progress, current_scan_results
-    
+    scan_in_progress = get_scanner_state('scan_in_progress')
+    current_scan_results = get_scanner_state('current_scan_results')
+
     if scan_in_progress:
         percentage = 50  # Estimation
         return jsonify({
@@ -415,8 +568,9 @@ def scan_progress():
 @app.route('/api/scan/results', methods=['GET'])
 def scan_results():
     """Récupère les résultats du dernier scan"""
-    global current_scan_results, last_scan_timestamp
-    
+    current_scan_results = get_scanner_state('current_scan_results')
+    last_scan_timestamp = get_scanner_state('last_scan_timestamp')
+
     if current_scan_results:
         return jsonify({
             "success": True,
@@ -435,12 +589,10 @@ def scan_results():
 @app.route('/api/scan/status', methods=['GET'])
 def scan_status():
     """Récupère le statut du scan"""
-    global scan_in_progress, current_scan_results
-    
     return jsonify({
         "success": True,
-        "scanning": scan_in_progress,
-        "results": current_scan_results
+        "scanning": get_scanner_state('scan_in_progress'),
+        "results": get_scanner_state('current_scan_results')
     })
 
 # ==================== ROUTES API FAVORIS ====================
@@ -467,22 +619,38 @@ def get_favorites():
 def add_favorite():
     """Ajoute un token aux favoris"""
     user_id = session.get('user_id')
-    
+
     if not user_id:
         return jsonify({
             "success": False,
             "error": "Connexion requise"
         }), 401
-    
+
     data = request.get_json()
-    token_address = data.get('token_address')
-    token_chain = data.get('token_chain', 'ethereum')
+    token_address = sanitize_string(data.get('token_address', ''), 100)
+    token_chain = sanitize_string(data.get('token_chain', 'ethereum'), 50).lower()
     token_data = data.get('token_data', {})
-    
+
+    # Validate inputs
     if not token_address:
         return jsonify({
             "success": False,
             "error": "Adresse du token requise"
+        }), 400
+
+    # Validate token address format
+    if not validate_token_address(token_address, token_chain):
+        return jsonify({
+            "success": False,
+            "error": "Format d'adresse de token invalide"
+        }), 400
+
+    # Validate chain
+    valid_chains = ['ethereum', 'bsc', 'polygon', 'arbitrum', 'base', 'solana']
+    if token_chain not in valid_chains:
+        return jsonify({
+            "success": False,
+            "error": f"Blockchain non supportée. Chains valides: {', '.join(valid_chains)}"
         }), 400
     
     success = db.add_favorite(user_id, token_address, token_chain, token_data)
@@ -502,21 +670,28 @@ def add_favorite():
 def remove_favorite():
     """Retire un token des favoris"""
     user_id = session.get('user_id')
-    
+
     if not user_id:
         return jsonify({
             "success": False,
             "error": "Connexion requise"
         }), 401
-    
+
     data = request.get_json()
-    token_address = data.get('token_address')
-    token_chain = data.get('token_chain', 'ethereum')
-    
+    token_address = sanitize_string(data.get('token_address', ''), 100)
+    token_chain = sanitize_string(data.get('token_chain', 'ethereum'), 50).lower()
+
+    # Validate inputs
     if not token_address:
         return jsonify({
             "success": False,
             "error": "Adresse du token requise"
+        }), 400
+
+    if not validate_token_address(token_address, token_chain):
+        return jsonify({
+            "success": False,
+            "error": "Format d'adresse de token invalide"
         }), 400
     
     success = db.remove_favorite(user_id, token_address, token_chain)
@@ -578,9 +753,9 @@ def health_check():
         "success": True,
         "status": "ok",
         "timestamp": datetime.now().isoformat(),
-        "scan_in_progress": scan_in_progress,
+        "scan_in_progress": get_scanner_state('scan_in_progress'),
         "authenticated": session.get('user_id') is not None,
-        "last_scan": last_scan_timestamp,
+        "last_scan": get_scanner_state('last_scan_timestamp'),
         "auto_scan_available": auto_scanner is not None
     })
 
@@ -607,14 +782,28 @@ def analyze_token_with_ai():
     """Analyse un token avec Claude IA"""
     try:
         data = request.get_json()
-        address = data.get('address')
-        chain = data.get('chain')
+        address = sanitize_string(data.get('address', ''), 100)
+        chain = sanitize_string(data.get('chain', ''), 50).lower()
         token_data = data.get('token_data', {})
 
+        # Validate inputs
         if not address or not chain:
             return jsonify({
                 "success": False,
                 "error": "Adresse et chaîne requises"
+            }), 400
+
+        if not validate_token_address(address, chain):
+            return jsonify({
+                "success": False,
+                "error": "Format d'adresse de token invalide"
+            }), 400
+
+        valid_chains = ['ethereum', 'bsc', 'polygon', 'arbitrum', 'base', 'solana']
+        if chain not in valid_chains:
+            return jsonify({
+                "success": False,
+                "error": f"Blockchain non supportée"
             }), 400
 
         # Import du trading validator
@@ -725,9 +914,16 @@ if __name__ == '__main__':
     ╚═══════════════════════════════════════════════════════════╝
     """)
     
+    # SECURITY: Never use debug=True in production
+    # Use FLASK_DEBUG=true in .env for development only
+    debug_mode = os.getenv('FLASK_DEBUG', 'false').lower() == 'true'
+
+    if debug_mode:
+        print("⚠️  WARNING: Running in DEBUG mode - NOT for production!")
+
     app.run(
         host='0.0.0.0',
         port=5000,
-        debug=True,
+        debug=debug_mode,
         threaded=True
     )

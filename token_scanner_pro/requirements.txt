@@ -47,6 +47,7 @@ aiohttp==3.9.1
 
 # Rate Limiting
 ratelimit==2.2.1
+Flask-Limiter==3.5.0  # Production-grade rate limiting for Flask
 
 # ==================== DEVELOPMENT & TESTING (OPTIONAL) ====================
 # Testing
