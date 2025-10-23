@@ -22,20 +22,6 @@ class TokenScanner:
         self.current_progress = 0
         self.total_tokens = 0
 
-        # Fallback: Popular Solana tokens for testing when API is blocked
-        self.solana_fallback_tokens = [
-            {"address": "So11111111111111111111111111111111111111112", "name": "Wrapped SOL", "symbol": "SOL"},
-            {"address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "name": "USD Coin", "symbol": "USDC"},
-            {"address": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB", "name": "USDT", "symbol": "USDT"},
-            {"address": "mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So", "name": "Marinade Staked SOL", "symbol": "mSOL"},
-            {"address": "7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs", "name": "Ether", "symbol": "ETH"},
-            {"address": "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263", "name": "Bonk", "symbol": "BONK"},
-            {"address": "7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr", "name": "PopCat", "symbol": "POPCAT"},
-            {"address": "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN", "name": "Jupiter", "symbol": "JUP"},
-            {"address": "HZ1JovNiVvGrGNiiYvEozEVgZ58xaU3RKwX8eACQBCt3", "name": "Pyth Network", "symbol": "PYTH"},
-            {"address": "5z3EqYQo9HiCEs3R84RCDMu2n7anpDMxRhdK8PSWmrRC", "name": "WEN", "symbol": "WEN"}
-        ]
-    
     def get_progress(self) -> Dict[str, Any]:
         """Retourne la progression actuelle"""
         return {
@@ -43,31 +29,31 @@ class TokenScanner:
             "total": self.total_tokens,
             "percentage": (self.current_progress / self.total_tokens * 100) if self.total_tokens > 0 else 0
         }
-    
+
     def extract_twitter_username(self, twitter_url: str) -> Optional[str]:
         """Extrait le username depuis une URL Twitter"""
         if not twitter_url:
             return None
         match = re.search(r'(?:twitter\.com|x\.com)/([^/?#]+)', twitter_url)
         return match.group(1) if match else None
-    
+
     def scrape_twitter_profile(self, username: str) -> Dict[str, Any]:
         """Scrape un profil Twitter via Nitter"""
         try:
             url = f"{self.nitter_instance}/{username}"
             response = requests.get(url, timeout=10)
-            
+
             if response.status_code != 200:
                 return {"error": "Profil non trouvé"}
-            
+
             html = response.text
-            
+
             followers_match = re.search(r'<span[^>]*class="profile-stat-num"[^>]*>([^<]+)</span>\s*<span[^>]*class="profile-stat-header"[^>]*>Followers', html)
             following_match = re.search(r'<span[^>]*class="profile-stat-num"[^>]*>([^<]+)</span>\s*<span[^>]*class="profile-stat-header"[^>]*>Following', html)
             tweets_match = re.search(r'<span[^>]*class="profile-stat-num"[^>]*>([^<]+)</span>\s*<span[^>]*class="profile-stat-header"[^>]*>Tweets', html)
-            
+
             bio_match = re.search(r'<div[^>]*class="profile-bio"[^>]*>(.*?)</div>', html, re.DOTALL)
-            
+
             def parse_count(match_obj):
                 if not match_obj:
                     return 0
@@ -80,7 +66,7 @@ class TokenScanner:
                     return int(count_str)
                 except:
                     return 0
-            
+
             return {
                 "username": username,
                 "followers": parse_count(followers_match),
@@ -91,19 +77,19 @@ class TokenScanner:
             }
         except Exception as e:
             return {"error": str(e)}
-    
+
     def calculate_social_score(self, twitter_data: Dict) -> tuple[int, Dict[str, Any]]:
         """Calcule le score social basé sur Twitter"""
         if "error" in twitter_data:
             return 0, {}
-        
+
         score = 0
         details = {}
-        
+
         followers = twitter_data.get("followers", 0)
         following = twitter_data.get("following", 0)
         tweets = twitter_data.get("tweets", 0)
-        
+
         if followers > 10000:
             score += 30
             details["followers_status"] = "Excellent (>10K)"
@@ -115,7 +101,7 @@ class TokenScanner:
             details["followers_status"] = "Moyen (>1K)"
         else:
             details["followers_status"] = "Faible (<1K)"
-        
+
         if following > 0:
             ratio = followers / following
             if ratio > 2:
@@ -126,7 +112,7 @@ class TokenScanner:
                 details["ratio_status"] = f"Bon ({ratio:.1f}:1)"
             else:
                 details["ratio_status"] = f"Faible ({ratio:.1f}:1)"
-        
+
         if tweets > 500:
             score += 20
             details["activity_status"] = "Très actif (>500 tweets)"
@@ -138,150 +124,69 @@ class TokenScanner:
             details["activity_status"] = "Modéré (>50 tweets)"
         else:
             details["activity_status"] = "Peu actif (<50 tweets)"
-        
+
         bio = twitter_data.get("bio", "")
         if len(bio) > 50:
             score += 10
             details["bio_status"] = "Bio complète"
         else:
             details["bio_status"] = "Bio incomplète"
-        
+
         if followers < 100 and tweets < 20:
             score -= 20
             details["warning"] = "Compte très récent ou inactif"
-        
+
         details["total_score"] = max(0, min(100, score))
-        
+
         return max(0, min(100, score)), details
-    
-    def get_fallback_solana_tokens(self) -> List[Dict]:
-        """Retourne des tokens Solana populaires comme fallback"""
-        print("⚠️ Using fallback: Popular Solana tokens")
-        return [
-            {
-                "address": token["address"],
-                "chain": "solana",
-                "url": f"https://dexscreener.com/solana/{token['address']}",
-                "icon": "",
-                "description": f"{token['name']} ({token['symbol']})",
-                "twitter": None,
-                "links": []
-            }
-            for token in self.solana_fallback_tokens
-        ]
 
-    def fetch_latest_tokens(self, chain_filter: str = "solana") -> List[Dict]:
-        """Récupère les derniers tokens depuis DexScreener
-
-        Args:
-            chain_filter: Filtre par blockchain (ex: "solana", "ethereum", "bsc", etc.)
-                         Si None, retourne tous les tokens de toutes les chaînes
-        """
+    def fetch_latest_tokens(self) -> List[Dict]:
+        """Récupère les derniers tokens depuis DexScreener"""
         try:
-            # Add headers to avoid 403 Forbidden
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'application/json',
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Referer': 'https://dexscreener.com/',
-                'Origin': 'https://dexscreener.com'
-            }
-            response = requests.get(self.dexscreener_profiles_api, headers=headers, timeout=10)
+            response = requests.get(self.dexscreener_profiles_api, timeout=10)
 
             if response.status_code != 200:
-                print(f"❌ DexScreener API error: HTTP {response.status_code}")
-                print(f"   Response: {response.text[:200]}")
-
-                # Use fallback for Solana
-                if chain_filter and chain_filter.lower() == "solana":
-                    return self.get_fallback_solana_tokens()
-
                 return []
 
             data = response.json()
-            print(f"📡 DexScreener API returned {len(data)} total tokens")
-
-            # Count tokens per chain for debugging
-            chain_counts = {}
-            for item in data:
-                chain = item.get("chainId", "unknown")
-                chain_counts[chain] = chain_counts.get(chain, 0) + 1
-
-            print(f"📊 Tokens per chain: {chain_counts}")
-
             tokens = []
 
             for item in data:
-                chain_id = item.get("chainId")
-                token_address = item.get("tokenAddress")
+                if item.get("chainId") and item.get("tokenAddress"):
+                    icon = item.get("icon") or ""
 
-                if not chain_id or not token_address:
-                    continue
-
-                # ✅ FILTER BY BLOCKCHAIN
-                if chain_filter and chain_id.lower() != chain_filter.lower():
-                    continue
-
-                icon = item.get("icon") or ""
-
-                tokens.append({
-                    "address": token_address,
-                    "chain": chain_id,
-                    "url": item.get("url", ""),
-                    "icon": icon,
-                    "description": item.get("description", ""),
-                    "twitter": next((link["url"] for link in item.get("links", []) if link.get("type") == "twitter"), None),
-                    "links": item.get("links", [])
-                })
-
-            print(f"✅ Filtered to {len(tokens)} {chain_filter.upper()} tokens")
-
-            # If no tokens found and we're looking for Solana, use fallback
-            if len(tokens) == 0 and chain_filter and chain_filter.lower() == "solana":
-                print("⚠️ No Solana tokens from API, using fallback...")
-                return self.get_fallback_solana_tokens()
+                    tokens.append({
+                        "address": item["tokenAddress"],
+                        "chain": item["chainId"],
+                        "url": item.get("url", ""),
+                        "icon": icon,
+                        "description": item.get("description", ""),
+                        "twitter": next((link["url"] for link in item.get("links", []) if link.get("type") == "twitter"), None),
+                        "links": item.get("links", [])
+                    })
 
             return tokens
         except Exception as e:
-            print(f"❌ Erreur fetch tokens: {e}")
-
-            # Use fallback for Solana on any error
-            if chain_filter and chain_filter.lower() == "solana":
-                return self.get_fallback_solana_tokens()
-
+            print(f"Erreur fetch tokens: {e}")
             return []
-    
+
     def get_market_data(self, address: str) -> Dict[str, Any]:
         """Récupère les données de marché via DexScreener"""
         try:
             url = f"{self.dexscreener_api}/tokens/{address}"
-            print(f"\n📡 DexScreener Market Data API Call:")
-            print(f"   URL: {url}")
-
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                'Accept': 'application/json'
-            }
-
-            response = requests.get(url, headers=headers, timeout=10)
-
-            print(f"   HTTP Status: {response.status_code}")
-            print(f"   Response Headers: {dict(response.headers)}")
+            response = requests.get(url, timeout=10)
 
             if response.status_code != 200:
-                print(f"   ❌ Error Response: {response.text[:200]}")
-                return {"error": f"API error: HTTP {response.status_code}"}
+                return {"error": "API non disponible"}
 
             data = response.json()
-            print(f"   ✅ Response: {len(data.get('pairs', []))} pairs found")
 
             if "pairs" not in data or not data["pairs"]:
-                print(f"   ⚠️ No pairs in response")
                 return {"error": "Aucune paire trouvée"}
-            
+
             pairs = data["pairs"]
             main_pair = max(pairs, key=lambda x: float(x.get("liquidity", {}).get("usd", 0) or 0))
-            
+
             return {
                 "price_usd": float(main_pair.get("priceUsd", 0)),
                 "price_change_24h": float(main_pair.get("priceChange", {}).get("h24", 0) or 0),
@@ -297,7 +202,7 @@ class TokenScanner:
             }
         except Exception as e:
             return {"error": str(e)}
-    
+
     def check_security(self, address: str, chain: str) -> Dict[str, Any]:
         """Vérifie la sécurité via GoPlus"""
         chain_ids = {
@@ -312,33 +217,17 @@ class TokenScanner:
 
         try:
             url = f"{self.goplus_api}/token_security/{chain_id}?contract_addresses={address}"
-            print(f"\n🔒 GoPlus Security API Call:")
-            print(f"   URL: {url}")
-            print(f"   Chain: {chain} -> {chain_id}")
-
             response = requests.get(url, timeout=10)
 
-            print(f"   HTTP Status: {response.status_code}")
-
             if response.status_code != 200:
-                print(f"   ❌ Error Response: {response.text[:200]}")
-                return {"error": f"API error: HTTP {response.status_code}"}
+                return {"error": "API non disponible"}
 
             data = response.json()
-            print(f"   Response Code: {data.get('code')}")
 
-            # ✅ CORRECTION : Ajout du "if" manquant à la ligne 186
             if data.get("code") != 1:
-                print(f"   ⚠️ Token not found in security check")
                 return {"error": "Token non trouvé"}
-            
+
             result = data.get("result", {}).get(address.lower(), {})
-
-            if not result:
-                print(f"   ⚠️ No security data for this token address")
-                return {"error": "No security data available"}
-
-            print(f"   ✅ Security data retrieved")
 
             return {
                 "is_honeypot": result.get("is_honeypot", "unknown") == "1",
@@ -356,7 +245,7 @@ class TokenScanner:
             }
         except Exception as e:
             return {"error": str(e)}
-    
+
     def detect_pump_dump(self, market: Dict, security: Dict, pair_created_at: str) -> Dict[str, Any]:
         """
         🆕 DÉTECTEUR DE PUMP & DUMP
@@ -365,7 +254,7 @@ class TokenScanner:
         score = 0
         warnings = []
         indicators = {}
-        
+
         if "error" in market or "error" in security:
             return {
                 "pump_dump_score": 0,
@@ -374,15 +263,15 @@ class TokenScanner:
                 "pump_dump_indicators": {},
                 "is_pump_dump_suspect": False
             }
-        
+
         # ===== 1. ÂGE DU TOKEN =====
         try:
             if pair_created_at and pair_created_at != "N/A":
                 created_timestamp = int(pair_created_at) / 1000
                 age_hours = (datetime.now().timestamp() - created_timestamp) / 3600
-                
+
                 indicators["token_age_hours"] = round(age_hours, 2)
-                
+
                 if age_hours < 1:
                     score += 30
                     warnings.append(f"Token ULTRA récent ({age_hours:.1f}h)")
@@ -394,82 +283,82 @@ class TokenScanner:
                     warnings.append(f"Token récent ({age_hours:.1f}h)")
         except:
             pass
-        
+
         # ===== 2. VARIATION DE PRIX SUSPECTE =====
         price_change_24h = market.get("price_change_24h", 0)
         price_change_6h = market.get("price_change_6h", 0)
         price_change_1h = market.get("price_change_1h", 0)
-        
+
         indicators["price_change_24h"] = price_change_24h
         indicators["price_change_6h"] = price_change_6h
         indicators["price_change_1h"] = price_change_1h
-        
+
         if price_change_1h > 100:
             score += 25
             warnings.append(f"Pump violent: +{price_change_1h:.0f}% en 1h")
         elif price_change_1h > 50:
             score += 15
             warnings.append(f"Hausse suspecte: +{price_change_1h:.0f}% en 1h")
-        
+
         if price_change_6h > 500:
             score += 20
             warnings.append(f"Pump massif: +{price_change_6h:.0f}% en 6h")
-        
+
         if price_change_24h < -50:
             score += 25
             warnings.append(f"Dump en cours: {price_change_24h:.0f}% en 24h")
-        
+
         # ===== 3. RATIO VOLUME / LIQUIDITÉ =====
         volume_24h = market.get("volume_24h", 0)
         liquidity = market.get("liquidity_usd", 1)
-        
+
         if liquidity > 0:
             vol_liq_ratio = volume_24h / liquidity
             indicators["volume_liquidity_ratio"] = round(vol_liq_ratio, 2)
-            
+
             if vol_liq_ratio > 5:
                 score += 20
                 warnings.append(f"Ratio Vol/Liq anormal: {vol_liq_ratio:.1f}x")
             elif vol_liq_ratio > 3:
                 score += 10
                 warnings.append(f"Ratio Vol/Liq élevé: {vol_liq_ratio:.1f}x")
-        
+
         # ===== 4. LIQUIDITÉ FAIBLE =====
         if liquidity < 5000:
             score += 15
             warnings.append(f"Liquidité très faible: ${liquidity:,.0f}")
             indicators["low_liquidity"] = True
-        
+
         # ===== 5. DÉSÉQUILIBRE BUY/SELL =====
         buys = market.get("txns_24h_buys", 0)
         sells = market.get("txns_24h_sells", 0)
-        
+
         if buys > 0 and sells > 0:
             buy_sell_ratio = buys / sells if sells > 0 else 10
             indicators["buy_sell_ratio"] = round(buy_sell_ratio, 2)
-            
+
             if buy_sell_ratio > 5:
                 score += 15
                 warnings.append(f"Déséquilibre achats/ventes: {buy_sell_ratio:.1f}:1")
             elif buy_sell_ratio < 0.2:
                 score += 15
                 warnings.append(f"Ventes massives: ratio {buy_sell_ratio:.2f}:1")
-        
+
         # ===== 6. TAXES SUSPICIEUSES =====
         buy_tax = security.get("buy_tax", 0)
         sell_tax = security.get("sell_tax", 0)
-        
+
         if sell_tax > buy_tax + 5:
             score += 10
             warnings.append(f"Tax vente élevée: {sell_tax}% vs {buy_tax}%")
-        
+
         if buy_tax > 15 or sell_tax > 15:
             score += 10
             warnings.append("Taxes excessives (>15%)")
-        
+
         # ===== CALCUL DU RISQUE FINAL =====
         score = min(score, 100)
-        
+
         if score >= 70:
             risk_level = "EXTREME"
         elif score >= 50:
@@ -478,7 +367,7 @@ class TokenScanner:
             risk_level = "MEDIUM"
         else:
             risk_level = "LOW"
-        
+
         return {
             "pump_dump_score": score,
             "pump_dump_risk": risk_level,
@@ -486,132 +375,98 @@ class TokenScanner:
             "pump_dump_indicators": indicators,
             "is_pump_dump_suspect": score >= 50
         }
-    
+
     def calculate_risk_score(self, security: Dict, market: Dict) -> tuple[int, List[str]]:
         """Calcule le score de risque global"""
         score = 0
         warnings = []
-        
+
         if "error" in security:
             return 50, ["Impossible de vérifier la sécurité"]
-        
+
         if security.get("is_honeypot"):
             score += 50
             warnings.append("⚠️ HONEYPOT DÉTECTÉ")
-        
+
         if security.get("is_mintable"):
             score += 10
             warnings.append("Token mintable")
-        
+
         if security.get("owner_change_balance"):
             score += 15
             warnings.append("Owner peut modifier balances")
-        
+
         if security.get("hidden_owner"):
             score += 10
             warnings.append("Propriétaire caché")
-        
+
         if security.get("selfdestruct"):
             score += 20
             warnings.append("Contract destructible")
-        
+
         if not security.get("is_open_source"):
             score += 5
             warnings.append("Code non vérifié")
-        
+
         buy_tax = security.get("buy_tax", 0)
         sell_tax = security.get("sell_tax", 0)
-        
+
         if buy_tax > 10 or sell_tax > 10:
             score += 15
             warnings.append(f"Taxes élevées: {buy_tax}%/{sell_tax}%")
-        
+
         if "error" not in market:
             liquidity = market.get("liquidity_usd", 0)
             volume = market.get("volume_24h", 0)
             txns = market.get("txns_24h_buys", 0) + market.get("txns_24h_sells", 0)
-            
+
             if liquidity < 5000:
                 score += 15
                 warnings.append(f"Liquidité très faible: ${liquidity:,.0f}")
             elif liquidity < 10000:
                 score += 10
                 warnings.append(f"Liquidité faible: ${liquidity:,.0f}")
-            
+
             if volume < 1000:
                 score += 10
                 warnings.append("Volume très faible")
-            
+
             if txns < 10:
                 score += 10
                 warnings.append("Peu de transactions")
-        
+
         return min(score, 100), warnings
-    
+
     def analyze_token(self, token_info: Dict) -> Dict[str, Any]:
         """Analyse complète d'un token"""
         address = token_info['address']
         chain = token_info['chain']
         icon = token_info.get('icon', '')
 
-        print(f"\n{'='*80}")
-        print(f"🔎 Analyzing Token {self.current_progress + 1}/{self.total_tokens}")
-        print(f"   Address: {address}")
-        print(f"   Chain: {chain}")
-        print(f"   Description: {token_info.get('description', 'N/A')[:80]}")
-        print(f"{'='*80}")
-
-        # Market data
-        print(f"\n📊 Step 1/4: Fetching market data...")
         market = self.get_market_data(address)
-        if "error" in market:
-            print(f"   ⚠️ Market data error: {market['error']}")
-        else:
-            print(f"   ✅ Market data retrieved successfully")
         time.sleep(0.5)
 
-        # Security check
-        print(f"\n🛡️ Step 2/4: Checking security...")
         security = self.check_security(address, chain)
-        if "error" in security:
-            print(f"   ⚠️ Security check error: {security['error']}")
-        else:
-            print(f"   ✅ Security check completed")
         time.sleep(0.5)
 
-        # Risk scoring
-        print(f"\n⚖️ Step 3/4: Calculating risk score...")
         risk_score, warnings = self.calculate_risk_score(security, market)
-        print(f"   Risk Score: {risk_score}/100")
-        print(f"   Warnings: {len(warnings)}")
 
         pair_created_at = market.get("pair_created_at", "N/A")
         pump_dump_analysis = self.detect_pump_dump(market, security, pair_created_at)
-        
+
         twitter_data = {}
         social_score = 0
         social_details = {}
-        
-        # Twitter/Social analysis
-        print(f"\n🐦 Step 4/4: Checking social media...")
+
         if token_info.get('twitter'):
             username = self.extract_twitter_username(token_info['twitter'])
             if username:
                 twitter_data = self.scrape_twitter_profile(username)
                 if "error" not in twitter_data:
                     social_score, social_details = self.calculate_social_score(twitter_data)
-                    print(f"   ✅ Twitter: @{username}, Social Score: {social_score}/100")
-                else:
-                    print(f"   ⚠️ Twitter error: {twitter_data.get('error')}")
                 time.sleep(1)
-        else:
-            print(f"   ℹ️ No Twitter account")
 
         self.current_progress += 1
-
-        print(f"\n✅ Token Analysis Complete!")
-        print(f"   Risk: {risk_score}/100 ({'SAFE' if risk_score < 50 else 'RISKY'})")
-        print(f"   Pump/Dump: {pump_dump_analysis['pump_dump_risk']}")
 
         return {
             "address": address,
@@ -635,34 +490,27 @@ class TokenScanner:
             "is_pump_dump_suspect": pump_dump_analysis["is_pump_dump_suspect"],
             "timestamp": datetime.now().isoformat()
         }
-    
-    def scan_tokens(self, max_tokens: int = 10, chain_filter: str = "solana") -> Dict[str, Any]:
-        """Scanner principal avec retour structuré
 
-        Args:
-            max_tokens: Nombre maximum de tokens à analyser
-            chain_filter: Filtre par blockchain (défaut: "solana")
-        """
-        print(f"🔍 Starting scan for {max_tokens} {chain_filter.upper()} tokens...")
-        tokens = self.fetch_latest_tokens(chain_filter=chain_filter)
+    def scan_tokens(self, max_tokens: int = 10) -> Dict[str, Any]:
+        """Scanner principal avec retour structuré"""
+        tokens = self.fetch_latest_tokens()
 
         if not tokens:
-            print(f"⚠️ No {chain_filter.upper()} tokens found!")
             return {
                 "success": False,
-                "error": f"Aucun token {chain_filter.upper()} trouvé",
+                "error": "Aucun token trouvé",
                 "results": []
             }
-        
+
         tokens = tokens[:max_tokens]
         self.total_tokens = len(tokens)
         self.current_progress = 0
-        
+
         results = []
         safe_tokens = []
         dangerous_tokens = []
         pump_dump_suspects = []
-        
+
         for token in tokens:
             try:
                 result = self.analyze_token(token)
@@ -677,21 +525,10 @@ class TokenScanner:
                     pump_dump_suspects.append(result)
 
             except Exception as e:
-                print(f"❌ Erreur analyse token: {e}")
-                import traceback
-                traceback.print_exc()
+                print(f"Erreur analyse token: {e}")
                 continue
 
-        print(f"\n{'='*80}")
-        print(f"🎯 SCAN COMPLETE - FINAL SUMMARY")
-        print(f"{'='*80}")
-        print(f"   Total Analyzed: {len(results)}")
-        print(f"   Safe Tokens: {len(safe_tokens)}")
-        print(f"   Risky Tokens: {len(dangerous_tokens)}")
-        print(f"   Pump/Dump Suspects: {len(pump_dump_suspects)}")
-        print(f"{'='*80}\n")
-
-        final_result = {
+        return {
             "success": True,
             "total_analyzed": len(results),
             "safe_count": len(safe_tokens),
@@ -704,15 +541,12 @@ class TokenScanner:
             "timestamp": datetime.now().isoformat()
         }
 
-        print(f"📤 Returning {len(results)} tokens to caller")
-        return final_result
-
 
 if __name__ == "__main__":
     print("🚀 Démarrage du scanner...")
     scanner = TokenScanner()
     results = scanner.scan_tokens(max_tokens=5)
-    
+
     if results["success"]:
         print(f"\n✅ {results['total_analyzed']} tokens analysés")
         print(f"   Sûrs: {results['safe_count']}")

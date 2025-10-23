@@ -600,6 +600,102 @@ def internal_error(error):
         "error": "Erreur serveur interne"
     }), 500
 
+# ==================== ANALYSE IA ====================
+
+@app.route('/api/analyze-token', methods=['POST'])
+def analyze_token_with_ai():
+    """Analyse un token avec Claude IA"""
+    try:
+        data = request.get_json()
+        address = data.get('address')
+        chain = data.get('chain')
+        token_data = data.get('token_data', {})
+
+        if not address or not chain:
+            return jsonify({
+                "success": False,
+                "error": "Adresse et chaîne requises"
+            }), 400
+
+        # Import du trading validator
+        try:
+            from trading_validator import TradingValidator
+            from trading_engine import TradingEngine
+
+            # Créer un signal basique si pas de données complètes
+            engine = TradingEngine()
+
+            # Si on a toutes les données, analyser complètement
+            if token_data.get('market') and token_data.get('security'):
+                signal = engine.analyze_token(token_data)
+                validator = TradingValidator()
+                result = validator.validate_signal(signal, token_data)
+
+                # Formater la réponse
+                analysis_text = f"""
+## 🎯 RECOMMANDATION: {result['final_action']}
+Confiance: {result['adjusted_confidence']:.1f}%
+
+{result.get('overall_verdict', '')}
+
+### ⚠️ Avertissements:
+"""
+                for warning in result.get('ai_warnings', []):
+                    analysis_text += f"• {warning}\n"
+
+                analysis_text += "\n### 💡 Recommandations:\n"
+                for rec in result.get('ai_recommendations', []):
+                    analysis_text += f"• {rec}\n"
+
+                return jsonify({
+                    "success": True,
+                    "analysis": analysis_text,
+                    "action": result['final_action'],
+                    "confidence": result['adjusted_confidence']
+                })
+
+            else:
+                # Analyse simple si données incomplètes
+                return jsonify({
+                    "success": True,
+                    "analysis": f"""
+## 📊 Analyse du Token
+**Adresse:** `{address}`
+**Blockchain:** {chain.upper()}
+
+⚠️ **Données insuffisantes pour une analyse complète.**
+
+Pour obtenir une analyse IA approfondie, le scanner doit d'abord récupérer les données de marché et de sécurité du token.
+
+### Actions recommandées:
+• Lancez un scan complet du token via le scanner principal
+• Attendez que les données de DexScreener et GoPlus soient récupérées
+• Relancez l'analyse IA avec les données complètes
+                    """,
+                    "action": "HOLD",
+                    "confidence": 50
+                })
+
+        except ValueError as e:
+            # Clé API manquante
+            return jsonify({
+                "success": False,
+                "error": "Configuration IA manquante. Vérifiez ANTHROPIC_API_KEY dans .env"
+            }), 500
+
+        except Exception as e:
+            print(f"Erreur analyse IA: {e}")
+            return jsonify({
+                "success": False,
+                "error": f"Erreur lors de l'analyse: {str(e)}"
+            }), 500
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
 # ==================== DÉMARRAGE ====================
 
 if __name__ == '__main__':
