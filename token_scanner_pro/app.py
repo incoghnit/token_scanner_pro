@@ -508,11 +508,24 @@ def start_scan():
                 last_scan_timestamp=datetime.now().isoformat()
             )
 
+            # Sauvegarder pour l'utilisateur si connecté
             if user_id and results.get('success'):
                 db.save_scan_history(user_id, results)
                 db.update_scan_count(user_id)
 
+            # Stocker TOUS les tokens scannés dans la BDD avec rotation FIFO (max 200)
+            # Cela permet d'avoir un cache global indépendant des utilisateurs
+            if results.get('success') and results.get('results'):
+                tokens_to_store = results.get('results', [])
+                stored_count = db.add_scanned_tokens_batch(tokens_to_store)
+                print(f"💾 {stored_count}/{len(tokens_to_store)} tokens stockés dans la BDD")
+
+                # Log du nombre total de tokens en BDD
+                total_in_db = db.get_scanned_tokens_count()
+                print(f"📊 Total tokens en BDD: {total_in_db}/{db.MAX_SCANNED_TOKENS}")
+
         except Exception as e:
+            print(f"❌ Erreur dans run_scan: {e}")
             update_scanner_state(
                 scan_in_progress=False,
                 current_scan_results={
@@ -601,6 +614,80 @@ def scan_status():
         "scanning": get_scanner_state('scan_in_progress'),
         "results": get_scanner_state('current_scan_results')
     })
+
+# ==================== ROUTES API TOKENS SCANNÉS ====================
+
+@app.route('/api/scanned-tokens', methods=['GET'])
+def get_scanned_tokens_api():
+    """Récupère les tokens scannés depuis la BDD (cache global)"""
+    try:
+        limit = min(int(request.args.get('limit', 50)), 200)
+        offset = int(request.args.get('offset', 0))
+        chain = request.args.get('chain')
+        safe_only = request.args.get('safe_only', 'false').lower() == 'true'
+
+        tokens = db.get_scanned_tokens(limit=limit, offset=offset, chain=chain, safe_only=safe_only)
+        total = db.get_scanned_tokens_count(chain=chain)
+
+        return jsonify({
+            "success": True,
+            "tokens": tokens,
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+            "max_capacity": db.MAX_SCANNED_TOKENS
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+@app.route('/api/scanned-tokens/<chain>/<address>', methods=['GET'])
+def get_scanned_token_api(chain, address):
+    """Récupère un token scanné spécifique"""
+    try:
+        token = db.get_scanned_token(address, chain)
+
+        if token:
+            return jsonify({
+                "success": True,
+                "token": token
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "error": "Token non trouvé"
+            }), 404
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+@app.route('/api/scanned-tokens/stats', methods=['GET'])
+def get_scanned_tokens_stats():
+    """Statistiques sur les tokens scannés"""
+    try:
+        total = db.get_scanned_tokens_count()
+        safe_tokens = db.get_scanned_tokens(limit=1000, safe_only=True)
+        safe_count = len(safe_tokens)
+
+        return jsonify({
+            "success": True,
+            "stats": {
+                "total_tokens": total,
+                "safe_tokens": safe_count,
+                "risky_tokens": total - safe_count,
+                "capacity": db.MAX_SCANNED_TOKENS,
+                "usage_percent": round((total / db.MAX_SCANNED_TOKENS) * 100, 1)
+            }
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
 
 # ==================== ROUTES API FAVORIS ====================
 

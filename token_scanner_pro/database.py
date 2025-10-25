@@ -67,7 +67,34 @@ class Database:
                 FOREIGN KEY (user_id) REFERENCES users(id)
             )
         ''')
-        
+
+        # Table pour stocker individuellement les tokens scannés
+        # Avec rotation automatique (max 200 tokens, FIFO)
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS scanned_tokens (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                token_address TEXT NOT NULL,
+                token_chain TEXT NOT NULL DEFAULT 'solana',
+                token_data TEXT NOT NULL,
+                risk_score INTEGER,
+                is_safe INTEGER DEFAULT 0,
+                is_pump_dump_suspect INTEGER DEFAULT 0,
+                scanned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(token_address, token_chain)
+            )
+        ''')
+
+        # Index pour optimiser les requêtes
+        cursor.execute('''
+            CREATE INDEX IF NOT EXISTS idx_scanned_tokens_date
+            ON scanned_tokens(scanned_at DESC)
+        ''')
+
+        cursor.execute('''
+            CREATE INDEX IF NOT EXISTS idx_scanned_tokens_chain
+            ON scanned_tokens(token_chain)
+        ''')
+
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS admin_logs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -633,6 +660,259 @@ class Database:
         except sqlite3.Error:
             return False
     
+    # ==================== GESTION DES TOKENS SCANNÉS ====================
+    # Système de rotation FIFO : max 200 tokens, suppression des plus anciens
+
+    MAX_SCANNED_TOKENS = 200  # Limite maximale de tokens stockés
+
+    def add_scanned_token(self, token_address, token_chain, token_data, risk_score=None, is_safe=False, is_pump_dump_suspect=False):
+        """
+        Ajoute un token scanné à la base de données avec rotation automatique FIFO
+
+        Logique de rotation:
+        - Si le token existe déjà (même adresse + chain), on le met à jour
+        - Si on atteint 200 tokens, on supprime les 10 plus anciens avant d'ajouter
+        - Les favoris ne sont JAMAIS supprimés (table séparée)
+        """
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+
+            # Vérifier si le token existe déjà (update au lieu d'insert)
+            cursor.execute('''
+                SELECT id FROM scanned_tokens
+                WHERE token_address = ? AND token_chain = ?
+            ''', (token_address, token_chain))
+
+            existing = cursor.fetchone()
+            token_data_json = json.dumps(token_data) if isinstance(token_data, dict) else token_data
+
+            if existing:
+                # Update du token existant avec nouveau timestamp
+                cursor.execute('''
+                    UPDATE scanned_tokens
+                    SET token_data = ?, risk_score = ?, is_safe = ?,
+                        is_pump_dump_suspect = ?, scanned_at = CURRENT_TIMESTAMP
+                    WHERE token_address = ? AND token_chain = ?
+                ''', (token_data_json, risk_score, 1 if is_safe else 0,
+                      1 if is_pump_dump_suspect else 0, token_address, token_chain))
+            else:
+                # Vérifier le nombre total de tokens
+                cursor.execute('SELECT COUNT(*) FROM scanned_tokens')
+                count = cursor.fetchone()[0]
+
+                # Si on atteint la limite, supprimer les 10 plus anciens
+                if count >= self.MAX_SCANNED_TOKENS:
+                    cursor.execute('''
+                        DELETE FROM scanned_tokens
+                        WHERE id IN (
+                            SELECT id FROM scanned_tokens
+                            ORDER BY scanned_at ASC
+                            LIMIT 10
+                        )
+                    ''')
+                    print(f"🗑️  Nettoyage auto: 10 tokens les plus anciens supprimés (limite {self.MAX_SCANNED_TOKENS} atteinte)")
+
+                # Insérer le nouveau token
+                cursor.execute('''
+                    INSERT INTO scanned_tokens (token_address, token_chain, token_data, risk_score, is_safe, is_pump_dump_suspect)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                ''', (token_address, token_chain, token_data_json, risk_score,
+                      1 if is_safe else 0, 1 if is_pump_dump_suspect else 0))
+
+            conn.commit()
+            token_id = cursor.lastrowid if not existing else existing[0]
+            conn.close()
+            return token_id
+        except sqlite3.Error as e:
+            print(f"❌ Erreur add_scanned_token: {e}")
+            return None
+
+    def add_scanned_tokens_batch(self, tokens_list):
+        """
+        Ajoute plusieurs tokens en batch avec rotation automatique
+
+        Args:
+            tokens_list: Liste de dict avec keys: address, chain, token_data, risk_score, is_safe, is_pump_dump_suspect
+
+        Returns:
+            Nombre de tokens ajoutés
+        """
+        count = 0
+        for token in tokens_list:
+            result = self.add_scanned_token(
+                token_address=token.get('address'),
+                token_chain=token.get('chain', 'solana'),
+                token_data=token.get('token_data', token),
+                risk_score=token.get('risk_score'),
+                is_safe=token.get('is_safe', False),
+                is_pump_dump_suspect=token.get('is_pump_dump_suspect', False)
+            )
+            if result:
+                count += 1
+
+        return count
+
+    def get_scanned_tokens(self, limit=50, offset=0, chain=None, safe_only=False):
+        """
+        Récupère les tokens scannés (les plus récents en premier)
+
+        Args:
+            limit: Nombre de tokens à récupérer
+            offset: Offset pour pagination
+            chain: Filtrer par blockchain (None = toutes)
+            safe_only: Si True, ne retourne que les tokens sûrs
+        """
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+
+            query = 'SELECT id, token_address, token_chain, token_data, risk_score, is_safe, is_pump_dump_suspect, scanned_at FROM scanned_tokens'
+            params = []
+
+            conditions = []
+            if chain:
+                conditions.append('token_chain = ?')
+                params.append(chain)
+            if safe_only:
+                conditions.append('is_safe = 1')
+
+            if conditions:
+                query += ' WHERE ' + ' AND '.join(conditions)
+
+            query += ' ORDER BY scanned_at DESC LIMIT ? OFFSET ?'
+            params.extend([limit, offset])
+
+            cursor.execute(query, params)
+
+            tokens = []
+            for row in cursor.fetchall():
+                token_data = json.loads(row[3]) if row[3] else {}
+                tokens.append({
+                    'id': row[0],
+                    'token_address': row[1],
+                    'token_chain': row[2],
+                    'token_data': token_data,
+                    'risk_score': row[4],
+                    'is_safe': bool(row[5]),
+                    'is_pump_dump_suspect': bool(row[6]),
+                    'scanned_at': row[7]
+                })
+
+            conn.close()
+            return tokens
+        except sqlite3.Error as e:
+            print(f"❌ Erreur get_scanned_tokens: {e}")
+            return []
+
+    def get_scanned_tokens_count(self, chain=None):
+        """Compte le nombre de tokens scannés"""
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+
+            if chain:
+                cursor.execute('SELECT COUNT(*) FROM scanned_tokens WHERE token_chain = ?', (chain,))
+            else:
+                cursor.execute('SELECT COUNT(*) FROM scanned_tokens')
+
+            count = cursor.fetchone()[0]
+            conn.close()
+            return count
+        except sqlite3.Error:
+            return 0
+
+    def get_scanned_token(self, token_address, token_chain='solana'):
+        """Récupère un token scanné spécifique"""
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT id, token_address, token_chain, token_data, risk_score, is_safe, is_pump_dump_suspect, scanned_at
+                FROM scanned_tokens
+                WHERE token_address = ? AND token_chain = ?
+            ''', (token_address, token_chain))
+
+            row = cursor.fetchone()
+            conn.close()
+
+            if row:
+                token_data = json.loads(row[3]) if row[3] else {}
+                return {
+                    'id': row[0],
+                    'token_address': row[1],
+                    'token_chain': row[2],
+                    'token_data': token_data,
+                    'risk_score': row[4],
+                    'is_safe': bool(row[5]),
+                    'is_pump_dump_suspect': bool(row[6]),
+                    'scanned_at': row[7]
+                }
+            return None
+        except sqlite3.Error as e:
+            print(f"❌ Erreur get_scanned_token: {e}")
+            return None
+
+    def cleanup_old_scanned_tokens(self, keep_count=190):
+        """
+        Nettoie les vieux tokens scannés (garde seulement keep_count tokens les plus récents)
+
+        Args:
+            keep_count: Nombre de tokens à garder (par défaut 190, laisse de la marge avant 200)
+
+        Returns:
+            Nombre de tokens supprimés
+        """
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+
+            # Compter les tokens
+            cursor.execute('SELECT COUNT(*) FROM scanned_tokens')
+            total = cursor.fetchone()[0]
+
+            if total <= keep_count:
+                conn.close()
+                return 0
+
+            # Supprimer les plus anciens
+            to_delete = total - keep_count
+            cursor.execute('''
+                DELETE FROM scanned_tokens
+                WHERE id IN (
+                    SELECT id FROM scanned_tokens
+                    ORDER BY scanned_at ASC
+                    LIMIT ?
+                )
+            ''', (to_delete,))
+
+            deleted = cursor.rowcount
+            conn.commit()
+            conn.close()
+
+            print(f"🗑️  Nettoyage manuel: {deleted} tokens supprimés (garde {keep_count} tokens)")
+            return deleted
+        except sqlite3.Error as e:
+            print(f"❌ Erreur cleanup_old_scanned_tokens: {e}")
+            return 0
+
+    def delete_scanned_token(self, token_address, token_chain='solana'):
+        """Supprime un token scanné spécifique (n'affecte PAS les favoris)"""
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            cursor.execute('''
+                DELETE FROM scanned_tokens
+                WHERE token_address = ? AND token_chain = ?
+            ''', (token_address, token_chain))
+            conn.commit()
+            conn.close()
+            return True
+        except sqlite3.Error:
+            return False
+
+    # ==================== FIN GESTION TOKENS SCANNÉS ====================
+
     def get_admin_logs(self, limit=50):
         """Récupère les logs admin"""
         try:
