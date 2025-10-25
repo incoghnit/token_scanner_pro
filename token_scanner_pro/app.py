@@ -515,14 +515,20 @@ def start_scan():
 
             # Stocker TOUS les tokens scannés dans la BDD avec rotation FIFO (max 200)
             # Cela permet d'avoir un cache global indépendant des utilisateurs
+            print(f"🔍 DEBUG - Scan results success: {results.get('success')}")
+            print(f"🔍 DEBUG - Scan results count: {len(results.get('results', []))}")
+
             if results.get('success') and results.get('results'):
                 tokens_to_store = results.get('results', [])
+                print(f"🔍 DEBUG - Tokens to store: {len(tokens_to_store)}")
                 stored_count = db.add_scanned_tokens_batch(tokens_to_store)
                 print(f"💾 {stored_count}/{len(tokens_to_store)} tokens stockés dans la BDD")
 
                 # Log du nombre total de tokens en BDD
                 total_in_db = db.get_scanned_tokens_count()
                 print(f"📊 Total tokens en BDD: {total_in_db}/{db.MAX_SCANNED_TOKENS}")
+            else:
+                print(f"⚠️  DEBUG - Tokens NOT saved. Success={results.get('success')}, Results empty={not results.get('results')}")
 
         except Exception as e:
             print(f"❌ Erreur dans run_scan: {e}")
