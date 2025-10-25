@@ -985,6 +985,56 @@ Pour obtenir une analyse IA approfondie, le scanner doit d'abord récupérer les
             "error": str(e)
         }), 500
 
+# ==================== ACTUALITÉS CRYPTO ====================
+
+@app.route('/api/news/crypto', methods=['GET'])
+def get_crypto_news():
+    """Récupère les actualités crypto avec cache de 30 minutes"""
+    try:
+        limit = request.args.get('limit', 10, type=int)
+        force_refresh = request.args.get('force_refresh', 'false').lower() == 'true'
+
+        result = scanner.fetch_crypto_news(limit=limit, force_refresh=force_refresh)
+
+        if result["success"]:
+            return jsonify(result), 200
+        else:
+            return jsonify(result), 500
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+# ==================== RECHERCHE TOKEN ====================
+
+@app.route('/api/token/search', methods=['GET'])
+def search_token():
+    """Recherche un token sur CoinMarketCap"""
+    try:
+        query = request.args.get('query', '').strip()
+        by_symbol = request.args.get('by_symbol', 'true').lower() == 'true'
+
+        if not query:
+            return jsonify({
+                "success": False,
+                "error": "Query parameter required"
+            }), 400
+
+        result = scanner.search_token_info(query=query, by_symbol=by_symbol)
+
+        if result["success"]:
+            return jsonify(result), 200
+        else:
+            return jsonify(result), 404
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
 # ==================== DÉMARRAGE ====================
 
 if __name__ == '__main__':

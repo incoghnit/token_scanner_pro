@@ -22,6 +22,17 @@ class TokenScanner:
         self.current_progress = 0
         self.total_tokens = 0
 
+        # New APIs
+        self.coindesk_api = "https://data-api.coindesk.com/news/v1/article/list"
+        self.coindesk_token = "ff2abf2238797afb684ed5119904246c65e6294f5110c18a60e93b418d9dfe5a"
+        self.coinmarketcap_api = "https://pro-api.coinmarketcap.com/v2/cryptocurrency/info"
+        self.coinmarketcap_key = "f8484748-5340-466a-8d53-b24a6eb6d0f3"
+
+        # Cache system (in-memory)
+        self._news_cache = None
+        self._news_cache_time = None
+        self._news_cache_duration = 1800  # 30 minutes in seconds
+
     def get_progress(self) -> Dict[str, Any]:
         """Retourne la progression actuelle"""
         return {
@@ -588,6 +599,194 @@ class TokenScanner:
             "pump_dump_suspects": sorted(pump_dump_suspects, key=lambda x: x['pump_dump_score'], reverse=True),
             "timestamp": datetime.now().isoformat()
         }
+
+    def fetch_crypto_news(self, limit: int = 10, force_refresh: bool = False) -> Dict[str, Any]:
+        """
+        Récupère les actualités crypto depuis CoinDesk API avec cache de 30 minutes
+
+        Args:
+            limit: Nombre d'articles à récupérer (max 10)
+            force_refresh: Force le rechargement même si le cache est valide
+
+        Returns:
+            Dict avec success, articles, cache_info
+        """
+        try:
+            # Vérifier le cache
+            current_time = time.time()
+            if (not force_refresh and
+                self._news_cache is not None and
+                self._news_cache_time is not None and
+                (current_time - self._news_cache_time) < self._news_cache_duration):
+
+                print(f"📰 Using cached news (age: {int(current_time - self._news_cache_time)}s)")
+                return {
+                    "success": True,
+                    "articles": self._news_cache[:limit],
+                    "total": len(self._news_cache),
+                    "cached": True,
+                    "cache_age_seconds": int(current_time - self._news_cache_time),
+                    "cache_expires_in": int(self._news_cache_duration - (current_time - self._news_cache_time))
+                }
+
+            # Récupérer depuis l'API
+            print(f"📰 Fetching fresh news from CoinDesk API...")
+            url = f"{self.coindesk_api}?lang=EN&limit={limit}"
+            headers = {
+                "Authorization": f"Bearer {self.coindesk_token}"
+            }
+
+            response = requests.get(url, headers=headers, timeout=10)
+
+            if response.status_code != 200:
+                return {
+                    "success": False,
+                    "error": f"API returned status {response.status_code}",
+                    "cached": False
+                }
+
+            data = response.json()
+
+            if "Data" not in data:
+                return {
+                    "success": False,
+                    "error": "Invalid API response format",
+                    "cached": False
+                }
+
+            # Formatter les articles
+            articles = []
+            for item in data["Data"]:
+                article = {
+                    "id": item.get("ID"),
+                    "guid": item.get("GUID"),
+                    "title": item.get("TITLE"),
+                    "subtitle": item.get("SUBTITLE"),
+                    "body": item.get("BODY", "")[:300] + "..." if item.get("BODY") else "",  # Preview only
+                    "url": item.get("URL"),
+                    "image_url": item.get("IMAGE_URL"),
+                    "published_on": item.get("PUBLISHED_ON"),
+                    "published_date": datetime.fromtimestamp(item.get("PUBLISHED_ON", 0)).strftime("%Y-%m-%d %H:%M") if item.get("PUBLISHED_ON") else "N/A",
+                    "authors": item.get("AUTHORS"),
+                    "keywords": item.get("KEYWORDS", "").split("|") if item.get("KEYWORDS") else [],
+                    "sentiment": item.get("SENTIMENT", "NEUTRAL"),
+                    "source": item.get("SOURCE_DATA", {}).get("NAME", "Unknown"),
+                    "categories": [cat.get("NAME") for cat in item.get("CATEGORY_DATA", [])]
+                }
+                articles.append(article)
+
+            # Mettre en cache
+            self._news_cache = articles
+            self._news_cache_time = current_time
+
+            print(f"✅ Fetched and cached {len(articles)} articles")
+
+            return {
+                "success": True,
+                "articles": articles,
+                "total": len(articles),
+                "cached": False,
+                "cache_age_seconds": 0,
+                "cache_expires_in": self._news_cache_duration
+            }
+
+        except Exception as e:
+            print(f"❌ Error fetching news: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "cached": False
+            }
+
+    def search_token_info(self, query: str, by_symbol: bool = True) -> Dict[str, Any]:
+        """
+        Recherche un token sur CoinMarketCap API
+
+        Args:
+            query: Symbol (BTC, ETH) ou slug (bitcoin, ethereum) ou address
+            by_symbol: True pour recherche par symbol, False pour slug
+
+        Returns:
+            Dict avec success, tokens (array car symbol peut correspondre à plusieurs tokens)
+        """
+        try:
+            print(f"🔍 Searching token: {query}")
+
+            # Construire l'URL selon le type de recherche
+            if by_symbol:
+                url = f"{self.coinmarketcap_api}?symbol={query.upper()}"
+            else:
+                url = f"{self.coinmarketcap_api}?slug={query.lower()}"
+
+            headers = {
+                "X-CMC_PRO_API_KEY": self.coinmarketcap_key,
+                "Accept": "application/json"
+            }
+
+            response = requests.get(url, headers=headers, timeout=10)
+
+            if response.status_code != 200:
+                return {
+                    "success": False,
+                    "error": f"API returned status {response.status_code}"
+                }
+
+            data = response.json()
+
+            if data.get("status", {}).get("error_code") != 0:
+                return {
+                    "success": False,
+                    "error": data.get("status", {}).get("error_message", "Unknown error")
+                }
+
+            # V2 API returns data as dict with IDs as keys
+            token_data = data.get("data", {})
+
+            if not token_data:
+                return {
+                    "success": False,
+                    "error": "No token found with this query"
+                }
+
+            # Formatter les résultats
+            tokens = []
+            for token_id, token_info in token_data.items():
+                # Pour les recherches par symbol, on peut avoir plusieurs résultats
+                # car le symbol n'est pas unique (ex: multiple tokens avec "BTC")
+                token = {
+                    "id": token_info.get("id"),
+                    "name": token_info.get("name"),
+                    "symbol": token_info.get("symbol"),
+                    "slug": token_info.get("slug"),
+                    "description": token_info.get("description"),
+                    "logo": token_info.get("logo"),
+                    "date_added": token_info.get("date_added"),
+                    "date_launched": token_info.get("date_launched"),
+                    "tags": token_info.get("tags", []),
+                    "category": token_info.get("category"),
+                    "platform": token_info.get("platform"),
+                    "urls": token_info.get("urls", {}),
+                    "infinite_supply": token_info.get("infinite_supply", False),
+                    "notice": token_info.get("notice")
+                }
+                tokens.append(token)
+
+            print(f"✅ Found {len(tokens)} token(s)")
+
+            return {
+                "success": True,
+                "tokens": tokens,
+                "total": len(tokens),
+                "query": query,
+                "search_type": "symbol" if by_symbol else "slug"
+            }
+
+        except Exception as e:
+            print(f"❌ Error searching token: {e}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
 
 
 if __name__ == "__main__":

@@ -524,17 +524,7 @@
 
                 <div class="scan-config">
                     <div class="input-group">
-                        <label for="nitter-url">Instance Nitter</label>
-                        <input
-                            type="text"
-                            id="nitter-url"
-                            placeholder="http://localhost:8080"
-                            value="http://localhost:8080"
-                        >
-                    </div>
-
-                    <div class="input-group">
-                        <label for="max-tokens">Nombre de tokens</label>
+                        <label for="max-tokens">Nombre de tokens à scanner</label>
                         <select id="max-tokens">
                             <option value="5">5 tokens</option>
                             <option value="10" selected>10 tokens</option>
@@ -544,8 +534,9 @@
                     </div>
                 </div>
 
-                <button class="btn btn-primary" id="start-scan-btn" onclick="startScan()" style="width: 100%;">
-                    🚀 Démarrer le Scan
+                <button class="btn btn-primary" id="start-scan-btn" onclick="startScan()" style="width: 100%; padding: 1rem; font-size: 1rem; font-weight: 700; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 0.75rem; color: white; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); display: flex; align-items: center; justify-content: center; gap: 0.5rem;" onmouseenter="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(102, 126, 234, 0.6)';" onmouseleave="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(102, 126, 234, 0.4)';">
+                    <span style="font-size: 1.25rem;">🚀</span>
+                    <span>Lancer le Scanner IA</span>
                 </button>
 
                 <!-- Auto-scan countdown indicator -->
@@ -775,12 +766,11 @@
                 updateCountdown();
             }
 
-            const nitterUrl = document.getElementById('nitter-url').value;
             const maxTokens = parseInt(document.getElementById('max-tokens').value);
 
             const btn = document.getElementById('start-scan-btn');
             btn.disabled = true;
-            btn.textContent = '⏳ Scan en cours...';
+            btn.innerHTML = '<span style="font-size: 1.25rem;">⏳</span><span>Scan en cours...</span>';
 
             document.getElementById('scan-progress').style.display = 'block';
             document.getElementById('scan-results').style.display = 'none';
@@ -790,7 +780,6 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        nitter_url: nitterUrl,
                         max_tokens: maxTokens
                     })
                 });
@@ -803,13 +792,13 @@
                 } else {
                     alert('Erreur: ' + (data.error || 'Échec du scan'));
                     btn.disabled = false;
-                    btn.textContent = '🚀 Démarrer le Scan';
+                    btn.innerHTML = '<span style="font-size: 1.25rem;">🚀</span><span>Lancer le Scanner IA</span>';
                     document.getElementById('scan-progress').style.display = 'none';
                 }
             } catch (error) {
                 alert('Erreur réseau');
                 btn.disabled = false;
-                btn.textContent = '🚀 Démarrer le Scan';
+                btn.innerHTML = '<span style="font-size: 1.25rem;">🚀</span><span>Lancer le Scanner IA</span>';
                 document.getElementById('scan-progress').style.display = 'none';
             }
         }
@@ -832,7 +821,7 @@
 
                     const btn = document.getElementById('start-scan-btn');
                     btn.disabled = false;
-                    btn.textContent = '🚀 Démarrer le Scan';
+                    btn.innerHTML = '<span style="font-size: 1.25rem;">🚀</span><span>Lancer le Scanner IA</span>';
                     document.getElementById('scan-progress').style.display = 'none';
                 }
             } catch (error) {
