@@ -558,15 +558,39 @@
                 </div>
             </div>
 
-            <!-- Recent Activity -->
-            <div class="activity-feed">
-                <h3 class="section-title" style="margin-bottom: 1rem;">📊 Activité Récente</h3>
-                <div id="activity-list">
-                    <div class="empty-state">
-                        <div class="empty-icon">📭</div>
-                        <p>Aucune activité récente</p>
+            <!-- Crypto News -->
+            <div class="activity-feed" style="margin-top: 2rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3 class="section-title">📰 Actualités Crypto</h3>
+                    <button onclick="refreshNews()" style="padding: 0.5rem 1rem; background: var(--bg-glass); border: 1px solid var(--border-subtle); border-radius: 0.5rem; color: var(--text-secondary); cursor: pointer; font-size: 0.8rem; transition: all 0.2s;">
+                        <span id="news-refresh-icon">🔄</span> Actualiser
+                    </button>
+                </div>
+                <div id="news-cache-info" style="font-size: 0.75rem; color: var(--text-tertiary); margin-bottom: 0.75rem;"></div>
+                <div id="news-list">
+                    <div class="loading" style="text-align: center; padding: 2rem;">
+                        <div class="spinner" style="border: 3px solid var(--bg-glass); border-top: 3px solid var(--accent-primary); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+                        <p style="margin-top: 1rem; color: var(--text-secondary);">Chargement des actualités...</p>
                     </div>
                 </div>
+            </div>
+
+            <!-- Token Search -->
+            <div class="activity-feed" style="margin-top: 2rem;">
+                <h3 class="section-title" style="margin-bottom: 1rem;">🔍 Rechercher un Token</h3>
+                <div style="display: flex; gap: 0.75rem; margin-bottom: 1rem;">
+                    <input
+                        type="text"
+                        id="token-search-input"
+                        placeholder="Ex: BTC, ETH, bitcoin, ethereum..."
+                        style="flex: 1; padding: 0.75rem; background: var(--bg-glass); border: 1px solid var(--border-subtle); border-radius: 0.5rem; color: var(--text-primary); font-size: 0.9rem;"
+                        onkeypress="if(event.key === 'Enter') searchToken()"
+                    />
+                    <button onclick="searchToken()" style="padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 0.5rem; font-weight: 600; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
+                        Rechercher
+                    </button>
+                </div>
+                <div id="token-search-results"></div>
             </div>
         </div>
     </div>
@@ -1346,10 +1370,142 @@
             console.log('⏹️ Auto-scan system stopped');
         }
 
+        // ==================== CRYPTO NEWS ====================
+        async function loadCryptoNews(forceRefresh = false) {
+            const newsList = document.getElementById('news-list');
+            const cacheInfo = document.getElementById('news-cache-info');
+
+            try {
+                const url = `/api/news/crypto?limit=10&force_refresh=${forceRefresh}`;
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.success && data.articles) {
+                    // Display cache info
+                    if (data.cached) {
+                        const expiresMin = Math.floor(data.cache_expires_in / 60);
+                        cacheInfo.textContent = `✅ Cache actif - Expire dans ${expiresMin} minutes`;
+                        cacheInfo.style.color = 'var(--accent-success)';
+                    } else {
+                        cacheInfo.textContent = `🆕 Actualités fraîches - Cache valide 30 minutes`;
+                        cacheInfo.style.color = 'var(--accent-primary)';
+                    }
+
+                    // Display articles
+                    newsList.innerHTML = data.articles.map((article, index) => `
+                        <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 0.75rem; padding: 1rem; margin-bottom: 1rem; transition: all 0.2s; cursor: pointer;" onmouseenter="this.style.borderColor='var(--accent-primary)'" onmouseleave="this.style.borderColor='var(--border-subtle)'" onclick="window.open('${article.url}', '_blank')">
+                            <div style="display: flex; gap: 1rem;">
+                                ${article.image_url ? `
+                                    <img src="${article.image_url}" style="width: 80px; height: 80px; border-radius: 0.5rem; object-fit: cover;" onerror="this.style.display='none'">
+                                ` : ''}
+                                <div style="flex: 1;">
+                                    <h4 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--text-primary);">${article.title}</h4>
+                                    <div style="display: flex; gap: 1rem; font-size: 0.75rem; color: var(--text-tertiary); margin-bottom: 0.5rem;">
+                                        <span>📅 ${article.published_date}</span>
+                                        <span>📰 ${article.source}</span>
+                                        ${article.sentiment !== 'NEUTRAL' ? `<span style="color: ${article.sentiment === 'POSITIVE' ? '#22c55e' : '#ef4444'};">● ${article.sentiment}</span>` : ''}
+                                    </div>
+                                    ${article.categories.length > 0 ? `
+                                        <div style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
+                                            ${article.categories.slice(0, 3).map(cat => `<span style="background: var(--bg-glass); padding: 0.15rem 0.5rem; border-radius: 0.5rem; font-size: 0.65rem; color: var(--text-secondary);">${cat}</span>`).join('')}
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+
+                    console.log(`✅ Loaded ${data.articles.length} news articles`);
+                } else {
+                    newsList.innerHTML = `<div class="empty-state" style="text-align: center; padding: 2rem; color: var(--text-secondary);"><div style="font-size: 3rem; margin-bottom: 0.5rem;">📭</div><p>Aucune actualité disponible</p></div>`;
+                }
+            } catch (error) {
+                console.error('Error loading news:', error);
+                newsList.innerHTML = `<div class="empty-state" style="text-align: center; padding: 2rem; color: var(--accent-danger);"><div style="font-size: 3rem; margin-bottom: 0.5rem;">❌</div><p>Erreur de chargement des actualités</p></div>`;
+            }
+        }
+
+        async function refreshNews() {
+            const refreshIcon = document.getElementById('news-refresh-icon');
+            refreshIcon.style.animation = 'spin 1s linear infinite';
+            await loadCryptoNews(true);
+            setTimeout(() => {
+                refreshIcon.style.animation = 'none';
+            }, 1000);
+        }
+
+        // ==================== TOKEN SEARCH ====================
+        async function searchToken() {
+            const input = document.getElementById('token-search-input');
+            const resultsDiv = document.getElementById('token-search-results');
+            const query = input.value.trim();
+
+            if (!query) {
+                resultsDiv.innerHTML = '';
+                return;
+            }
+
+            // Show loading
+            resultsDiv.innerHTML = `<div class="loading" style="text-align: center; padding: 1rem;"><div class="spinner" style="border: 3px solid var(--bg-glass); border-top: 3px solid var(--accent-primary); border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto;"></div></div>`;
+
+            try {
+                const response = await fetch(`/api/token/search?query=${encodeURIComponent(query)}`);
+                const data = await response.json();
+
+                if (data.success && data.tokens && data.tokens.length > 0) {
+                    resultsDiv.innerHTML = data.tokens.map(token => `
+                        <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 0.75rem; padding: 1.25rem; margin-top: 1rem;">
+                            <div style="display: flex; gap: 1rem; align-items: start; margin-bottom: 1rem;">
+                                ${token.logo ? `<img src="${token.logo}" style="width: 56px; height: 56px; border-radius: 0.75rem;">` : '<div style="width: 56px; height: 56px; border-radius: 0.75rem; background: var(--gradient-primary); display: flex; align-items: center; justify-content: center; font-size: 1.75rem;">🪙</div>'}
+                                <div style="flex: 1;">
+                                    <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 0.25rem;">${token.name} <span style="color: var(--text-secondary); font-weight: 600;">(${token.symbol})</span></h3>
+                                    <div style="font-size: 0.875rem; color: var(--text-tertiary); margin-bottom: 0.5rem;">
+                                        ${token.category ? `<span style="background: var(--bg-glass); padding: 0.15rem 0.5rem; border-radius: 0.5rem; font-size: 0.75rem; text-transform: uppercase; margin-right: 0.5rem;">${token.category}</span>` : ''}
+                                        ${token.date_launched ? `Lancé: ${new Date(token.date_launched).toLocaleDateString('fr-FR')}` : ''}
+                                    </div>
+                                    ${token.tags && token.tags.length > 0 ? `
+                                        <div style="display: flex; gap: 0.35rem; flex-wrap: wrap; margin-bottom: 0.75rem;">
+                                            ${token.tags.slice(0, 5).map(tag => `<span style="background: rgba(102, 126, 234, 0.1); color: var(--accent-primary); padding: 0.15rem 0.5rem; border-radius: 0.5rem; font-size: 0.7rem;">${tag}</span>`).join('')}
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+
+                            ${token.description ? `<p style="font-size: 0.875rem; color: var(--text-secondary); line-height: 1.6; margin-bottom: 1rem;">${token.description.substring(0, 300)}${token.description.length > 300 ? '...' : ''}</p>` : ''}
+
+                            ${token.urls ? `
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.5rem;">
+                                    ${token.urls.website && token.urls.website.length > 0 ? `<a href="${token.urls.website[0]}" target="_blank" style="padding: 0.5rem; background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); color: #8b5cf6; text-decoration: none; border-radius: 0.5rem; text-align: center; font-size: 0.8rem; font-weight: 600;">🌐 Website</a>` : ''}
+                                    ${token.urls.twitter && token.urls.twitter.length > 0 ? `<a href="${token.urls.twitter[0]}" target="_blank" style="padding: 0.5rem; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); color: #3b82f6; text-decoration: none; border-radius: 0.5rem; text-align: center; font-size: 0.8rem; font-weight: 600;">𝕏 Twitter</a>` : ''}
+                                    ${token.urls.reddit && token.urls.reddit.length > 0 ? `<a href="${token.urls.reddit[0]}" target="_blank" style="padding: 0.5rem; background: rgba(249, 115, 22, 0.1); border: 1px solid rgba(249, 115, 22, 0.3); color: #f97316; text-decoration: none; border-radius: 0.5rem; text-align: center; font-size: 0.8rem; font-weight: 600;">🔶 Reddit</a>` : ''}
+                                    ${token.urls.explorer && token.urls.explorer.length > 0 ? `<a href="${token.urls.explorer[0]}" target="_blank" style="padding: 0.5rem; background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); color: #22c55e; text-decoration: none; border-radius: 0.5rem; text-align: center; font-size: 0.8rem; font-weight: 600;">🔍 Explorer</a>` : ''}
+                                    ${token.urls.source_code && token.urls.source_code.length > 0 ? `<a href="${token.urls.source_code[0]}" target="_blank" style="padding: 0.5rem; background: var(--bg-glass); border: 1px solid var(--border-subtle); color: var(--text-secondary); text-decoration: none; border-radius: 0.5rem; text-align: center; font-size: 0.8rem; font-weight: 600;">💻 Code</a>` : ''}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `).join('');
+
+                    console.log(`✅ Found ${data.tokens.length} token(s)`);
+                } else {
+                    resultsDiv.innerHTML = `<div class="empty-state" style="text-align: center; padding: 2rem; color: var(--text-secondary);"><div style="font-size: 3rem; margin-bottom: 0.5rem;">🔍</div><p>Aucun token trouvé pour "${query}"</p><p style="font-size: 0.8rem; margin-top: 0.5rem;">Essayez avec un symbole (BTC, ETH) ou nom complet (bitcoin, ethereum)</p></div>`;
+                }
+            } catch (error) {
+                console.error('Error searching token:', error);
+                resultsDiv.innerHTML = `<div class="empty-state" style="text-align: center; padding: 2rem; color: var(--accent-danger);"><div style="font-size: 3rem; margin-bottom: 0.5rem;">❌</div><p>Erreur de recherche</p></div>`;
+            }
+        }
+
         // Initialize
         loadUserInfo();
         loadTokensFromDatabase();  // Load tokens from database on page load
+        loadCryptoNews();  // Load crypto news on page load
         startAutoScanSystem();
+
+        // Auto-refresh tokens from database every 5 minutes (sync with auto-scan)
+        setInterval(() => {
+            console.log('🔄 Auto-refreshing tokens from database...');
+            loadTokensFromDatabase();
+        }, 5 * 60 * 1000);  // 5 minutes
 
         // Stop auto-scan when user leaves page
         window.addEventListener('beforeunload', () => {
