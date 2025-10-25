@@ -490,23 +490,70 @@
     {% include 'components_scan_progress.html' %}
 
     <div class="container">
-        <!-- Welcome Section -->
-        <div class="welcome" style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%); border: 1px solid var(--border-subtle); border-radius: 1.5rem; padding: 3rem 2rem; margin-bottom: 2.5rem; text-align: center; backdrop-filter: blur(20px); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);">
-            <h1 style="font-size: 3rem; font-weight: 900; margin-bottom: 1rem; background: var(--gradient-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: fadeInUp 0.6s ease-out;">
-                👋 Bienvenue, <span id="welcome-name">Trader</span>
-            </h1>
-            <p style="color: var(--text-secondary); font-size: 1.25rem; max-width: 700px; margin: 0 auto; animation: fadeInUp 0.6s ease-out 0.2s backwards;">
-                Votre tableau de bord personnalisé pour le trading crypto intelligent 🚀
-            </p>
-            <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 2rem; flex-wrap: wrap; animation: fadeInUp 0.6s ease-out 0.4s backwards;">
-                <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); padding: 0.75rem 1.5rem; border-radius: 2rem; color: #22c55e; font-weight: 600;">
-                    ✅ Scanner IA Activé
+        <!-- Hero Section - Marketing Optimized -->
+        <div class="welcome" style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%); border: 1px solid var(--border-subtle); border-radius: 1.5rem; padding: 4rem 2rem; margin-bottom: 3rem; text-align: center; backdrop-filter: blur(20px); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2); position: relative; overflow: hidden;">
+
+            <!-- Decorative elements -->
+            <div style="position: absolute; top: -50px; right: -50px; width: 200px; height: 200px; background: radial-gradient(circle, rgba(102, 126, 234, 0.15) 0%, transparent 70%); border-radius: 50%; animation: pulse 4s ease-in-out infinite;"></div>
+            <div style="position: absolute; bottom: -30px; left: -30px; width: 150px; height: 150px; background: radial-gradient(circle, rgba(118, 75, 162, 0.15) 0%, transparent 70%); border-radius: 50%; animation: pulse 3s ease-in-out infinite;"></div>
+
+            <div style="position: relative; z-index: 1;">
+                <!-- Badge de bienvenue -->
+                <div style="display: inline-block; background: rgba(102, 126, 234, 0.15); border: 1px solid rgba(102, 126, 234, 0.3); padding: 0.5rem 1.25rem; border-radius: 2rem; margin-bottom: 1.5rem; animation: fadeInUp 0.6s ease-out;">
+                    <span style="font-weight: 600; font-size: 0.875rem; color: var(--accent-primary);">👋 Bienvenue <span id="welcome-name" style="text-transform: capitalize;">Trader</span></span>
                 </div>
-                <div style="background: rgba(102, 126, 234, 0.1); border: 1px solid rgba(102, 126, 234, 0.3); padding: 0.75rem 1.5rem; border-radius: 2rem; color: var(--accent-primary); font-weight: 600;">
-                    📊 Auto-Scan 5min
+
+                <!-- Hero Title -->
+                <h1 style="font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 900; margin-bottom: 1.5rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: fadeInUp 0.6s ease-out 0.1s backwards; line-height: 1.2;">
+                    Détectez les Opportunités Crypto<br/>Avant Tout le Monde
+                </h1>
+
+                <!-- Value Proposition -->
+                <p style="color: var(--text-secondary); font-size: clamp(1rem, 2vw, 1.25rem); max-width: 750px; margin: 0 auto 2.5rem; line-height: 1.6; animation: fadeInUp 0.6s ease-out 0.2s backwards;">
+                    Scanner IA professionnel avec analyse en temps réel, détection pump & dump, et auto-scan 24/7.
+                    <strong style="color: var(--accent-primary);">Prenez des décisions éclairées</strong> grâce à l'intelligence artificielle.
+                </p>
+
+                <!-- Value Props Grid -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem; max-width: 900px; margin: 0 auto 2.5rem; animation: fadeInUp 0.6s ease-out 0.3s backwards;">
+                    <div style="background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%); border: 1px solid rgba(34, 197, 94, 0.25); padding: 1.25rem; border-radius: 1rem; text-align: left;">
+                        <div style="font-size: 2rem; margin-bottom: 0.75rem;">🤖</div>
+                        <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 0.5rem; color: #22c55e;">Scanner IA Avancé</div>
+                        <div style="font-size: 0.8rem; color: var(--text-tertiary); line-height: 1.4;">Analyse intelligente avec détection des risques en temps réel</div>
+                    </div>
+
+                    <div style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(102, 126, 234, 0.05) 100%); border: 1px solid rgba(102, 126, 234, 0.25); padding: 1.25rem; border-radius: 1rem; text-align: left;">
+                        <div style="font-size: 2rem; margin-bottom: 0.75rem;">⚡</div>
+                        <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--accent-primary);">Auto-Scan 5min</div>
+                        <div style="font-size: 0.8rem; color: var(--text-tertiary); line-height: 1.4;">Surveillance automatique des nouveaux tokens 24/7</div>
+                    </div>
+
+                    <div style="background: linear-gradient(135deg, rgba(249, 115, 22, 0.1) 0%, rgba(249, 115, 22, 0.05) 100%); border: 1px solid rgba(249, 115, 22, 0.25); padding: 1.25rem; border-radius: 1rem; text-align: left;">
+                        <div style="font-size: 2rem; margin-bottom: 0.75rem;">🛡️</div>
+                        <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 0.5rem; color: #f97316;">Protection P&D</div>
+                        <div style="font-size: 0.8rem; color: var(--text-tertiary); line-height: 1.4;">Détection avancée des pump & dump suspects</div>
+                    </div>
                 </div>
-                <div style="background: rgba(249, 115, 22, 0.1); border: 1px solid rgba(249, 115, 22, 0.3); padding: 0.75rem 1.5rem; border-radius: 2rem; color: #f97316; font-weight: 600;">
-                    💾 <span id="cache-badge">0</span> Tokens en Cache
+
+                <!-- CTA Button -->
+                <button onclick="scrollToScanner()" style="padding: 1.25rem 3rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 3rem; font-weight: 700; font-size: 1.125rem; cursor: pointer; box-shadow: 0 8px 30px rgba(102, 126, 234, 0.4); transition: all 0.3s; animation: fadeInUp 0.6s ease-out 0.4s backwards; position: relative; overflow: hidden;" onmouseenter="this.style.transform='translateY(-3px) scale(1.02)'; this.style.boxShadow='0 12px 40px rgba(102, 126, 234, 0.6)';" onmouseleave="this.style.transform='translateY(0) scale(1)'; this.style.boxShadow='0 8px 30px rgba(102, 126, 234, 0.4)';">
+                    <span>🚀 Commencer l'Analyse</span>
+                </button>
+
+                <!-- Trust badges -->
+                <div style="display: flex; gap: 2rem; justify-content: center; margin-top: 2.5rem; flex-wrap: wrap; animation: fadeInUp 0.6s ease-out 0.5s backwards;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--text-tertiary); font-size: 0.85rem;">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" fill="#22c55e"/></svg>
+                        <span>Scanner IA Claude</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--text-tertiary); font-size: 0.85rem;">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 0C4.477 0 0 4.477 0 10s4.477 10 10 10 10-4.477 10-10S15.523 0 10 0zm0 18c-4.411 0-8-3.589-8-8s3.589-8 8-8 8 3.589 8 8-3.589 8-8 8z" fill="#667eea"/><path d="M13.5 7.5L9 12 6.5 9.5" stroke="#667eea" stroke-width="2" stroke-linecap="round"/></svg>
+                        <span>Analyse Temps Réel</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--text-tertiary); font-size: 0.85rem;">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 2v16M2 10h16" stroke="#f97316" stroke-width="2.5" stroke-linecap="round"/></svg>
+                        <span>Gratuit & Open Source</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -522,52 +569,18 @@
                     transform: translateY(0);
                 }
             }
+
+            @keyframes pulse {
+                0%, 100% {
+                    transform: scale(1);
+                    opacity: 0.5;
+                }
+                50% {
+                    transform: scale(1.1);
+                    opacity: 0.8;
+                }
+            }
         </style>
-
-        <!-- Stats Overview -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-header">
-                    <span class="stat-title">Scans Effectués</span>
-                    <span class="stat-icon">🔍</span>
-                </div>
-                <div class="stat-value" id="total-scans">0</div>
-                <div class="stat-subtitle">
-                    <span class="stat-change positive" style="display: none;">
-                        <span>↑</span>
-                        <span id="scans-change">0%</span>
-                    </span>
-                    <span>Cette semaine</span>
-                </div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-header">
-                    <span class="stat-title">Mes Favoris</span>
-                    <span class="stat-icon">⭐</span>
-                </div>
-                <div class="stat-value" id="total-favorites">0</div>
-                <div class="stat-subtitle">Tokens surveillés</div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-header">
-                    <span class="stat-title">Tokens Cachés</span>
-                    <span class="stat-icon">🗄️</span>
-                </div>
-                <div class="stat-value" id="cache-tokens">0</div>
-                <div class="stat-subtitle">Auto-scan 24h</div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-header">
-                    <span class="stat-title">Alertes Actives</span>
-                    <span class="stat-icon">🚨</span>
-                </div>
-                <div class="stat-value" id="active-alerts">0</div>
-                <div class="stat-subtitle" id="alerts-subtitle">Premium requis</div>
-            </div>
-        </div>
 
         <!-- Auto-Scan Preview -->
         <div class="autoscan-preview" id="autoscan-preview" style="display: none;">
@@ -686,61 +699,9 @@
                 if (data.authenticated && data.user) {
                     const user = data.user;
                     document.getElementById('welcome-name').textContent = user.username;
-
-                    // Update stats
-                    document.getElementById('total-scans').textContent = user.scan_count || 0;
-
-                    // Load other stats
-                    await loadFavoritesCount();
-                    await loadCacheStats();
-                    await loadAlertsCount();
                 }
             } catch (error) {
                 console.error('Error loading user info:', error);
-            }
-        }
-
-        // Load favorites count
-        async function loadFavoritesCount() {
-            try {
-                const response = await fetch('/api/favorites');
-                const data = await response.json();
-                if (data.success) {
-                    document.getElementById('total-favorites').textContent = data.favorites.length;
-                }
-            } catch (error) {
-                console.error('Error:', error);
-            }
-        }
-
-        // Load cache stats
-        async function loadCacheStats() {
-            try {
-                // Use scanned-tokens stats API
-                const response = await fetch('/api/scanned-tokens/stats');
-                const data = await response.json();
-                if (data.success) {
-                    const totalTokens = data.total_tokens || 0;
-                    document.getElementById('cache-tokens').textContent = totalTokens;
-
-                    // Update welcome badge
-                    const cacheBadge = document.getElementById('cache-badge');
-                    if (cacheBadge) {
-                        cacheBadge.textContent = totalTokens;
-                    }
-
-                    // Show auto-scan preview if cache has tokens
-                    if (totalTokens > 0) {
-                        const autoscanPreview = document.getElementById('autoscan-preview');
-                        if (autoscanPreview) {
-                            autoscanPreview.style.display = 'block';
-                            await loadAutoScanPreview();
-                        }
-                    }
-                }
-            } catch (error) {
-                // Auto-scan not available
-                console.log('Auto-scan not available');
             }
         }
 
@@ -777,20 +738,6 @@
                         });
                         container.appendChild(card);
                     });
-                }
-            } catch (error) {
-                console.error('Error:', error);
-            }
-        }
-
-        // Load alerts count (placeholder)
-        async function loadAlertsCount() {
-            try {
-                const response = await fetch('/api/me');
-                const data = await response.json();
-                if (data.authenticated && data.user && data.user.is_premium) {
-                    document.getElementById('active-alerts').textContent = '0';
-                    document.getElementById('alerts-subtitle').textContent = 'Aucune alerte';
                 }
             } catch (error) {
                 console.error('Error:', error);
@@ -991,6 +938,22 @@
                     }
                 } else {
                     console.log('📭 Aucun token en cache, lancez un scan pour commencer');
+
+                    // Show empty state with call to action
+                    const scanResults = document.getElementById('scan-results');
+                    scanResults.style.display = 'block';
+                    scanResults.innerHTML = `
+                        <div style="text-align: center; padding: 4rem 2rem; background: var(--bg-card); border: 2px dashed var(--border-subtle); border-radius: 1rem;">
+                            <div style="font-size: 4rem; margin-bottom: 1rem; opacity: 0.5;">🔍</div>
+                            <h3 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 0.75rem; color: var(--text-primary);">Aucun Token Scanné</h3>
+                            <p style="color: var(--text-secondary); font-size: 1rem; margin-bottom: 2rem; max-width: 500px; margin-left: auto; margin-right: auto;">
+                                La base de données est vide. Lancez votre premier scan pour découvrir les derniers tokens crypto et commencer l'analyse !
+                            </p>
+                            <button onclick="scrollToScanner()" style="padding: 1rem 2rem; background: var(--gradient-primary); color: white; border: none; border-radius: 0.75rem; font-weight: 700; font-size: 1rem; cursor: pointer; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); transition: all 0.3s;">
+                                🚀 Lancer un Scan
+                            </button>
+                        </div>
+                    `;
                 }
             } catch (error) {
                 console.error('Erreur chargement tokens:', error);
