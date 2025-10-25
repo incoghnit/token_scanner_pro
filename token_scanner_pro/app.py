@@ -133,6 +133,9 @@ import threading as thread_module
 # Database instance (thread-safe)
 db = Database()
 
+# Scanner instance for news & search APIs (separate from scan state)
+scanner = TokenScanner()
+
 # Scanner state with thread safety
 _scanner_lock = thread_module.Lock()
 _scanner_state = {

@@ -939,6 +939,121 @@
             }
         }
 
+        // Open token details modal
+        function openTokenDetails(tokenIndex) {
+            const token = window.currentTokens[tokenIndex];
+            if (!token) {
+                console.error('Token not found at index:', tokenIndex);
+                return;
+            }
+
+            const hasMarketData = token.market && !token.market.error;
+            const hasSecurity = token.security && !token.security.error;
+
+            // Create modal
+            const modal = document.createElement('div');
+            modal.id = 'token-details-modal';
+            modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 2rem; backdrop-filter: blur(10px);';
+
+            modal.innerHTML = `
+                <div style="background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: 1rem; max-width: 900px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 2rem; position: relative;">
+                    <!-- Close button -->
+                    <button onclick="document.getElementById('token-details-modal').remove()" style="position: absolute; top: 1rem; right: 1rem; background: var(--bg-glass); border: 1px solid var(--border-subtle); border-radius: 0.5rem; width: 40px; height: 40px; cursor: pointer; font-size: 1.5rem; color: var(--text-secondary); transition: all 0.2s;" onmouseenter="this.style.background='rgba(239, 68, 68, 0.2)'; this.style.borderColor='#ef4444'; this.style.color='#ef4444';" onmouseleave="this.style.background='var(--bg-glass)'; this.style.borderColor='var(--border-subtle)'; this.style.color='var(--text-secondary)';">✕</button>
+
+                    <!-- Header -->
+                    <div style="display: flex; gap: 1.5rem; align-items: start; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border-subtle);">
+                        ${token.icon ? `<img src="${token.icon}" style="width: 80px; height: 80px; border-radius: 1rem;">` : '<div style="width: 80px; height: 80px; border-radius: 1rem; background: var(--gradient-primary); display: flex; align-items: center; justify-content: center; font-size: 2.5rem;">🪙</div>'}
+                        <div style="flex: 1;">
+                            <h2 style="font-size: 1.75rem; font-weight: 800; margin-bottom: 0.5rem;">${token.description || 'Token Details'}</h2>
+                            <div style="font-family: monospace; font-size: 0.9rem; color: var(--text-tertiary); margin-bottom: 1rem;">${token.address}</div>
+                            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                                <span style="background: var(--bg-glass); padding: 0.5rem 1rem; border-radius: 1rem; font-weight: 600;">${token.chain.toUpperCase()}</span>
+                                ${token.is_safe ? '<span style="background: rgba(34, 197, 94, 0.2); color: #22c55e; padding: 0.5rem 1rem; border-radius: 1rem; font-weight: 600;">✅ SAFE</span>' : '<span style="background: rgba(239, 68, 68, 0.2); color: #ef4444; padding: 0.5rem 1rem; border-radius: 1rem; font-weight: 600;">⚠️ RISKY</span>'}
+                                <span style="background: var(--gradient-primary); color: white; padding: 0.5rem 1rem; border-radius: 1rem; font-weight: 700;">Risk: ${token.risk_score}/100</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Full Details Grid -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+                        ${hasMarketData ? `
+                            <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 0.75rem; padding: 1.25rem;">
+                                <h3 style="font-size: 0.875rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 1rem; text-transform: uppercase;">💹 Market Data</h3>
+                                <div style="display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.9rem;">
+                                    <div style="display: flex; justify-content: space-between;"><span>Price:</span><span style="font-weight: 700;">$${token.market.price_usd?.toFixed(8) || 'N/A'}</span></div>
+                                    <div style="display: flex; justify-content: space-between;"><span>24h Change:</span><span style="font-weight: 700; color: ${token.market.price_change_24h >= 0 ? '#22c55e' : '#ef4444'};">${(token.market.price_change_24h >= 0 ? '+' : '')}${token.market.price_change_24h?.toFixed(2) || '0'}%</span></div>
+                                    <div style="display: flex; justify-content: space-between;"><span>Liquidity:</span><span style="font-weight: 700;">$${(token.market.liquidity_usd / 1000).toFixed(2)}K</span></div>
+                                    <div style="display: flex; justify-content: space-between;"><span>Volume 24h:</span><span style="font-weight: 700;">$${(token.market.volume_24h / 1000).toFixed(2)}K</span></div>
+                                    <div style="display: flex; justify-content: space-between;"><span>Market Cap:</span><span style="font-weight: 700;">$${(token.market.market_cap / 1000).toFixed(2)}K</span></div>
+                                    <div style="display: flex; justify-content: space-between;"><span>Buys/Sells:</span><span style="font-weight: 700;">${token.market.txns_24h_buys || 0}/${token.market.txns_24h_sells || 0}</span></div>
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        ${hasSecurity ? `
+                            <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 0.75rem; padding: 1.25rem;">
+                                <h3 style="font-size: 0.875rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 1rem; text-transform: uppercase;">🔒 Security</h3>
+                                <div style="display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.9rem;">
+                                    <div style="display: flex; justify-content: space-between;"><span>Buy Tax:</span><span style="font-weight: 700; color: ${token.security.buy_tax > 10 ? '#ef4444' : '#22c55e'};">${token.security.buy_tax?.toFixed(1) || 0}%</span></div>
+                                    <div style="display: flex; justify-content: space-between;"><span>Sell Tax:</span><span style="font-weight: 700; color: ${token.security.sell_tax > 10 ? '#ef4444' : '#22c55e'};">${token.security.sell_tax?.toFixed(1) || 0}%</span></div>
+                                    <div style="display: flex; justify-content: space-between;"><span>Honeypot:</span><span style="font-weight: 700; color: ${token.security.is_honeypot ? '#ef4444' : '#22c55e'};">${token.security.is_honeypot ? '❌ Yes' : '✅ No'}</span></div>
+                                    <div style="display: flex; justify-content: space-between;"><span>Mintable:</span><span style="font-weight: 700; color: ${token.security.is_mintable ? '#f59e0b' : '#22c55e'};">${token.security.is_mintable ? '⚠️ Yes' : '✅ No'}</span></div>
+                                    <div style="display: flex; justify-content: space-between;"><span>Open Source:</span><span style="font-weight: 700; color: ${token.security.is_open_source ? '#22c55e' : '#f59e0b'};">${token.security.is_open_source ? '✅ Yes' : '⚠️ No'}</span></div>
+                                    <div style="display: flex; justify-content: space-between;"><span>Holders:</span><span style="font-weight: 700;">${token.security.holder_count || 'N/A'}</span></div>
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        ${token.pump_dump_score ? `
+                            <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 0.75rem; padding: 1.25rem;">
+                                <h3 style="font-size: 0.875rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 1rem; text-transform: uppercase;">🚨 Pump & Dump Risk</h3>
+                                <div style="text-align: center; margin-bottom: 1rem;">
+                                    <div style="font-size: 3rem; font-weight: 800; background: var(--gradient-danger); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">${token.pump_dump_score}/100</div>
+                                    <div style="font-size: 1rem; font-weight: 700; color: ${token.pump_dump_risk === 'FAIBLE' ? '#22c55e' : token.pump_dump_risk === 'MOYEN' ? '#f59e0b' : '#ef4444'};">${token.pump_dump_risk}</div>
+                                </div>
+                                ${token.pump_dump_warnings && token.pump_dump_warnings.length > 0 ? `
+                                    <div style="background: rgba(239, 68, 68, 0.1); border-radius: 0.5rem; padding: 0.75rem; font-size: 0.8rem; line-height: 1.5;">
+                                        ${token.pump_dump_warnings.slice(0, 5).map(w => `<div style="margin-bottom: 0.5rem;">• ${w}</div>`).join('')}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        ` : ''}
+                    </div>
+
+                    <!-- All Warnings -->
+                    ${token.warnings && token.warnings.length > 0 ? `
+                        <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 0.75rem; padding: 1.25rem; margin-bottom: 1.5rem;">
+                            <h3 style="font-size: 0.875rem; font-weight: 700; color: #ef4444; margin-bottom: 1rem; text-transform: uppercase;">⚠️ All Warnings</h3>
+                            <div style="display: grid; gap: 0.5rem; font-size: 0.875rem; line-height: 1.6;">
+                                ${token.warnings.map(w => `<div>• ${w}</div>`).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    <!-- Actions -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
+                        <button onclick="analyzeTokenWithAI(${tokenIndex}, this); event.stopPropagation();" style="padding: 1rem; background: var(--gradient-primary); color: white; border: none; border-radius: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);">
+                            🤖 Analyze with AI
+                        </button>
+                        ${token.url ? `<a href="${token.url}" target="_blank" style="padding: 1rem; background: var(--bg-glass); border: 1px solid var(--border-subtle); color: var(--text-primary); text-decoration: none; text-align: center; border-radius: 0.75rem; font-weight: 600; transition: all 0.2s;">📊 DexScreener</a>` : ''}
+                        ${token.website ? `<a href="${token.website}" target="_blank" style="padding: 1rem; background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); color: #8b5cf6; text-decoration: none; text-align: center; border-radius: 0.75rem; font-weight: 600; transition: all 0.2s;">🌐 Website</a>` : ''}
+                        ${token.twitter ? `<a href="${token.twitter}" target="_blank" style="padding: 1rem; background: rgba(29, 161, 242, 0.1); border: 1px solid rgba(29, 161, 242, 0.3); color: #1da1f2; text-decoration: none; text-align: center; border-radius: 0.75rem; font-weight: 600; transition: all 0.2s;">🐦 Twitter</a>` : ''}
+                        ${token.telegram ? `<a href="${token.telegram}" target="_blank" style="padding: 1rem; background: rgba(34, 197, 233, 0.1); border: 1px solid rgba(34, 197, 233, 0.3); color: #22c5e9; text-decoration: none; text-align: center; border-radius: 0.75rem; font-weight: 600; transition: all 0.2s;">✈️ Telegram</a>` : ''}
+                        ${token.discord ? `<a href="${token.discord}" target="_blank" style="padding: 1rem; background: rgba(88, 101, 242, 0.1); border: 1px solid rgba(88, 101, 242, 0.3); color: #5865f2; text-decoration: none; text-align: center; border-radius: 0.75rem; font-weight: 600; transition: all 0.2s;">💬 Discord</a>` : ''}
+                    </div>
+                </div>
+            `;
+
+            // Close on background click
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.remove();
+                }
+            });
+
+            document.body.appendChild(modal);
+        }
+
         // Display scan results - ENHANCED WITH ALL AVAILABLE DATA
         function displayScanResults(data) {
             const container = document.getElementById('scan-results');
@@ -1011,7 +1126,7 @@
                     const formatChange = (val) => (val >= 0 ? '+' : '') + val.toFixed(2) + '%';
 
                     return `
-                        <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 0.75rem; padding: 1rem; margin-bottom: 1rem; backdrop-filter: blur(20px); transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); position: relative;" onmouseenter="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(102, 126, 234, 0.15)'; this.style.borderColor='var(--accent-primary)';" onmouseleave="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(0, 0, 0, 0.1)'; this.style.borderColor='var(--border-subtle)';">
+                        <div onclick="openTokenDetails(${index})" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 0.75rem; padding: 1rem; margin-bottom: 1rem; backdrop-filter: blur(20px); transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); position: relative; cursor: pointer;" onmouseenter="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(102, 126, 234, 0.15)'; this.style.borderColor='var(--accent-primary)';" onmouseleave="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(0, 0, 0, 0.1)'; this.style.borderColor='var(--border-subtle)';">
 
                             <!-- Compact Header -->
                             <div style="display: flex; gap: 0.75rem; align-items: start; margin-bottom: 0.75rem;">
@@ -1022,7 +1137,7 @@
                                     ` : `
                                         <div style="width: 48px; height: 48px; border-radius: 0.5rem; background: var(--gradient-primary); display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">🪙</div>
                                     `}
-                                    <button onclick="toggleFavorite('${token.address}', '${token.chain}', ${index})" id="fav-btn-${token.address}" style="position: absolute; top: -6px; right: -6px; background: rgba(0, 0, 0, 0.7); border: 1px solid var(--border-subtle); border-radius: 50%; width: 24px; height: 24px; cursor: pointer; transition: all 0.2s; z-index: 10; display: flex; align-items: center; justify-content: center; padding: 0;" onmouseenter="this.style.transform='scale(1.15)'; this.style.background='rgba(255, 215, 0, 0.3)'; this.style.borderColor='#ffd700';" onmouseleave="this.style.transform='scale(1)'; this.style.background='rgba(0, 0, 0, 0.7)'; this.style.borderColor='var(--border-subtle)';">
+                                    <button onclick="event.stopPropagation(); toggleFavorite('${token.address}', '${token.chain}', ${index});" id="fav-btn-${token.address}" style="position: absolute; top: -6px; right: -6px; background: rgba(0, 0, 0, 0.7); border: 1px solid var(--border-subtle); border-radius: 50%; width: 24px; height: 24px; cursor: pointer; transition: all 0.2s; z-index: 10; display: flex; align-items: center; justify-content: center; padding: 0;" onmouseenter="this.style.transform='scale(1.15)'; this.style.background='rgba(255, 215, 0, 0.3)'; this.style.borderColor='#ffd700';" onmouseleave="this.style.transform='scale(1)'; this.style.background='rgba(0, 0, 0, 0.7)'; this.style.borderColor='var(--border-subtle)';">
                                         <span style="font-size: 0.75rem;">⭐</span>
                                     </button>
                                 </div>
@@ -1152,7 +1267,7 @@
 
                             <!-- Compact Action Buttons -->
                             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.5rem;">
-                                <button onclick="analyzeTokenWithAI(${index}, this)" style="padding: 0.6rem 0.75rem; background: var(--gradient-primary); color: white; border: none; border-radius: 0.5rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.4rem; transition: all 0.2s; box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3); font-size: 0.8rem;" onmouseenter="this.style.transform='scale(1.03)'; this.style.boxShadow='0 4px 12px rgba(102, 126, 234, 0.5)';" onmouseleave="this.style.transform='scale(1)'; this.style.boxShadow='0 2px 4px rgba(102, 126, 234, 0.3)';">
+                                <button onclick="event.stopPropagation(); analyzeTokenWithAI(${index}, this);" style="padding: 0.6rem 0.75rem; background: var(--gradient-primary); color: white; border: none; border-radius: 0.5rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.4rem; transition: all 0.2s; box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3); font-size: 0.8rem;" onmouseenter="this.style.transform='scale(1.03)'; this.style.boxShadow='0 4px 12px rgba(102, 126, 234, 0.5)';" onmouseleave="this.style.transform='scale(1)'; this.style.boxShadow='0 2px 4px rgba(102, 126, 234, 0.3)';">
                                     <span>🤖</span>
                                     <span>AI</span>
                                 </button>
