@@ -3,8 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Token Scanner Pro 🚀</title>
-    <meta name="description" content="Scannez, analysez et tradez les tokens crypto avant tout le monde. IA + Analyse en temps réel.">
+
+    <!-- Primary Meta Tags -->
+    <title>Token Scanner Pro 🚀 - Détectez les Opportunités Crypto Avant Tout le Monde</title>
+    <meta name="title" content="Token Scanner Pro 🚀 - Détectez les Opportunités Crypto Avant Tout le Monde">
+    <meta name="description" content="Scanner IA professionnel avec analyse en temps réel, détection pump & dump, et auto-scan 24/7. Analysez les tokens crypto avec l'intelligence artificielle Claude.">
+    <meta name="keywords" content="crypto scanner, token scanner, pump dump detector, crypto analysis, IA crypto, blockchain scanner, DeFi tools, crypto trading">
+    <meta name="author" content="Token Scanner Pro">
+    <meta name="robots" content="index, follow">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://tokenscannerpro.com/">
+    <meta property="og:title" content="Token Scanner Pro 🚀 - Détectez les Opportunités Crypto Avant Tout le Monde">
+    <meta property="og:description" content="Scanner IA professionnel avec analyse en temps réel, détection pump & dump, et auto-scan 24/7. Prenez des décisions éclairées grâce à l'intelligence artificielle.">
+    <meta property="og:image" content="https://tokenscannerpro.com/static/og-image.jpg">
+    <meta property="og:locale" content="fr_FR">
+    <meta property="og:site_name" content="Token Scanner Pro">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://tokenscannerpro.com/">
+    <meta name="twitter:title" content="Token Scanner Pro 🚀 - Détectez les Opportunités Crypto Avant Tout le Monde">
+    <meta name="twitter:description" content="Scanner IA professionnel avec analyse en temps réel, détection pump & dump, et auto-scan 24/7.">
+    <meta name="twitter:image" content="https://tokenscannerpro.com/static/og-image.jpg">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
+
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#667eea">
+    <meta name="msapplication-TileColor" content="#667eea">
     <style>
         :root {
             --bg-primary: #0a0a0f;
@@ -30,11 +60,29 @@
             box-sizing: border-box;
         }
 
+        /* Prevent all elements from overflowing */
+        html, body {
+            max-width: 100vw;
+            overflow-x: hidden;
+        }
+
+        /* Ensure all flex and grid containers don't overflow */
+        div, section, article, aside, header, footer, nav {
+            max-width: 100%;
+        }
+
+        /* Ensure images and iframes are responsive */
+        img, iframe {
+            max-width: 100%;
+            height: auto;
+        }
+
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background: var(--bg-primary);
             color: var(--text-primary);
             line-height: 1.6;
+            overflow-x: hidden; /* Prevent horizontal scroll */
         }
 
         body::before {
@@ -396,7 +444,8 @@
 
         @media (max-width: 768px) {
             .container {
-                padding: 1.5rem;
+                padding: 1rem;
+                max-width: 100vw; /* Prevent overflow */
             }
 
             .welcome h1 {
@@ -421,19 +470,36 @@
             #token-search-input {
                 font-size: 16px !important; /* Prevent zoom on iOS */
             }
+
+            /* Prevent section overflow */
+            .scanner-section,
+            .activity-feed {
+                padding: 1rem !important;
+                max-width: 100%;
+                overflow-x: hidden;
+            }
+
+            /* Main grid responsive */
+            .main-grid {
+                grid-template-columns: 1fr !important;
+                gap: 1rem;
+            }
         }
 
         @media (max-width: 640px) {
             .container {
-                padding: 1rem;
+                padding: 0.75rem;
+                max-width: 100vw;
             }
 
             .welcome {
-                padding: 2rem 0;
+                padding: 1.5rem 1rem !important;
+                margin-left: 0 !important;
+                margin-right: 0 !important;
             }
 
             .welcome h1 {
-                font-size: 1.5rem;
+                font-size: 1.5rem !important;
             }
 
             .stats-grid {
@@ -455,22 +521,69 @@
             #token-details-modal {
                 padding: 0 !important;
             }
+
+            /* Token cards - reduce padding on mobile */
+            #scan-results > div {
+                padding: 0.75rem !important;
+            }
+
+            /* Reduce all section paddings */
+            .scanner-section,
+            .activity-feed,
+            .stat-card {
+                padding: 0.75rem !important;
+            }
         }
 
         /* Amélioration responsive pour les petits écrans */
         @media (max-width: 480px) {
+            .container {
+                padding: 0.5rem;
+            }
+
             .section-title {
-                font-size: 1.25rem;
+                font-size: 1.125rem;
             }
 
             /* Search form stack */
             .search-form {
                 flex-direction: column !important;
+                gap: 0.5rem !important;
             }
 
             .search-btn {
                 width: 100% !important;
                 padding: 1rem !important;
+            }
+
+            /* Welcome section - very compact on tiny screens */
+            .welcome {
+                padding: 1rem 0.75rem !important;
+            }
+
+            /* All sections compact */
+            .scanner-section,
+            .activity-feed,
+            .stat-card {
+                padding: 0.5rem !important;
+                border-radius: 0.75rem !important;
+            }
+
+            /* Reduce gaps everywhere */
+            .stats-grid,
+            .main-grid {
+                gap: 0.75rem !important;
+            }
+
+            /* Buttons smaller */
+            .btn {
+                padding: 0.6rem 1rem !important;
+                font-size: 0.8rem !important;
+            }
+
+            /* Force word break in long addresses */
+            div[style*="font-family: monospace"] {
+                word-break: break-all;
             }
 
             /* News refresh button */

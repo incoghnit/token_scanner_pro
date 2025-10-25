@@ -11,7 +11,46 @@ import re
 import os
 from html import unescape
 from datetime import datetime
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Callable
+
+def retry_api_call(func: Callable, max_retries: int = 3, initial_delay: float = 2.0, backoff_factor: float = 2.0) -> Any:
+    """
+    Retry an API call with exponential backoff
+
+    Args:
+        func: Function to execute (should return a response or raise an exception)
+        max_retries: Maximum number of retry attempts (default: 3)
+        initial_delay: Initial delay between retries in seconds (default: 2.0)
+        backoff_factor: Multiplier for delay after each retry (default: 2.0)
+
+    Returns:
+        Result from the function call
+
+    Raises:
+        Exception: If all retries fail, raises the last exception
+    """
+    last_exception = None
+    delay = initial_delay
+
+    for attempt in range(max_retries + 1):
+        try:
+            return func()
+        except (requests.exceptions.RequestException, requests.exceptions.Timeout,
+                requests.exceptions.ConnectionError) as e:
+            last_exception = e
+
+            if attempt < max_retries:
+                print(f"⚠️  API call failed (attempt {attempt + 1}/{max_retries + 1}): {e}")
+                print(f"   Retrying in {delay}s...")
+                time.sleep(delay)
+                delay *= backoff_factor
+            else:
+                print(f"❌ API call failed after {max_retries + 1} attempts")
+                raise last_exception
+        except Exception as e:
+            # Non-network errors should not be retried
+            print(f"❌ Non-retryable error: {e}")
+            raise e
 
 class TokenScanner:
     def __init__(self, nitter_url: str = None):
@@ -22,11 +61,17 @@ class TokenScanner:
         self.current_progress = 0
         self.total_tokens = 0
 
-        # New APIs
+        # New APIs - Load from environment variables for security
         self.coindesk_api = "https://data-api.coindesk.com/news/v1/article/list"
-        self.coindesk_token = "ff2abf2238797afb684ed5119904246c65e6294f5110c18a60e93b418d9dfe5a"
+        self.coindesk_token = os.getenv('COINDESK_API_KEY', '')
         self.coinmarketcap_api = "https://pro-api.coinmarketcap.com/v2/cryptocurrency/info"
-        self.coinmarketcap_key = "f8484748-5340-466a-8d53-b24a6eb6d0f3"
+        self.coinmarketcap_key = os.getenv('COINMARKETCAP_API_KEY', '')
+
+        # Validate API keys are present
+        if not self.coindesk_token:
+            print("⚠️  WARNING: COINDESK_API_KEY not set in environment variables")
+        if not self.coinmarketcap_key:
+            print("⚠️  WARNING: COINMARKETCAP_API_KEY not set in environment variables")
 
         # Cache system (in-memory)
         self._news_cache = None
@@ -629,16 +674,52 @@ class TokenScanner:
                     "cache_expires_in": int(self._news_cache_duration - (current_time - self._news_cache_time))
                 }
 
-            # Récupérer depuis l'API
+            # Récupérer depuis l'API avec retry logic
             print(f"📰 Fetching fresh news from CoinDesk API...")
             url = f"{self.coindesk_api}?lang=EN&limit={limit}"
             headers = {
                 "Authorization": f"Bearer {self.coindesk_token}"
             }
 
-            response = requests.get(url, headers=headers, timeout=10)
+            # API call with retry logic
+            def api_call():
+                return requests.get(url, headers=headers, timeout=10)
+
+            try:
+                response = retry_api_call(api_call, max_retries=3)
+            except Exception as e:
+                # If cache exists, return stale cache as fallback
+                if self._news_cache is not None:
+                    print(f"⚠️  API failed, returning stale cache as fallback")
+                    return {
+                        "success": True,
+                        "articles": self._news_cache[:limit],
+                        "total": len(self._news_cache),
+                        "cached": True,
+                        "stale_cache": True,
+                        "error_message": f"Using stale cache due to API error: {str(e)}",
+                        "cache_age_seconds": int(time.time() - self._news_cache_time) if self._news_cache_time else None
+                    }
+                else:
+                    return {
+                        "success": False,
+                        "error": f"API call failed and no cache available: {str(e)}",
+                        "cached": False
+                    }
 
             if response.status_code != 200:
+                # If cache exists, return it as fallback
+                if self._news_cache is not None:
+                    print(f"⚠️  API returned {response.status_code}, using stale cache")
+                    return {
+                        "success": True,
+                        "articles": self._news_cache[:limit],
+                        "total": len(self._news_cache),
+                        "cached": True,
+                        "stale_cache": True,
+                        "error_message": f"API returned status {response.status_code}",
+                        "cache_age_seconds": int(time.time() - self._news_cache_time) if self._news_cache_time else None
+                    }
                 return {
                     "success": False,
                     "error": f"API returned status {response.status_code}",
@@ -723,7 +804,17 @@ class TokenScanner:
                 "Accept": "application/json"
             }
 
-            response = requests.get(url, headers=headers, timeout=10)
+            # API call with retry logic
+            def api_call():
+                return requests.get(url, headers=headers, timeout=10)
+
+            try:
+                response = retry_api_call(api_call, max_retries=3)
+            except Exception as e:
+                return {
+                    "success": False,
+                    "error": f"API call failed after retries: {str(e)}"
+                }
 
             if response.status_code != 200:
                 return {
