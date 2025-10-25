@@ -457,10 +457,38 @@
 
     <div class="container">
         <!-- Welcome Section -->
-        <div class="welcome">
-            <h1>👋 Bienvenue, <span id="welcome-name">Trader</span></h1>
-            <p>Votre tableau de bord personnalisé pour le trading crypto intelligent</p>
+        <div class="welcome" style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%); border: 1px solid var(--border-subtle); border-radius: 1.5rem; padding: 3rem 2rem; margin-bottom: 2.5rem; text-align: center; backdrop-filter: blur(20px); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);">
+            <h1 style="font-size: 3rem; font-weight: 900; margin-bottom: 1rem; background: var(--gradient-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: fadeInUp 0.6s ease-out;">
+                👋 Bienvenue, <span id="welcome-name">Trader</span>
+            </h1>
+            <p style="color: var(--text-secondary); font-size: 1.25rem; max-width: 700px; margin: 0 auto; animation: fadeInUp 0.6s ease-out 0.2s backwards;">
+                Votre tableau de bord personnalisé pour le trading crypto intelligent 🚀
+            </p>
+            <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 2rem; flex-wrap: wrap; animation: fadeInUp 0.6s ease-out 0.4s backwards;">
+                <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); padding: 0.75rem 1.5rem; border-radius: 2rem; color: #22c55e; font-weight: 600;">
+                    ✅ Scanner IA Activé
+                </div>
+                <div style="background: rgba(102, 126, 234, 0.1); border: 1px solid rgba(102, 126, 234, 0.3); padding: 0.75rem 1.5rem; border-radius: 2rem; color: var(--accent-primary); font-weight: 600;">
+                    📊 Auto-Scan 5min
+                </div>
+                <div style="background: rgba(249, 115, 22, 0.1); border: 1px solid rgba(249, 115, 22, 0.3); padding: 0.75rem 1.5rem; border-radius: 2rem; color: #f97316; font-weight: 600;">
+                    💾 <span id="cache-badge">0</span> Tokens en Cache
+                </div>
+            </div>
         </div>
+
+        <style>
+            @keyframes fadeInUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(20px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+        </style>
 
         <!-- Stats Overview -->
         <div class="stats-grid">
@@ -666,15 +694,26 @@
         // Load cache stats
         async function loadCacheStats() {
             try {
-                const response = await fetch('/api/auto-scan/cache/stats');
+                // Use scanned-tokens stats API
+                const response = await fetch('/api/scanned-tokens/stats');
                 const data = await response.json();
-                if (data.success && data.stats) {
-                    document.getElementById('cache-tokens').textContent = data.stats.total_tokens || 0;
+                if (data.success) {
+                    const totalTokens = data.total_tokens || 0;
+                    document.getElementById('cache-tokens').textContent = totalTokens;
+
+                    // Update welcome badge
+                    const cacheBadge = document.getElementById('cache-badge');
+                    if (cacheBadge) {
+                        cacheBadge.textContent = totalTokens;
+                    }
 
                     // Show auto-scan preview if cache has tokens
-                    if (data.stats.total_tokens > 0) {
-                        document.getElementById('autoscan-preview').style.display = 'block';
-                        await loadAutoScanPreview();
+                    if (totalTokens > 0) {
+                        const autoscanPreview = document.getElementById('autoscan-preview');
+                        if (autoscanPreview) {
+                            autoscanPreview.style.display = 'block';
+                            await loadAutoScanPreview();
+                        }
                     }
                 }
             } catch (error) {
@@ -877,6 +916,9 @@
             }
         }
 
+        // Store current tokens globally for AI analysis
+        window.currentTokens = [];
+
         // Display scan results - ENHANCED WITH ALL AVAILABLE DATA
         function displayScanResults(data) {
             const container = document.getElementById('scan-results');
@@ -885,6 +927,9 @@
             console.log('📊 Displaying scan results:', data);
 
             if (data.results && data.results.length > 0) {
+                // Store tokens globally
+                window.currentTokens = data.results;
+
                 // Build enriched tokens list
                 const tokensHTML = data.results.map((token, index) => {
                     const hasMarketData = token.market && !token.market.error;
@@ -946,7 +991,7 @@
                     const formatChange = (val) => (val >= 0 ? '+' : '') + val.toFixed(2) + '%';
 
                     return `
-                        <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 1rem; padding: 1.5rem; margin-bottom: 1.5rem; backdrop-filter: blur(20px);">
+                        <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 1rem; padding: 1.5rem; margin-bottom: 1.5rem; backdrop-filter: blur(20px); transition: all 0.3s ease; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);" onmouseenter="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 12px 24px rgba(102, 126, 234, 0.2)'; this.style.borderColor='var(--accent-primary)';" onmouseleave="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 6px rgba(0, 0, 0, 0.1)'; this.style.borderColor='var(--border-subtle)';">
                             <!-- Header with Icon -->
                             <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1.5rem;">
                                 <div style="display: flex; gap: 1rem; align-items: start; flex: 1;">
@@ -1126,21 +1171,39 @@
                             ` : ''}
 
                             <!-- Action Buttons -->
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem;">
-                                <button onclick="analyzeTokenWithAI('${token.address}', '${token.chain}', ${JSON.stringify(token).replace(/'/g, "\\'")}), this)" style="padding: 1rem; background: var(--gradient-primary); color: white; border: none; border-radius: 0.75rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: all 0.3s;">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem;">
+                                <button onclick="analyzeTokenWithAI(${index}, this)" style="padding: 1rem; background: var(--gradient-primary); color: white; border: none; border-radius: 0.75rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: all 0.3s; box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);" onmouseenter="this.style.transform='scale(1.05)'; this.style.boxShadow='0 4px 12px rgba(102, 126, 234, 0.5)';" onmouseleave="this.style.transform='scale(1)'; this.style.boxShadow='0 2px 4px rgba(102, 126, 234, 0.3)';">
                                     <span style="font-size: 1.25rem;">🤖</span>
                                     <span>Scan par IA</span>
                                 </button>
                                 ${token.url ? `
-                                    <a href="${token.url}" target="_blank" style="padding: 1rem; background: var(--bg-glass); border: 1px solid var(--border-subtle); color: var(--text-primary); text-decoration: none; border-radius: 0.75rem; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: all 0.3s;">
+                                    <a href="${token.url}" target="_blank" style="padding: 1rem; background: var(--bg-glass); border: 1px solid var(--border-subtle); color: var(--text-primary); text-decoration: none; border-radius: 0.75rem; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: all 0.3s;" onmouseenter="this.style.transform='scale(1.05)'; this.style.borderColor='var(--accent-primary)';" onmouseleave="this.style.transform='scale(1)'; this.style.borderColor='var(--border-subtle)';">
                                         <span style="font-size: 1.25rem;">📊</span>
                                         <span>DexScreener</span>
                                     </a>
                                 ` : ''}
                                 ${token.twitter ? `
-                                    <a href="${token.twitter}" target="_blank" style="padding: 1rem; background: rgba(29, 161, 242, 0.1); border: 1px solid rgba(29, 161, 242, 0.3); color: #1da1f2; text-decoration: none; border-radius: 0.75rem; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: all 0.3s;">
+                                    <a href="${token.twitter}" target="_blank" style="padding: 1rem; background: rgba(29, 161, 242, 0.1); border: 1px solid rgba(29, 161, 242, 0.3); color: #1da1f2; text-decoration: none; border-radius: 0.75rem; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: all 0.3s;" onmouseenter="this.style.transform='scale(1.05)'; this.style.background='rgba(29, 161, 242, 0.2)'; this.style.boxShadow='0 4px 12px rgba(29, 161, 242, 0.3)';" onmouseleave="this.style.transform='scale(1)'; this.style.background='rgba(29, 161, 242, 0.1)'; this.style.boxShadow='none';">
                                         <span style="font-size: 1.25rem;">🐦</span>
                                         <span>Twitter</span>
+                                    </a>
+                                ` : ''}
+                                ${token.website ? `
+                                    <a href="${token.website}" target="_blank" style="padding: 1rem; background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); color: #8b5cf6; text-decoration: none; border-radius: 0.75rem; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: all 0.3s;" onmouseenter="this.style.transform='scale(1.05)'; this.style.background='rgba(139, 92, 246, 0.2)'; this.style.boxShadow='0 4px 12px rgba(139, 92, 246, 0.3)';" onmouseleave="this.style.transform='scale(1)'; this.style.background='rgba(139, 92, 246, 0.1)'; this.style.boxShadow='none';">
+                                        <span style="font-size: 1.25rem;">🌐</span>
+                                        <span>Website</span>
+                                    </a>
+                                ` : ''}
+                                ${token.telegram ? `
+                                    <a href="${token.telegram}" target="_blank" style="padding: 1rem; background: rgba(34, 197, 233, 0.1); border: 1px solid rgba(34, 197, 233, 0.3); color: #22c5e9; text-decoration: none; border-radius: 0.75rem; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: all 0.3s;" onmouseenter="this.style.transform='scale(1.05)'; this.style.background='rgba(34, 197, 233, 0.2)'; this.style.boxShadow='0 4px 12px rgba(34, 197, 233, 0.3)';" onmouseleave="this.style.transform='scale(1)'; this.style.background='rgba(34, 197, 233, 0.1)'; this.style.boxShadow='none';">
+                                        <span style="font-size: 1.25rem;">✈️</span>
+                                        <span>Telegram</span>
+                                    </a>
+                                ` : ''}
+                                ${token.discord ? `
+                                    <a href="${token.discord}" target="_blank" style="padding: 1rem; background: rgba(88, 101, 242, 0.1); border: 1px solid rgba(88, 101, 242, 0.3); color: #5865f2; text-decoration: none; border-radius: 0.75rem; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: all 0.3s;" onmouseenter="this.style.transform='scale(1.05)'; this.style.background='rgba(88, 101, 242, 0.2)'; this.style.boxShadow='0 4px 12px rgba(88, 101, 242, 0.3)';" onmouseleave="this.style.transform='scale(1)'; this.style.background='rgba(88, 101, 242, 0.1)'; this.style.boxShadow='none';">
+                                        <span style="font-size: 1.25rem;">💬</span>
+                                        <span>Discord</span>
                                     </a>
                                 ` : ''}
                             </div>
@@ -1186,7 +1249,16 @@
         }
 
         // AI Token Analysis
-        async function analyzeTokenWithAI(address, chain, tokenData, buttonElement) {
+        async function analyzeTokenWithAI(tokenIndex, buttonElement) {
+            // Get token data from global array
+            const tokenData = window.currentTokens[tokenIndex];
+            if (!tokenData) {
+                console.error('Token not found at index:', tokenIndex);
+                return;
+            }
+
+            const address = tokenData.address;
+            const chain = tokenData.chain;
             const resultDiv = document.getElementById(`ai-result-${address}`);
             const contentDiv = document.getElementById(`ai-content-${address}`);
 
