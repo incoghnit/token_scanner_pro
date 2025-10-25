@@ -739,7 +739,9 @@ class TokenScanner:
                     "error": data.get("status", {}).get("error_message", "Unknown error")
                 }
 
-            # V2 API returns data as dict with IDs as keys
+            # V2 API returns data differently for symbol vs slug
+            # Symbol: {"ETH": [array of tokens]}
+            # Slug/ID: {"1027": {token object}}
             token_data = data.get("data", {})
 
             if not token_data:
@@ -750,26 +752,48 @@ class TokenScanner:
 
             # Formatter les résultats
             tokens = []
-            for token_id, token_info in token_data.items():
-                # Pour les recherches par symbol, on peut avoir plusieurs résultats
-                # car le symbol n'est pas unique (ex: multiple tokens avec "BTC")
-                token = {
-                    "id": token_info.get("id"),
-                    "name": token_info.get("name"),
-                    "symbol": token_info.get("symbol"),
-                    "slug": token_info.get("slug"),
-                    "description": token_info.get("description"),
-                    "logo": token_info.get("logo"),
-                    "date_added": token_info.get("date_added"),
-                    "date_launched": token_info.get("date_launched"),
-                    "tags": token_info.get("tags", []),
-                    "category": token_info.get("category"),
-                    "platform": token_info.get("platform"),
-                    "urls": token_info.get("urls", {}),
-                    "infinite_supply": token_info.get("infinite_supply", False),
-                    "notice": token_info.get("notice")
-                }
-                tokens.append(token)
+
+            for key, value in token_data.items():
+                # Check if value is a list (symbol search) or dict (slug/id search)
+                if isinstance(value, list):
+                    # Symbol search returns array of tokens
+                    for token_info in value:
+                        token = {
+                            "id": token_info.get("id"),
+                            "name": token_info.get("name"),
+                            "symbol": token_info.get("symbol"),
+                            "slug": token_info.get("slug"),
+                            "description": token_info.get("description"),
+                            "logo": token_info.get("logo"),
+                            "date_added": token_info.get("date_added"),
+                            "date_launched": token_info.get("date_launched"),
+                            "tags": token_info.get("tags", []),
+                            "category": token_info.get("category"),
+                            "platform": token_info.get("platform"),
+                            "urls": token_info.get("urls", {}),
+                            "infinite_supply": token_info.get("infinite_supply", False),
+                            "notice": token_info.get("notice")
+                        }
+                        tokens.append(token)
+                elif isinstance(value, dict):
+                    # Slug/ID search returns single token object
+                    token = {
+                        "id": value.get("id"),
+                        "name": value.get("name"),
+                        "symbol": value.get("symbol"),
+                        "slug": value.get("slug"),
+                        "description": value.get("description"),
+                        "logo": value.get("logo"),
+                        "date_added": value.get("date_added"),
+                        "date_launched": value.get("date_launched"),
+                        "tags": value.get("tags", []),
+                        "category": value.get("category"),
+                        "platform": value.get("platform"),
+                        "urls": value.get("urls", {}),
+                        "infinite_supply": value.get("infinite_supply", False),
+                        "notice": value.get("notice")
+                    }
+                    tokens.append(token)
 
             print(f"✅ Found {len(tokens)} token(s)")
 
