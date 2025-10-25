@@ -214,6 +214,47 @@
             border-radius: 1rem;
             padding: 2rem;
             backdrop-filter: blur(20px);
+            max-width: 100%;
+            overflow-x: hidden; /* Prevent horizontal scroll in scanner section */
+        }
+
+        /* Scan results container - prevent overflow */
+        #scan-results {
+            max-width: 100%;
+            overflow-x: hidden;
+            word-wrap: break-word;
+        }
+
+        /* Token cards - constrain width */
+        #scan-results > div {
+            max-width: 100%;
+            overflow: hidden;
+        }
+
+        /* Token stats grid - make responsive */
+        #scan-results div[style*="grid-template-columns: repeat(4, 1fr)"] {
+            display: grid !important;
+            grid-template-columns: repeat(4, 1fr) !important;
+            gap: 0.5rem !important;
+        }
+
+        /* Reduce to 2 columns on medium screens */
+        @media (max-width: 1200px) {
+            #scan-results div[style*="grid-template-columns: repeat(4, 1fr)"] {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+        }
+
+        /* Prevent long text overflow in token cards */
+        #scan-results div[style*="font-family: monospace"] {
+            word-break: break-all;
+            overflow-wrap: break-word;
+        }
+
+        /* Constrain activity feed sections too */
+        .activity-feed {
+            max-width: 100%;
+            overflow-x: hidden;
         }
 
         .section-header {
@@ -334,67 +375,7 @@
             color: var(--text-tertiary);
         }
 
-        /* Auto-Scan Preview */
-        .autoscan-preview {
-            background: var(--bg-card);
-            border: 1px solid var(--border-subtle);
-            border-radius: 1rem;
-            padding: 2rem;
-            backdrop-filter: blur(20px);
-            margin-bottom: 2rem;
-        }
-
-        .autoscan-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-        }
-
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 1rem;
-            background: rgba(32, 227, 178, 0.1);
-            border: 1px solid var(--accent-success);
-            border-radius: 2rem;
-            font-size: 0.875rem;
-            font-weight: 600;
-            color: var(--accent-success);
-        }
-
-        .pulse-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--accent-success);
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.5; transform: scale(1.2); }
-        }
-
-        .tokens-preview {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 1rem;
-        }
-
-        .token-card-mini {
-            background: var(--bg-glass);
-            border: 1px solid var(--border-subtle);
-            border-radius: 0.75rem;
-            padding: 1rem;
-            transition: all 0.2s;
-        }
-
-        .token-card-mini:hover {
-            border-color: var(--accent-primary);
-            transform: translateY(-2px);
-        }
+        /* Auto-Scan styles removed - feature not useful */
 
         .loading {
             text-align: center;
@@ -695,32 +676,6 @@
             }
         </style>
 
-        <!-- Auto-Scan Preview -->
-        <div class="autoscan-preview" id="autoscan-preview" style="display: none;">
-            <div class="autoscan-header">
-                <div>
-                    <h2 class="section-title">🤖 Tokens Auto-Scannés</h2>
-                    <p style="color: var(--text-secondary); font-size: 0.875rem; margin-top: 0.5rem;">
-                        Les derniers tokens détectés automatiquement
-                    </p>
-                </div>
-                <div>
-                    <span class="status-badge">
-                        <span class="pulse-dot"></span>
-                        <span>Scanner actif</span>
-                    </span>
-                </div>
-            </div>
-
-            <div id="autoscan-tokens" class="tokens-preview"></div>
-
-            <div style="text-align: center; margin-top: 1.5rem;">
-                <a href="/auto-scan" class="btn btn-primary">
-                    Voir tous les tokens →
-                </a>
-            </div>
-        </div>
-
         <!-- Main Grid -->
         <div class="main-grid">
             <!-- Scanner Section -->
@@ -745,12 +700,6 @@
                     <span style="font-size: 1.25rem;">🚀</span>
                     <span>Lancer le Scanner IA</span>
                 </button>
-
-                <!-- Auto-scan countdown indicator -->
-                <div id="auto-scan-countdown" style="margin-top: 1rem; text-align: center; padding: 0.75rem; background: var(--bg-glass); border-radius: 0.5rem; font-size: 0.875rem; color: var(--text-secondary); display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-                    <span style="opacity: 0.6;">⏰</span>
-                    <span>Prochain scan automatique dans <strong id="countdown-timer" style="color: var(--accent-primary);">5:00</strong></span>
-                </div>
 
                 <div id="scan-progress" style="margin-top: 1.5rem; display: none;">
                     <div class="loading">
@@ -815,45 +764,6 @@
                 }
             } catch (error) {
                 console.error('Error loading user info:', error);
-            }
-        }
-
-        // Load auto-scan preview
-        async function loadAutoScanPreview() {
-            try {
-                const response = await fetch('/api/auto-scan/tokens/recent?limit=6');
-                const data = await response.json();
-
-                if (data.success && data.tokens.length > 0) {
-                    const container = document.getElementById('autoscan-tokens');
-                    container.innerHTML = '';
-
-                    data.tokens.slice(0, 6).forEach(token => {
-                        const card = document.createElement('div');
-                        card.className = 'token-card-mini';
-                        card.innerHTML = `
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                                <div style="font-weight: 600; font-size: 0.875rem;">${token.chain.toUpperCase()}</div>
-                                <div style="font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: 0.5rem; ${token.is_safe ? 'background: rgba(32, 227, 178, 0.1); color: #20e3b2;' : 'background: rgba(245, 87, 108, 0.1); color: #f5576c;'}">
-                                    ${token.is_safe ? '✅ Sûr' : '⚠️ Risqué'}
-                                </div>
-                            </div>
-                            <div style="font-family: monospace; font-size: 0.75rem; color: var(--text-tertiary); margin-bottom: 0.5rem;">
-                                ${token.address.substring(0, 8)}...${token.address.substring(token.address.length - 6)}
-                            </div>
-                            <div style="font-size: 0.75rem; color: var(--text-secondary);">
-                                Risk: ${token.risk_score}/100
-                            </div>
-                        `;
-                        card.style.cursor = 'pointer';
-                        card.addEventListener('click', () => {
-                            window.location.href = `/auto-scan`;
-                        });
-                        container.appendChild(card);
-                    });
-                }
-            } catch (error) {
-                console.error('Error:', error);
             }
         }
 
@@ -998,22 +908,45 @@
         // Load tokens from database on page load
         async function loadTokensFromDatabase() {
             try {
+                console.log('🔄 Loading tokens from database...');
                 const response = await fetch('/api/scanned-tokens?limit=50');
                 const data = await response.json();
+
+                console.log('📡 API Response:', data);
 
                 if (data.success && data.tokens && data.tokens.length > 0) {
                     console.log(`📦 Chargement de ${data.tokens.length} tokens depuis la BDD`);
 
                     // Transform database format to scan results format
                     const transformedResults = data.tokens.map(token => {
-                        const tokenData = token.token_data || {};
+                        // Parse token_data if it's a string
+                        let tokenData = token.token_data;
+                        if (typeof tokenData === 'string') {
+                            try {
+                                tokenData = JSON.parse(tokenData);
+                            } catch (e) {
+                                console.warn('Failed to parse token_data:', e);
+                                tokenData = {};
+                            }
+                        }
+                        tokenData = tokenData || {};
+
                         return {
                             address: token.token_address,
                             chain: token.token_chain,
                             risk_score: token.risk_score || 50,
-                            is_safe: token.is_safe,
-                            is_pump_dump_suspect: token.is_pump_dump_suspect,
-                            ...tokenData  // Merge all token data (market, security, etc.)
+                            is_safe: token.is_safe !== undefined ? token.is_safe : false,
+                            is_pump_dump_suspect: token.is_pump_dump_suspect || false,
+                            description: tokenData.description || token.token_address?.substring(0, 10) + '...',
+                            icon: tokenData.icon || null,
+                            market: tokenData.market || {},
+                            security: tokenData.security || {},
+                            twitter_data: tokenData.twitter_data || {},
+                            social_score: tokenData.social_score || 0,
+                            pump_dump_score: tokenData.pump_dump_score || 0,
+                            pump_dump_risk: tokenData.pump_dump_risk || 'UNKNOWN',
+                            warnings: tokenData.warnings || [],
+                            ...tokenData  // Merge all remaining token data
                         };
                     });
 

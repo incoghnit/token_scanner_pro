@@ -291,10 +291,7 @@ def dashboard():
     """Dashboard de trading"""
     return render_template('trading_dashboard.html')
 
-@app.route('/auto-scan')
-def auto_scan_page():
-    """Page Auto-Scan 24/7"""
-    return render_template('auto_scan.html')
+# Auto-scan route removed - feature not useful
 
 @app.route('/alerts')
 def alerts_page():
