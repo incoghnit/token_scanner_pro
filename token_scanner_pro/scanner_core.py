@@ -466,6 +466,23 @@ class TokenScanner:
                     social_score, social_details = self.calculate_social_score(twitter_data)
                 time.sleep(1)
 
+        # Extract social links from links array
+        links = token_info.get('links', [])
+        website = None
+        telegram = None
+        discord = None
+
+        for link in links:
+            link_type = link.get('type', '').lower()
+            link_url = link.get('url', '')
+
+            if link_type == 'website':
+                website = link_url
+            elif link_type == 'telegram':
+                telegram = link_url
+            elif link_type == 'discord':
+                discord = link_url
+
         self.current_progress += 1
 
         return {
@@ -475,6 +492,9 @@ class TokenScanner:
             "icon": icon,
             "description": token_info.get('description'),
             "twitter": token_info.get('twitter'),
+            "website": website,
+            "telegram": telegram,
+            "discord": discord,
             "twitter_data": twitter_data,
             "social_score": social_score,
             "social_details": social_details,

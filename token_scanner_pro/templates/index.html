@@ -998,224 +998,174 @@
                     const formatChange = (val) => (val >= 0 ? '+' : '') + val.toFixed(2) + '%';
 
                     return `
-                        <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 1rem; padding: 1.5rem; margin-bottom: 1.5rem; backdrop-filter: blur(20px); transition: all 0.3s ease; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); position: relative;" onmouseenter="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 12px 24px rgba(102, 126, 234, 0.2)'; this.style.borderColor='var(--accent-primary)';" onmouseleave="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 6px rgba(0, 0, 0, 0.1)'; this.style.borderColor='var(--border-subtle)';">
-                            <!-- Favorite Button (Top Left) -->
-                            <button onclick="toggleFavorite('${token.address}', '${token.chain}', ${index})" id="fav-btn-${token.address}" style="position: absolute; top: 1rem; left: 1rem; background: rgba(0, 0, 0, 0.5); border: 1px solid var(--border-subtle); border-radius: 0.5rem; padding: 0.5rem 0.75rem; cursor: pointer; transition: all 0.3s; z-index: 10; backdrop-filter: blur(10px);" onmouseenter="this.style.transform='scale(1.1)'; this.style.background='rgba(255, 215, 0, 0.2)'; this.style.borderColor='#ffd700';" onmouseleave="this.style.transform='scale(1)'; this.style.background='rgba(0, 0, 0, 0.5)'; this.style.borderColor='var(--border-subtle)';">
-                                <span style="font-size: 1.25rem;">⭐</span>
-                            </button>
+                        <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 0.75rem; padding: 1rem; margin-bottom: 1rem; backdrop-filter: blur(20px); transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); position: relative;" onmouseenter="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(102, 126, 234, 0.15)'; this.style.borderColor='var(--accent-primary)';" onmouseleave="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(0, 0, 0, 0.1)'; this.style.borderColor='var(--border-subtle)';">
 
-                            <!-- Header with Icon -->
-                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1.5rem; margin-top: 2rem;">
-                                <div style="display: flex; gap: 1rem; align-items: start; flex: 1;">
+                            <!-- Compact Header -->
+                            <div style="display: flex; gap: 0.75rem; align-items: start; margin-bottom: 0.75rem;">
+                                <!-- Icon + Favorite -->
+                                <div style="position: relative;">
                                     ${token.icon ? `
-                                        <img src="${token.icon}" alt="Token Icon" style="width: 64px; height: 64px; border-radius: 1rem; background: var(--bg-glass); padding: 0.5rem;" onerror="this.style.display='none'">
+                                        <img src="${token.icon}" alt="${token.description || 'Token'}" style="width: 48px; height: 48px; border-radius: 0.5rem; background: var(--bg-glass); padding: 0.25rem;" onerror="this.style.display='none'">
                                     ` : `
-                                        <div style="width: 64px; height: 64px; border-radius: 1rem; background: var(--gradient-primary); display: flex; align-items: center; justify-content: center; font-size: 2rem;">🪙</div>
+                                        <div style="width: 48px; height: 48px; border-radius: 0.5rem; background: var(--gradient-primary); display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">🪙</div>
                                     `}
-                                    <div style="flex: 1;">
-                                        <h4 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem;">
-                                            ${token.description || 'Token ' + (index + 1)}
-                                        </h4>
-                                        <div style="font-family: monospace; font-size: 0.875rem; color: var(--text-tertiary); margin-bottom: 0.5rem;">
-                                            ${token.address.substring(0, 12)}...${token.address.substring(token.address.length - 8)}
-                                        </div>
-                                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                                            <span style="background: var(--bg-glass); padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">
-                                                ${token.chain}
-                                            </span>
-                                            ${token.is_safe ? '<span style="background: rgba(34, 197, 94, 0.2); color: #22c55e; padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.75rem; font-weight: 600;">✅ SAFE</span>' : '<span style="background: rgba(239, 68, 68, 0.2); color: #ef4444; padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.75rem; font-weight: 600;">⚠️ RISKY</span>'}
-                                            ${token.is_pump_dump_suspect ? '<span style="background: rgba(239, 68, 68, 0.2); color: #ef4444; padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.75rem; font-weight: 600;">🚨 P&D</span>' : ''}
-                                        </div>
+                                    <button onclick="toggleFavorite('${token.address}', '${token.chain}', ${index})" id="fav-btn-${token.address}" style="position: absolute; top: -6px; right: -6px; background: rgba(0, 0, 0, 0.7); border: 1px solid var(--border-subtle); border-radius: 50%; width: 24px; height: 24px; cursor: pointer; transition: all 0.2s; z-index: 10; display: flex; align-items: center; justify-content: center; padding: 0;" onmouseenter="this.style.transform='scale(1.15)'; this.style.background='rgba(255, 215, 0, 0.3)'; this.style.borderColor='#ffd700';" onmouseleave="this.style.transform='scale(1)'; this.style.background='rgba(0, 0, 0, 0.7)'; this.style.borderColor='var(--border-subtle)';">
+                                        <span style="font-size: 0.75rem;">⭐</span>
+                                    </button>
+                                </div>
+
+                                <!-- Title + Badges -->
+                                <div style="flex: 1; min-width: 0;">
+                                    <h4 style="font-size: 1rem; font-weight: 700; margin-bottom: 0.25rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                        ${token.description || 'Token ' + (index + 1)}
+                                    </h4>
+                                    <div style="font-family: monospace; font-size: 0.75rem; color: var(--text-tertiary); margin-bottom: 0.4rem;">
+                                        ${token.address.substring(0, 8)}...${token.address.substring(token.address.length - 6)}
+                                    </div>
+                                    <div style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
+                                        <span style="background: var(--bg-glass); padding: 0.15rem 0.5rem; border-radius: 0.75rem; font-size: 0.7rem; text-transform: uppercase; font-weight: 600;">
+                                            ${token.chain}
+                                        </span>
+                                        ${token.is_safe ? '<span style="background: rgba(34, 197, 94, 0.2); color: #22c55e; padding: 0.15rem 0.5rem; border-radius: 0.75rem; font-size: 0.7rem; font-weight: 600;">✅ SAFE</span>' : '<span style="background: rgba(239, 68, 68, 0.2); color: #ef4444; padding: 0.15rem 0.5rem; border-radius: 0.75rem; font-size: 0.7rem; font-weight: 600;">⚠️ RISKY</span>'}
+                                        ${token.is_pump_dump_suspect ? '<span style="background: rgba(239, 68, 68, 0.2); color: #ef4444; padding: 0.15rem 0.5rem; border-radius: 0.75rem; font-size: 0.7rem; font-weight: 600;">🚨 P&D</span>' : ''}
                                     </div>
                                 </div>
+
+                                <!-- Risk Score + Price -->
                                 <div style="text-align: right;">
-                                    <div style="background: ${riskColor}; color: white; padding: 0.75rem 1.25rem; border-radius: 0.75rem; font-weight: 700; font-size: 1.125rem; margin-bottom: 0.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
-                                        Risk ${token.risk_score}/100
+                                    <div style="background: ${riskColor}; color: white; padding: 0.4rem 0.75rem; border-radius: 0.5rem; font-weight: 700; font-size: 0.875rem; margin-bottom: 0.35rem; box-shadow: 0 2px 8px rgba(0,0,0,0.2); white-space: nowrap;">
+                                        ${token.risk_score}
                                     </div>
                                     ${hasMarketData ? `
-                                        <div style="font-size: 1.25rem; font-weight: 700; margin-bottom: 0.25rem;">
+                                        <div style="font-size: 1rem; font-weight: 700; margin-bottom: 0.15rem;">
                                             ${formatPrice(price)}
                                         </div>
-                                        <div style="color: ${colorChange(change24h)}; font-weight: 600; font-size: 1rem;">
-                                            ${formatChange(change24h)} 24h
+                                        <div style="color: ${colorChange(change24h)}; font-weight: 600; font-size: 0.75rem;">
+                                            ${formatChange(change24h)}
                                         </div>
-                                    ` : '<div style="color: var(--text-tertiary); font-size: 0.875rem;">No price data</div>'}
+                                    ` : '<div style="color: var(--text-tertiary); font-size: 0.7rem;">No data</div>'}
                                 </div>
                             </div>
 
-                            ${!hasMarketData ? `
-                                <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 0.75rem; padding: 1rem; margin-bottom: 1.5rem;">
-                                    <div style="color: #ef4444; font-weight: 600;">
-                                        ⚠️ Market data unavailable (API blocked)
-                                    </div>
-                                </div>
-                            ` : ''}
-
-                            <!-- Price Changes -->
+                            <!-- Quick Stats (2x4 Grid) -->
                             ${hasMarketData ? `
-                                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
-                                    <div style="background: var(--bg-glass); border-radius: 0.75rem; padding: 1rem; text-align: center;">
-                                        <div style="font-size: 0.75rem; color: var(--text-tertiary); margin-bottom: 0.25rem;">1H Change</div>
-                                        <div style="font-size: 1.125rem; font-weight: 700; color: ${colorChange(change1h)};">${formatChange(change1h)}</div>
+                                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; margin-bottom: 0.75rem;">
+                                    <div style="background: var(--bg-glass); border-radius: 0.5rem; padding: 0.5rem; text-align: center;">
+                                        <div style="font-size: 0.65rem; color: var(--text-tertiary); margin-bottom: 0.15rem;">💧 Liq</div>
+                                        <div style="font-weight: 700; font-size: 0.75rem;">$${formatNumber(liquidity)}</div>
                                     </div>
-                                    <div style="background: var(--bg-glass); border-radius: 0.75rem; padding: 1rem; text-align: center;">
-                                        <div style="font-size: 0.75rem; color: var(--text-tertiary); margin-bottom: 0.25rem;">6H Change</div>
-                                        <div style="font-size: 1.125rem; font-weight: 700; color: ${colorChange(change6h)};">${formatChange(change6h)}</div>
+                                    <div style="background: var(--bg-glass); border-radius: 0.5rem; padding: 0.5rem; text-align: center;">
+                                        <div style="font-size: 0.65rem; color: var(--text-tertiary); margin-bottom: 0.15rem;">📊 Vol</div>
+                                        <div style="font-weight: 700; font-size: 0.75rem;">$${formatNumber(volume24h)}</div>
                                     </div>
-                                    <div style="background: var(--bg-glass); border-radius: 0.75rem; padding: 1rem; text-align: center;">
-                                        <div style="font-size: 0.75rem; color: var(--text-tertiary); margin-bottom: 0.25rem;">24H Change</div>
-                                        <div style="font-size: 1.125rem; font-weight: 700; color: ${colorChange(change24h)};">${formatChange(change24h)}</div>
+                                    <div style="background: var(--bg-glass); border-radius: 0.5rem; padding: 0.5rem; text-align: center;">
+                                        <div style="font-size: 0.65rem; color: var(--text-tertiary); margin-bottom: 0.15rem;">💎 MCap</div>
+                                        <div style="font-weight: 700; font-size: 0.75rem;">$${formatNumber(marketCap)}</div>
                                     </div>
-                                </div>
-                            ` : ''}
-
-                            <!-- Market Stats Grid -->
-                            ${hasMarketData ? `
-                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
-                                    <div style="background: var(--bg-glass); border-radius: 0.75rem; padding: 1rem;">
-                                        <div style="font-size: 0.75rem; color: var(--text-tertiary); margin-bottom: 0.25rem;">💧 Liquidity</div>
-                                        <div style="font-weight: 700; font-size: 1rem;">$${formatNumber(liquidity)}</div>
+                                    <div style="background: var(--bg-glass); border-radius: 0.5rem; padding: 0.5rem; text-align: center;">
+                                        <div style="font-size: 0.65rem; color: var(--text-tertiary); margin-bottom: 0.15rem;">⏰ Age</div>
+                                        <div style="font-weight: 700; font-size: 0.7rem;">${pairAge !== 'N/A' ? Math.floor((Date.now() - pairAge * 1000) / (1000 * 60 * 60)) + 'h' : 'N/A'}</div>
                                     </div>
-                                    <div style="background: var(--bg-glass); border-radius: 0.75rem; padding: 1rem;">
-                                        <div style="font-size: 0.75rem; color: var(--text-tertiary); margin-bottom: 0.25rem;">📊 Volume 24h</div>
-                                        <div style="font-weight: 700; font-size: 1rem;">$${formatNumber(volume24h)}</div>
+                                    <div style="background: var(--bg-glass); border-radius: 0.5rem; padding: 0.5rem; text-align: center;">
+                                        <div style="font-size: 0.65rem; color: var(--text-tertiary); margin-bottom: 0.15rem;">1H</div>
+                                        <div style="font-weight: 700; font-size: 0.75rem; color: ${colorChange(change1h)};">${formatChange(change1h)}</div>
                                     </div>
-                                    <div style="background: var(--bg-glass); border-radius: 0.75rem; padding: 1rem;">
-                                        <div style="font-size: 0.75rem; color: var(--text-tertiary); margin-bottom: 0.25rem;">📈 Volume 6h</div>
-                                        <div style="font-weight: 700; font-size: 1rem;">$${formatNumber(volume6h)}</div>
+                                    <div style="background: var(--bg-glass); border-radius: 0.5rem; padding: 0.5rem; text-align: center;">
+                                        <div style="font-size: 0.65rem; color: var(--text-tertiary); margin-bottom: 0.15rem;">6H</div>
+                                        <div style="font-weight: 700; font-size: 0.75rem; color: ${colorChange(change6h)};">${formatChange(change6h)}</div>
                                     </div>
-                                    <div style="background: var(--bg-glass); border-radius: 0.75rem; padding: 1rem;">
-                                        <div style="font-size: 0.75rem; color: var(--text-tertiary); margin-bottom: 0.25rem;">💎 Market Cap</div>
-                                        <div style="font-weight: 700; font-size: 1rem;">$${formatNumber(marketCap)}</div>
+                                    <div style="background: var(--bg-glass); border-radius: 0.5rem; padding: 0.5rem; text-align: center;">
+                                        <div style="font-size: 0.65rem; color: var(--text-tertiary); margin-bottom: 0.15rem;">🟢 Buys</div>
+                                        <div style="font-weight: 700; font-size: 0.75rem; color: #22c55e;">${buys}</div>
                                     </div>
-                                    <div style="background: var(--bg-glass); border-radius: 0.75rem; padding: 1rem;">
-                                        <div style="font-size: 0.75rem; color: var(--text-tertiary); margin-bottom: 0.25rem;">🟢 Buys 24h</div>
-                                        <div style="font-weight: 700; font-size: 1rem; color: #22c55e;">${buys}</div>
-                                    </div>
-                                    <div style="background: var(--bg-glass); border-radius: 0.75rem; padding: 1rem;">
-                                        <div style="font-size: 0.75rem; color: var(--text-tertiary); margin-bottom: 0.25rem;">🔴 Sells 24h</div>
-                                        <div style="font-weight: 700; font-size: 1rem; color: #ef4444;">${sells}</div>
-                                    </div>
-                                    <div style="background: var(--bg-glass); border-radius: 0.75rem; padding: 1rem;">
-                                        <div style="font-size: 0.75rem; color: var(--text-tertiary); margin-bottom: 0.25rem;">⏰ Pair Age</div>
-                                        <div style="font-weight: 700; font-size: 0.875rem;">${pairAge !== 'N/A' ? new Date(pairAge * 1000).toLocaleDateString() : 'N/A'}</div>
-                                    </div>
-                                    ${hasSecurity ? `
-                                        <div style="background: var(--bg-glass); border-radius: 0.75rem; padding: 1rem;">
-                                            <div style="font-size: 0.75rem; color: var(--text-tertiary); margin-bottom: 0.25rem;">👥 Holders</div>
-                                            <div style="font-weight: 700; font-size: 1rem;">${holders !== 'N/A' ? formatNumber(parseInt(holders)) : 'N/A'}</div>
-                                        </div>
-                                    ` : ''}
-                                </div>
-                            ` : ''}
-
-                            <!-- Security Section -->
-                            ${hasSecurity ? `
-                                <div style="background: var(--bg-glass); border-radius: 0.75rem; padding: 1.25rem; margin-bottom: 1.5rem;">
-                                    <h5 style="font-weight: 700; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
-                                        <span>🔒</span> Security Analysis
-                                    </h5>
-                                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
-                                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0;">
-                                            <span style="color: var(--text-secondary);">Buy Tax</span>
-                                            <span style="font-weight: 600; color: ${buyTax > 10 ? '#ef4444' : '#22c55e'};">${buyTax.toFixed(1)}%</span>
-                                        </div>
-                                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0;">
-                                            <span style="color: var(--text-secondary);">Sell Tax</span>
-                                            <span style="font-weight: 600; color: ${sellTax > 10 ? '#ef4444' : '#22c55e'};">${sellTax.toFixed(1)}%</span>
-                                        </div>
-                                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0;">
-                                            <span style="color: var(--text-secondary);">Honeypot</span>
-                                            <span style="font-weight: 600; color: ${isHoneypot ? '#ef4444' : '#22c55e'};">${isHoneypot ? '❌ Yes' : '✅ No'}</span>
-                                        </div>
-                                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0;">
-                                            <span style="color: var(--text-secondary);">Mintable</span>
-                                            <span style="font-weight: 600; color: ${isMintable ? '#f59e0b' : '#22c55e'};">${isMintable ? '⚠️ Yes' : '✅ No'}</span>
-                                        </div>
-                                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0;">
-                                            <span style="color: var(--text-secondary);">Open Source</span>
-                                            <span style="font-weight: 600; color: ${isOpenSource ? '#22c55e' : '#f59e0b'};">${isOpenSource ? '✅ Yes' : '⚠️ No'}</span>
-                                        </div>
+                                    <div style="background: var(--bg-glass); border-radius: 0.5rem; padding: 0.5rem; text-align: center;">
+                                        <div style="font-size: 0.65rem; color: var(--text-tertiary); margin-bottom: 0.15rem;">🔴 Sells</div>
+                                        <div style="font-weight: 700; font-size: 0.75rem; color: #ef4444;">${sells}</div>
                                     </div>
                                 </div>
-                            ` : ''}
+                            ` : `
+                                <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 0.5rem; padding: 0.75rem; margin-bottom: 0.75rem;">
+                                    <div style="color: #ef4444; font-weight: 600; font-size: 0.75rem; text-align: center;">
+                                        ⚠️ Market data unavailable
+                                    </div>
+                                </div>
+                            `}
 
-                            <!-- Social & Pump/Dump Scores -->
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
-                                ${hasTwitter ? `
-                                    <div style="background: linear-gradient(135deg, rgba(29, 161, 242, 0.1) 0%, rgba(29, 161, 242, 0.05) 100%); border: 1px solid rgba(29, 161, 242, 0.3); border-radius: 0.75rem; padding: 1.25rem;">
-                                        <h5 style="font-weight: 700; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
-                                            <span>🐦</span> Social Score
-                                        </h5>
-                                        <div style="font-size: 2rem; font-weight: 700; color: #1da1f2; margin-bottom: 0.5rem;">${socialScore}/100</div>
-                                        <div style="display: flex; justify-content: space-between; font-size: 0.875rem; color: var(--text-secondary);">
-                                            <span>👥 ${formatNumber(followers)} followers</span>
-                                            <span>💬 ${formatNumber(tweets)} tweets</span>
+                            <!-- Compact Security + P&D Row -->
+                            <div style="display: grid; grid-template-columns: ${hasSecurity && hasTwitter ? 'repeat(3, 1fr)' : hasSecurity || hasTwitter ? 'repeat(2, 1fr)' : '1fr'}; gap: 0.5rem; margin-bottom: 0.75rem;">
+                                ${hasSecurity ? `
+                                    <div style="background: var(--bg-glass); border-radius: 0.5rem; padding: 0.75rem;">
+                                        <div style="font-size: 0.7rem; color: var(--text-tertiary); margin-bottom: 0.4rem; font-weight: 600;">🔒 SECURITY</div>
+                                        <div style="display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.7rem;">
+                                            <div style="display: flex; justify-content: space-between;">
+                                                <span>Tax:</span>
+                                                <span style="font-weight: 600; color: ${(buyTax + sellTax) > 15 ? '#ef4444' : '#22c55e'};">${buyTax.toFixed(1)}%/${sellTax.toFixed(1)}%</span>
+                                            </div>
+                                            <div style="display: flex; justify-content: space-between;">
+                                                <span>HP:</span>
+                                                <span style="font-weight: 600; color: ${isHoneypot ? '#ef4444' : '#22c55e'};">${isHoneypot ? '❌' : '✅'}</span>
+                                            </div>
                                         </div>
                                     </div>
                                 ` : ''}
-                                <div style="background: linear-gradient(135deg, ${pumpColor}22 0%, ${pumpColor}11 100%); border: 1px solid ${pumpColor}; border-radius: 0.75rem; padding: 1.25rem;">
-                                    <h5 style="font-weight: 700; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
-                                        <span>🚨</span> Pump & Dump Risk
-                                    </h5>
-                                    <div style="font-size: 2rem; font-weight: 700; color: ${pumpColor}; margin-bottom: 0.5rem;">${pumpScore}/100</div>
-                                    <div style="font-size: 0.875rem; font-weight: 600; color: ${pumpColor};">${pumpRisk}</div>
+                                ${hasTwitter ? `
+                                    <div style="background: linear-gradient(135deg, rgba(29, 161, 242, 0.1) 0%, rgba(29, 161, 242, 0.05) 100%); border: 1px solid rgba(29, 161, 242, 0.2); border-radius: 0.5rem; padding: 0.75rem;">
+                                        <div style="font-size: 0.7rem; color: #1da1f2; margin-bottom: 0.3rem; font-weight: 600;">🐦 SOCIAL</div>
+                                        <div style="font-size: 1.25rem; font-weight: 700; color: #1da1f2;">${socialScore}/100</div>
+                                        <div style="font-size: 0.65rem; color: var(--text-tertiary);">${formatNumber(followers)} followers</div>
+                                    </div>
+                                ` : ''}
+                                <div style="background: linear-gradient(135deg, ${pumpColor}15 0%, ${pumpColor}08 100%); border: 1px solid ${pumpColor}66; border-radius: 0.5rem; padding: 0.75rem;">
+                                    <div style="font-size: 0.7rem; color: ${pumpColor}; margin-bottom: 0.3rem; font-weight: 600;">🚨 P&D RISK</div>
+                                    <div style="font-size: 1.25rem; font-weight: 700; color: ${pumpColor};">${pumpScore}/100</div>
+                                    <div style="font-size: 0.65rem; font-weight: 600; color: ${pumpColor};">${pumpRisk}</div>
                                 </div>
                             </div>
 
-                            <!-- Warnings -->
-                            ${token.warnings && token.warnings.length > 0 ? `
-                                <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 0.75rem; padding: 1.25rem; margin-bottom: 1.5rem;">
-                                    <div style="font-weight: 700; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
-                                        <span>⚠️</span> Risk Warnings
+                            <!-- Compact Warnings -->
+                            ${(token.warnings && token.warnings.length > 0) || (token.pump_dump_warnings && token.pump_dump_warnings.length > 0) ? `
+                                <div style="background: rgba(239, 68, 68, 0.08); border-left: 3px solid #ef4444; border-radius: 0.5rem; padding: 0.6rem 0.75rem; margin-bottom: 0.75rem;">
+                                    <div style="font-weight: 600; font-size: 0.75rem; color: #ef4444; margin-bottom: 0.4rem;">⚠️ WARNINGS</div>
+                                    <div style="font-size: 0.7rem; color: var(--text-secondary); line-height: 1.4;">
+                                        ${[...(token.warnings || []), ...(token.pump_dump_warnings || [])].slice(0, 3).map(w => `• ${w}`).join(' ')${[...(token.warnings || []), ...(token.pump_dump_warnings || [])].length > 3 ? ` <span style="color: #f59e0b;">+${[...(token.warnings || []), ...(token.pump_dump_warnings || [])].length - 3} more</span>` : ''}}
                                     </div>
-                                    ${token.warnings.map(w => `<div style="font-size: 0.875rem; margin-bottom: 0.5rem; padding-left: 1.5rem;">• ${w}</div>`).join('')}
                                 </div>
                             ` : ''}
 
-                            ${token.pump_dump_warnings && token.pump_dump_warnings.length > 0 ? `
-                                <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 0.75rem; padding: 1.25rem; margin-bottom: 1.5rem;">
-                                    <div style="font-weight: 700; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
-                                        <span>🚨</span> Pump & Dump Indicators
-                                    </div>
-                                    ${token.pump_dump_warnings.map(w => `<div style="font-size: 0.875rem; margin-bottom: 0.5rem; padding-left: 1.5rem;">• ${w}</div>`).join('')}
-                                </div>
-                            ` : ''}
-
-                            <!-- Action Buttons -->
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem;">
-                                <button onclick="analyzeTokenWithAI(${index}, this)" style="padding: 1rem; background: var(--gradient-primary); color: white; border: none; border-radius: 0.75rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: all 0.3s; box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);" onmouseenter="this.style.transform='scale(1.05)'; this.style.boxShadow='0 4px 12px rgba(102, 126, 234, 0.5)';" onmouseleave="this.style.transform='scale(1)'; this.style.boxShadow='0 2px 4px rgba(102, 126, 234, 0.3)';">
-                                    <span style="font-size: 1.25rem;">🤖</span>
-                                    <span>Scan par IA</span>
+                            <!-- Compact Action Buttons -->
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.5rem;">
+                                <button onclick="analyzeTokenWithAI(${index}, this)" style="padding: 0.6rem 0.75rem; background: var(--gradient-primary); color: white; border: none; border-radius: 0.5rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.4rem; transition: all 0.2s; box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3); font-size: 0.8rem;" onmouseenter="this.style.transform='scale(1.03)'; this.style.boxShadow='0 4px 12px rgba(102, 126, 234, 0.5)';" onmouseleave="this.style.transform='scale(1)'; this.style.boxShadow='0 2px 4px rgba(102, 126, 234, 0.3)';">
+                                    <span>🤖</span>
+                                    <span>AI</span>
                                 </button>
                                 ${token.url ? `
-                                    <a href="${token.url}" target="_blank" style="padding: 1rem; background: var(--bg-glass); border: 1px solid var(--border-subtle); color: var(--text-primary); text-decoration: none; border-radius: 0.75rem; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: all 0.3s;" onmouseenter="this.style.transform='scale(1.05)'; this.style.borderColor='var(--accent-primary)';" onmouseleave="this.style.transform='scale(1)'; this.style.borderColor='var(--border-subtle)';">
-                                        <span style="font-size: 1.25rem;">📊</span>
-                                        <span>DexScreener</span>
+                                    <a href="${token.url}" target="_blank" style="padding: 0.6rem 0.75rem; background: var(--bg-glass); border: 1px solid var(--border-subtle); color: var(--text-primary); text-decoration: none; border-radius: 0.5rem; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 0.4rem; transition: all 0.2s; font-size: 0.8rem;" onmouseenter="this.style.transform='scale(1.03)'; this.style.borderColor='var(--accent-primary)';" onmouseleave="this.style.transform='scale(1)'; this.style.borderColor='var(--border-subtle)';">
+                                        <span>📊</span>
+                                        <span>Dex</span>
                                     </a>
                                 ` : ''}
                                 ${token.twitter ? `
-                                    <a href="${token.twitter}" target="_blank" style="padding: 1rem; background: rgba(29, 161, 242, 0.1); border: 1px solid rgba(29, 161, 242, 0.3); color: #1da1f2; text-decoration: none; border-radius: 0.75rem; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: all 0.3s;" onmouseenter="this.style.transform='scale(1.05)'; this.style.background='rgba(29, 161, 242, 0.2)'; this.style.boxShadow='0 4px 12px rgba(29, 161, 242, 0.3)';" onmouseleave="this.style.transform='scale(1)'; this.style.background='rgba(29, 161, 242, 0.1)'; this.style.boxShadow='none';">
-                                        <span style="font-size: 1.25rem;">🐦</span>
-                                        <span>Twitter</span>
+                                    <a href="${token.twitter}" target="_blank" style="padding: 0.6rem 0.75rem; background: rgba(29, 161, 242, 0.1); border: 1px solid rgba(29, 161, 242, 0.3); color: #1da1f2; text-decoration: none; border-radius: 0.5rem; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 0.4rem; transition: all 0.2s; font-size: 0.8rem;" onmouseenter="this.style.transform='scale(1.03)'; this.style.background='rgba(29, 161, 242, 0.2)';" onmouseleave="this.style.transform='scale(1)'; this.style.background='rgba(29, 161, 242, 0.1)';">
+                                        <span>🐦</span>
+                                        <span>X</span>
                                     </a>
                                 ` : ''}
                                 ${token.website ? `
-                                    <a href="${token.website}" target="_blank" style="padding: 1rem; background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); color: #8b5cf6; text-decoration: none; border-radius: 0.75rem; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: all 0.3s;" onmouseenter="this.style.transform='scale(1.05)'; this.style.background='rgba(139, 92, 246, 0.2)'; this.style.boxShadow='0 4px 12px rgba(139, 92, 246, 0.3)';" onmouseleave="this.style.transform='scale(1)'; this.style.background='rgba(139, 92, 246, 0.1)'; this.style.boxShadow='none';">
-                                        <span style="font-size: 1.25rem;">🌐</span>
-                                        <span>Website</span>
+                                    <a href="${token.website}" target="_blank" style="padding: 0.6rem 0.75rem; background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); color: #8b5cf6; text-decoration: none; border-radius: 0.5rem; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 0.4rem; transition: all 0.2s; font-size: 0.8rem;" onmouseenter="this.style.transform='scale(1.03)'; this.style.background='rgba(139, 92, 246, 0.2)';" onmouseleave="this.style.transform='scale(1)'; this.style.background='rgba(139, 92, 246, 0.1)';">
+                                        <span>🌐</span>
+                                        <span>Web</span>
                                     </a>
                                 ` : ''}
                                 ${token.telegram ? `
-                                    <a href="${token.telegram}" target="_blank" style="padding: 1rem; background: rgba(34, 197, 233, 0.1); border: 1px solid rgba(34, 197, 233, 0.3); color: #22c5e9; text-decoration: none; border-radius: 0.75rem; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: all 0.3s;" onmouseenter="this.style.transform='scale(1.05)'; this.style.background='rgba(34, 197, 233, 0.2)'; this.style.boxShadow='0 4px 12px rgba(34, 197, 233, 0.3)';" onmouseleave="this.style.transform='scale(1)'; this.style.background='rgba(34, 197, 233, 0.1)'; this.style.boxShadow='none';">
-                                        <span style="font-size: 1.25rem;">✈️</span>
-                                        <span>Telegram</span>
+                                    <a href="${token.telegram}" target="_blank" style="padding: 0.6rem 0.75rem; background: rgba(34, 197, 233, 0.1); border: 1px solid rgba(34, 197, 233, 0.3); color: #22c5e9; text-decoration: none; border-radius: 0.5rem; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 0.4rem; transition: all 0.2s; font-size: 0.8rem;" onmouseenter="this.style.transform='scale(1.03)'; this.style.background='rgba(34, 197, 233, 0.2)';" onmouseleave="this.style.transform='scale(1)'; this.style.background='rgba(34, 197, 233, 0.1)';">
+                                        <span>✈️</span>
+                                        <span>TG</span>
                                     </a>
                                 ` : ''}
                                 ${token.discord ? `
-                                    <a href="${token.discord}" target="_blank" style="padding: 1rem; background: rgba(88, 101, 242, 0.1); border: 1px solid rgba(88, 101, 242, 0.3); color: #5865f2; text-decoration: none; border-radius: 0.75rem; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: all 0.3s;" onmouseenter="this.style.transform='scale(1.05)'; this.style.background='rgba(88, 101, 242, 0.2)'; this.style.boxShadow='0 4px 12px rgba(88, 101, 242, 0.3)';" onmouseleave="this.style.transform='scale(1)'; this.style.background='rgba(88, 101, 242, 0.1)'; this.style.boxShadow='none';">
-                                        <span style="font-size: 1.25rem;">💬</span>
-                                        <span>Discord</span>
+                                    <a href="${token.discord}" target="_blank" style="padding: 0.6rem 0.75rem; background: rgba(88, 101, 242, 0.1); border: 1px solid rgba(88, 101, 242, 0.3); color: #5865f2; text-decoration: none; border-radius: 0.5rem; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 0.4rem; transition: all 0.2s; font-size: 0.8rem;" onmouseenter="this.style.transform='scale(1.03)'; this.style.background='rgba(88, 101, 242, 0.2)';" onmouseleave="this.style.transform='scale(1)'; this.style.background='rgba(88, 101, 242, 0.1)';">
+                                        <span>💬</span>
+                                        <span>DC</span>
                                     </a>
                                 ` : ''}
                             </div>
