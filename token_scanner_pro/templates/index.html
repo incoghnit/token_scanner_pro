@@ -815,6 +815,68 @@
             }
         }
 
+        // Load tokens from database on page load
+        async function loadTokensFromDatabase() {
+            try {
+                const response = await fetch('/api/scanned-tokens?limit=50');
+                const data = await response.json();
+
+                if (data.success && data.tokens && data.tokens.length > 0) {
+                    console.log(`📦 Chargement de ${data.tokens.length} tokens depuis la BDD`);
+
+                    // Transform database format to scan results format
+                    const transformedResults = data.tokens.map(token => {
+                        const tokenData = token.token_data || {};
+                        return {
+                            address: token.token_address,
+                            chain: token.token_chain,
+                            risk_score: token.risk_score || 50,
+                            is_safe: token.is_safe,
+                            is_pump_dump_suspect: token.is_pump_dump_suspect,
+                            ...tokenData  // Merge all token data (market, security, etc.)
+                        };
+                    });
+
+                    // Count safe/dangerous tokens
+                    const safeCount = transformedResults.filter(t => t.is_safe).length;
+                    const dangerousCount = transformedResults.length - safeCount;
+                    const pumpDumpCount = transformedResults.filter(t => t.is_pump_dump_suspect).length;
+
+                    // Display using existing function
+                    displayScanResults({
+                        success: true,
+                        results: transformedResults,
+                        total_analyzed: transformedResults.length,
+                        safe_count: safeCount,
+                        dangerous_count: dangerousCount,
+                        pump_dump_suspects_count: pumpDumpCount
+                    });
+
+                    // Show info message
+                    const scanResults = document.getElementById('scan-results');
+                    const firstChild = scanResults.firstElementChild;
+                    if (firstChild) {
+                        firstChild.innerHTML = `
+                            <h3 style="font-size: 1.75rem; font-weight: 900; margin-bottom: 0.5rem;">💾 Tokens Chargés depuis la Base de Données</h3>
+                            <p style="color: var(--text-secondary); font-size: 1.125rem;">
+                                ${data.tokens.length} token(s) disponible(s) •
+                                <span style="color: #22c55e; font-weight: 600;">${safeCount} sûrs</span> •
+                                <span style="color: #ef4444; font-weight: 600;">${dangerousCount} risqués</span> •
+                                <span style="color: #f59e0b; font-weight: 600;">${pumpDumpCount} P&D suspects</span>
+                            </p>
+                            <p style="color: var(--text-tertiary); font-size: 0.875rem; margin-top: 0.5rem;">
+                                📊 Cache: ${data.total}/${data.max_capacity} tokens stockés
+                            </p>
+                        `;
+                    }
+                } else {
+                    console.log('📭 Aucun token en cache, lancez un scan pour commencer');
+                }
+            } catch (error) {
+                console.error('Erreur chargement tokens:', error);
+            }
+        }
+
         // Display scan results - ENHANCED WITH ALL AVAILABLE DATA
         function displayScanResults(data) {
             const container = document.getElementById('scan-results');
@@ -1104,6 +1166,9 @@
                             <span style="color: #ef4444; font-weight: 600;">${data.dangerous_count || 0} risqués</span> •
                             <span style="color: #f59e0b; font-weight: 600;">${data.pump_dump_suspects_count || 0} P&D suspects</span>
                         </p>
+                        <p style="color: var(--accent-success); font-size: 0.875rem; margin-top: 0.5rem;">
+                            💾 Tokens sauvegardés en base de données
+                        </p>
                     </div>
                     ${tokensHTML}
                 `;
@@ -1252,6 +1317,7 @@
 
         // Initialize
         loadUserInfo();
+        loadTokensFromDatabase();  // Load tokens from database on page load
         startAutoScanSystem();
 
         // Stop auto-scan when user leaves page
