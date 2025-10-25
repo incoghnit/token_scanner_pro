@@ -154,6 +154,11 @@ class TokenScanner:
             for item in data:
                 if item.get("chainId") and item.get("tokenAddress"):
                     icon = item.get("icon") or ""
+                    links = item.get("links", [])
+
+                    # Debug: log how many links each token has
+                    if links:
+                        print(f"📋 Token {item['tokenAddress'][:8]}... has {len(links)} links")
 
                     tokens.append({
                         "address": item["tokenAddress"],
@@ -161,8 +166,8 @@ class TokenScanner:
                         "url": item.get("url", ""),
                         "icon": icon,
                         "description": item.get("description", ""),
-                        "twitter": next((link["url"] for link in item.get("links", []) if link.get("type") == "twitter"), None),
-                        "links": item.get("links", [])
+                        "twitter": next((link["url"] for link in links if link.get("type") == "twitter"), None),
+                        "links": links
                     })
 
             return tokens
@@ -466,22 +471,45 @@ class TokenScanner:
                     social_score, social_details = self.calculate_social_score(twitter_data)
                 time.sleep(1)
 
-        # Extract social links from links array
+        # Extract social links from links array (support multiple type variants)
         links = token_info.get('links', [])
         website = None
         telegram = None
         discord = None
 
+        # Debug: log available link types
+        if links:
+            link_types = [link.get('type', 'unknown') for link in links]
+            print(f"🔗 DEBUG - Token {address[:8]}... has links: {link_types}")
+
         for link in links:
             link_type = link.get('type', '').lower()
             link_url = link.get('url', '')
 
-            if link_type == 'website':
-                website = link_url
-            elif link_type == 'telegram':
-                telegram = link_url
-            elif link_type == 'discord':
-                discord = link_url
+            if not link_url:
+                continue
+
+            # Website variants: website, homepage, web, site
+            if link_type in ['website', 'homepage', 'web', 'site']:
+                if not website:  # Take first website found
+                    website = link_url
+                    print(f"  ✅ Website found: {website[:50]}...")
+
+            # Telegram variants: telegram, tg
+            elif link_type in ['telegram', 'tg']:
+                if not telegram:
+                    telegram = link_url
+                    print(f"  ✅ Telegram found: {telegram[:50]}...")
+
+            # Discord variants: discord, disc
+            elif link_type in ['discord', 'disc']:
+                if not discord:
+                    discord = link_url
+                    print(f"  ✅ Discord found: {discord[:50]}...")
+
+            else:
+                # Log unknown link types to help debug
+                print(f"  ℹ️  Unknown link type '{link_type}': {link_url[:50]}...")
 
         self.current_progress += 1
 
