@@ -151,49 +151,6 @@
             color: var(--accent-danger);
         }
 
-        /* Quick Actions */
-        .quick-actions {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-
-        .action-btn {
-            background: var(--bg-card);
-            border: 1px solid var(--border-subtle);
-            border-radius: 1rem;
-            padding: 1.5rem;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s;
-            text-decoration: none;
-            color: var(--text-primary);
-            backdrop-filter: blur(20px);
-        }
-
-        .action-btn:hover {
-            transform: translateY(-4px);
-            border-color: var(--accent-primary);
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
-        }
-
-        .action-icon {
-            font-size: 2.5rem;
-            margin-bottom: 0.75rem;
-            display: block;
-        }
-
-        .action-title {
-            font-weight: 700;
-            margin-bottom: 0.25rem;
-        }
-
-        .action-desc {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-        }
-
         /* Main Grid Layout */
         .main-grid {
             display: grid;
@@ -441,10 +398,6 @@
             .container {
                 padding: 1rem;
             }
-
-            .quick-actions {
-                grid-template-columns: 1fr;
-            }
         }
     </style>
 </head>
@@ -533,33 +486,6 @@
                 <div class="stat-value" id="active-alerts">0</div>
                 <div class="stat-subtitle" id="alerts-subtitle">Premium requis</div>
             </div>
-        </div>
-
-        <!-- Quick Actions -->
-        <div class="quick-actions">
-            <a href="#scanner" class="action-btn" onclick="scrollToScanner(); return false;">
-                <span class="action-icon">🚀</span>
-                <div class="action-title">Scan Rapide</div>
-                <div class="action-desc">Analyser un token</div>
-            </a>
-
-            <a href="/auto-scan" class="action-btn">
-                <span class="action-icon">🤖</span>
-                <div class="action-title">Auto-Scan</div>
-                <div class="action-desc">Scanner 24/7</div>
-            </a>
-
-            <a href="/favorites" class="action-btn">
-                <span class="action-icon">⭐</span>
-                <div class="action-title">Favoris</div>
-                <div class="action-desc">Mes tokens</div>
-            </a>
-
-            <a href="/dashboard" class="action-btn">
-                <span class="action-icon">💼</span>
-                <div class="action-title">Trading</div>
-                <div class="action-desc">Bot & positions</div>
-            </a>
         </div>
 
         <!-- Auto-Scan Preview -->
@@ -780,6 +706,67 @@
             document.getElementById('scanner').scrollIntoView({ behavior: 'smooth' });
         }
 
+        // Toggle favorite
+        async function toggleFavorite(address, chain, tokenIndex) {
+            const tokenData = window.currentTokens[tokenIndex];
+            if (!tokenData) {
+                console.error('Token not found');
+                return;
+            }
+
+            const btn = document.getElementById(`fav-btn-${address}`);
+
+            try {
+                // Check if already favorited
+                const checkResponse = await fetch('/api/favorites');
+                const checkData = await checkResponse.json();
+
+                const isFavorited = checkData.success && checkData.favorites.some(fav =>
+                    fav.token_address === address && fav.chain === chain
+                );
+
+                if (isFavorited) {
+                    // Remove from favorites
+                    const response = await fetch('/api/favorites/remove', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ token_address: address, chain: chain })
+                    });
+
+                    const data = await response.json();
+                    if (data.success) {
+                        btn.innerHTML = '<span style="font-size: 1.25rem;">⭐</span>';
+                        btn.style.background = 'rgba(0, 0, 0, 0.5)';
+                        console.log('✅ Retiré des favoris');
+                    }
+                } else {
+                    // Add to favorites
+                    const response = await fetch('/api/favorites/add', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            token_address: address,
+                            chain: chain,
+                            token_data: tokenData
+                        })
+                    });
+
+                    const data = await response.json();
+                    if (data.success) {
+                        btn.innerHTML = '<span style="font-size: 1.25rem;">⭐</span>';
+                        btn.style.background = 'rgba(255, 215, 0, 0.3)';
+                        btn.style.borderColor = '#ffd700';
+                        console.log('✅ Ajouté aux favoris');
+                    }
+                }
+
+                // Refresh favorites count
+                await loadFavoritesCount();
+            } catch (error) {
+                console.error('Erreur favoris:', error);
+            }
+        }
+
         // Start scan
         async function startScan() {
             // Reset auto-scan countdown to 5 minutes when manual scan starts
@@ -919,6 +906,26 @@
         // Store current tokens globally for AI analysis
         window.currentTokens = [];
 
+        // Update favorite buttons to show current state
+        async function updateFavoriteButtons() {
+            try {
+                const response = await fetch('/api/favorites');
+                const data = await response.json();
+
+                if (data.success && data.favorites) {
+                    data.favorites.forEach(fav => {
+                        const btn = document.getElementById(`fav-btn-${fav.token_address}`);
+                        if (btn) {
+                            btn.style.background = 'rgba(255, 215, 0, 0.3)';
+                            btn.style.borderColor = '#ffd700';
+                        }
+                    });
+                }
+            } catch (error) {
+                console.log('Error loading favorites state:', error);
+            }
+        }
+
         // Display scan results - ENHANCED WITH ALL AVAILABLE DATA
         function displayScanResults(data) {
             const container = document.getElementById('scan-results');
@@ -991,9 +998,14 @@
                     const formatChange = (val) => (val >= 0 ? '+' : '') + val.toFixed(2) + '%';
 
                     return `
-                        <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 1rem; padding: 1.5rem; margin-bottom: 1.5rem; backdrop-filter: blur(20px); transition: all 0.3s ease; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);" onmouseenter="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 12px 24px rgba(102, 126, 234, 0.2)'; this.style.borderColor='var(--accent-primary)';" onmouseleave="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 6px rgba(0, 0, 0, 0.1)'; this.style.borderColor='var(--border-subtle)';">
+                        <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 1rem; padding: 1.5rem; margin-bottom: 1.5rem; backdrop-filter: blur(20px); transition: all 0.3s ease; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); position: relative;" onmouseenter="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 12px 24px rgba(102, 126, 234, 0.2)'; this.style.borderColor='var(--accent-primary)';" onmouseleave="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 6px rgba(0, 0, 0, 0.1)'; this.style.borderColor='var(--border-subtle)';">
+                            <!-- Favorite Button (Top Left) -->
+                            <button onclick="toggleFavorite('${token.address}', '${token.chain}', ${index})" id="fav-btn-${token.address}" style="position: absolute; top: 1rem; left: 1rem; background: rgba(0, 0, 0, 0.5); border: 1px solid var(--border-subtle); border-radius: 0.5rem; padding: 0.5rem 0.75rem; cursor: pointer; transition: all 0.3s; z-index: 10; backdrop-filter: blur(10px);" onmouseenter="this.style.transform='scale(1.1)'; this.style.background='rgba(255, 215, 0, 0.2)'; this.style.borderColor='#ffd700';" onmouseleave="this.style.transform='scale(1)'; this.style.background='rgba(0, 0, 0, 0.5)'; this.style.borderColor='var(--border-subtle)';">
+                                <span style="font-size: 1.25rem;">⭐</span>
+                            </button>
+
                             <!-- Header with Icon -->
-                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1.5rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1.5rem; margin-top: 2rem;">
                                 <div style="display: flex; gap: 1rem; align-items: start; flex: 1;">
                                     ${token.icon ? `
                                         <img src="${token.icon}" alt="Token Icon" style="width: 64px; height: 64px; border-radius: 1rem; background: var(--bg-glass); padding: 0.5rem;" onerror="this.style.display='none'">
@@ -1238,6 +1250,9 @@
 
                 // Refresh stats
                 loadUserInfo();
+
+                // Update favorite buttons state
+                updateFavoriteButtons();
             } else {
                 container.innerHTML = `
                     <div class="empty-state">
