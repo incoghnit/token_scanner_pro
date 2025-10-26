@@ -292,7 +292,11 @@ class TokenScanner:
             if data.get("code") != 1:
                 return {"error": "Token non trouvé"}
 
-            result = data.get("result", {}).get(address.lower(), {})
+            # 🆕 Solana addresses are base58 and case-sensitive, EVM addresses are hex and case-insensitive
+            if chain.lower() == "solana":
+                result = data.get("result", {}).get(address, {})
+            else:
+                result = data.get("result", {}).get(address.lower(), {})
 
             # Parse holders data (top 10 holders with percentages)
             holders_list = []
@@ -309,6 +313,15 @@ class TokenScanner:
                             "percent": holder.get("percent", "0"),
                             "locked_detail": holder.get("locked_detail", [])
                         })
+
+            # 🆕 Fallback pour Solana: si pas de holders data (API Beta encore limitée)
+            if not holders_list and chain.lower() == "solana":
+                print(f"  ⚠️  No holder data available for Solana token (GoPlus Beta limitation)")
+
+            # 🆕 Pour Solana: ajouter un warning si données limitées
+            data_warning = None
+            if chain.lower() == "solana" and (not holders_list or not result.get("creator_address")):
+                data_warning = "solana_beta_limited_data"
 
             return {
                 "is_honeypot": result.get("is_honeypot", "unknown") == "1",
@@ -331,6 +344,8 @@ class TokenScanner:
                 "holders": holders_list,
                 "lp_holder_count": result.get("lp_holder_count", "0"),
                 "lp_total_supply": result.get("lp_total_supply", "0"),
+                # Warning pour données limitées (Solana Beta)
+                "data_warning": data_warning,
             }
         except Exception as e:
             return {"error": str(e)}
@@ -388,7 +403,11 @@ class TokenScanner:
             if data.get("code") != 1:
                 return {"error": "Invalid API response"}
 
-            result = data.get("result", {}).get(creator_address.lower(), {})
+            # 🆕 Solana addresses are base58 and case-sensitive, EVM addresses are hex and case-insensitive
+            if chain.lower() == "solana":
+                result = data.get("result", {}).get(creator_address, {})
+            else:
+                result = data.get("result", {}).get(creator_address.lower(), {})
 
             # Parse malicious status
             is_malicious = result.get("is_malicious") == "1"
@@ -450,7 +469,11 @@ class TokenScanner:
             if data.get("code") != 1:
                 return {"error": "Invalid API response"}
 
-            result = data.get("result", {}).get(address.lower(), {})
+            # 🆕 Solana addresses are base58 and case-sensitive, EVM addresses are hex and case-insensitive
+            if chain.lower() == "solana":
+                result = data.get("result", {}).get(address, {})
+            else:
+                result = data.get("result", {}).get(address.lower(), {})
 
             # Parse rug-pull indicators
             is_rugpull_risk = result.get("is_rugpull_risk") == "1"
@@ -1151,11 +1174,11 @@ class TokenScanner:
 
     def get_token_price(self, address: str, chain: str = "eth") -> Dict[str, Any]:
         """
-        Récupère le prix en temps réel d'un token ERC20 via Moralis API
+        Récupère le prix en temps réel d'un token ERC20/SPL via Moralis API
 
         Args:
             address: Contract address du token
-            chain: Blockchain (eth, bsc, polygon, avalanche, arbitrum, base, etc.)
+            chain: Blockchain (eth, bsc, polygon, avalanche, arbitrum, base, solana, etc.)
 
         Returns:
             Dict avec prix, variation, liquidité, logo, spam status
@@ -1166,14 +1189,26 @@ class TokenScanner:
 
             print(f"💰 Fetching price for {address[:10]}... on {chain}")
 
-            url = f"{self.moralis_api}/erc20/{address}/price"
+            # 🆕 Support Solana SPL tokens avec endpoint différent
+            is_solana = chain.lower() == "solana"
+
+            if is_solana:
+                # Solana SPL Token endpoint
+                url = f"{self.moralis_api}/solana/token/{address}/price"
+                params = {
+                    "network": "mainnet"
+                }
+            else:
+                # EVM chains (Ethereum, BSC, Base, etc.) - ERC20 endpoint
+                url = f"{self.moralis_api}/erc20/{address}/price"
+                params = {
+                    "chain": chain,
+                    "include": "percent_change"  # Include price change percentages
+                }
+
             headers = {
                 "X-API-Key": self.moralis_key,
                 "Accept": "application/json"
-            }
-            params = {
-                "chain": chain,
-                "include": "percent_change"  # Include price change percentages
             }
 
             # API call with retry logic

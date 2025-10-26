@@ -1427,6 +1427,7 @@
                                             return `<span style="background: rgba(245, 158, 11, 0.2); color: ${levelColor}; padding: 0.15rem 0.5rem; border-radius: 0.75rem; font-size: 0.7rem; font-weight: 600;">🎣 ${level}</span>`;
                                         })() : ''}
                                         ${token.market?.possible_spam || token.security?.possible_spam ? '<span style="background: rgba(156, 163, 175, 0.2); color: #9ca3af; padding: 0.15rem 0.5rem; border-radius: 0.75rem; font-size: 0.7rem; font-weight: 600;">⚠️ SPAM?</span>' : ''}
+                                        ${token.security?.data_warning === 'solana_beta_limited_data' ? '<span style="background: rgba(168, 85, 247, 0.15); color: #a855f7; padding: 0.15rem 0.5rem; border-radius: 0.75rem; font-size: 0.65rem; font-weight: 600; border: 1px solid rgba(168, 85, 247, 0.3);" title="GoPlus Solana API is in Beta - some data may be limited">⚠️ SOLANA BETA</span>' : ''}
                                     </div>
                                 </div>
 
