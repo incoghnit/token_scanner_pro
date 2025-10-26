@@ -1254,7 +1254,7 @@
                     ${hasSecurity && token.security.holders && token.security.holders.length > 0 ? `
                         <div style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(139, 92, 246, 0.05) 100%); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 1.5rem;">
                             <h3 style="font-size: 0.875rem; font-weight: 700; color: #8b5cf6; margin-bottom: 1.5rem; text-transform: uppercase; display: flex; align-items: center; gap: 0.5rem;">
-                                👥 Top ${token.security.holders.length} Holders Distribution
+                                👥 Top ${token.security.holders.length} Holder${token.security.holders.length === 1 ? '' : 's'} Distribution
                                 <span style="font-size: 0.75rem; font-weight: 600; background: rgba(139, 92, 246, 0.2); padding: 0.25rem 0.75rem; border-radius: 1rem;">${token.security.holder_count || 'N/A'} Total</span>
                             </h3>
                             <div style="display: grid; gap: 0.75rem;">
@@ -1291,6 +1291,16 @@
                                     </div>
                                 </div>
                             ` : ''}
+                        </div>
+                    ` : hasSecurity && token.security.data_warning === 'solana_beta_limited_data' ? `
+                        <div style="background: linear-gradient(135deg, rgba(168, 85, 247, 0.08) 0%, rgba(168, 85, 247, 0.03) 100%); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 1.5rem; text-align: center;">
+                            <div style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;">👥</div>
+                            <h3 style="font-size: 0.875rem; font-weight: 700; color: #a855f7; margin-bottom: 0.75rem; text-transform: uppercase;">
+                                Holder Data Not Available
+                            </h3>
+                            <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.6; max-width: 400px; margin: 0 auto;">
+                                GoPlus Solana API is currently in Beta. Holder distribution data may be limited or unavailable for some tokens.
+                            </p>
                         </div>
                     ` : ''}
 
@@ -1547,9 +1557,12 @@
                             <!-- Top Holders Section -->
                             ${hasSecurity && token.security.holders && token.security.holders.length > 0 ? `
                                 <div style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(139, 92, 246, 0.05) 100%); border: 1px solid rgba(139, 92, 246, 0.2); border-radius: 0.5rem; padding: 0.75rem; margin-bottom: 0.75rem;">
-                                    <div style="font-size: 0.75rem; color: #8b5cf6; margin-bottom: 0.5rem; font-weight: 700; text-transform: uppercase;">👥 Top ${Math.min(5, token.security.holders.length)} Holders</div>
+                                    <div style="font-size: 0.75rem; color: #8b5cf6; margin-bottom: 0.5rem; font-weight: 700; text-transform: uppercase;">
+                                        👥 Top ${Math.min(10, token.security.holders.length)} Holder${token.security.holders.length === 1 ? '' : 's'}
+                                        ${token.security.holders.length > 10 ? ` <span style="font-size: 0.65rem; font-weight: 600; color: var(--text-tertiary);">(${token.security.holders.length} total)</span>` : ''}
+                                    </div>
                                     <div style="display: flex; flex-direction: column; gap: 0.4rem;">
-                                        ${token.security.holders.slice(0, 5).map((holder, idx) => {
+                                        ${token.security.holders.slice(0, 10).map((holder, idx) => {
                                             const percent = parseFloat(holder.percent || 0);
                                             const barColor = percent > 20 ? '#ef4444' : percent > 10 ? '#f59e0b' : '#8b5cf6';
                                             const tag = holder.tag || (holder.is_locked ? '🔒 Locked' : holder.is_contract ? '📝 Contract' : '');
@@ -1568,6 +1581,13 @@
                                                 </div>
                                             `;
                                         }).join('')}
+                                    </div>
+                                </div>
+                            ` : hasSecurity && token.security.data_warning === 'solana_beta_limited_data' ? `
+                                <div style="background: linear-gradient(135deg, rgba(168, 85, 247, 0.08) 0%, rgba(168, 85, 247, 0.03) 100%); border: 1px solid rgba(168, 85, 247, 0.2); border-radius: 0.5rem; padding: 0.75rem; margin-bottom: 0.75rem;">
+                                    <div style="font-size: 0.7rem; color: #a855f7; font-weight: 600; margin-bottom: 0.35rem;">👥 Holder Data</div>
+                                    <div style="font-size: 0.65rem; color: var(--text-tertiary); line-height: 1.4;">
+                                        ℹ️ Holder data not available yet (GoPlus Solana API Beta)
                                     </div>
                                 </div>
                             ` : ''}
