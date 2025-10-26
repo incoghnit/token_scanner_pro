@@ -482,25 +482,62 @@ def start_scan():
     data = request.json or {}
     max_tokens = data.get('max_tokens', 10)
     nitter_url = data.get('nitter_url', os.getenv('NITTER_URL', 'http://localhost:8080'))
-    
+    profile_url = data.get('profile_url', '').strip()
+
     user_id = session.get('user_id')
     if not user_id:
         max_tokens = min(max_tokens, 5)
-    
+
     if max_tokens < 1 or max_tokens > 50:
         return jsonify({
             "success": False,
             "error": "Le nombre de tokens doit être entre 1 et 50"
         }), 400
-    
+
     def run_scan():
         try:
             set_scanner_state('scan_in_progress', True)
             scanner = TokenScanner(nitter_url=nitter_url)
             set_scanner_state('scanner', scanner)
 
-            # FIXED: scan_tokens() doesn't accept chain_filter parameter
-            results = scanner.scan_tokens(max_tokens=max_tokens)
+            # Handle profile_url if provided
+            if profile_url:
+                # Extract chain and address from URL: https://dexscreener.com/{chain}/{address}
+                import re
+                match = re.search(r'dexscreener\.com/([^/]+)/(.+?)(?:\?|$)', profile_url)
+                if match:
+                    chain = match.group(1)
+                    address = match.group(2).split('?')[0]  # Remove query params
+                    print(f"🔍 Scanning specific token: {chain}/{address}")
+
+                    # Analyze single token
+                    token_info = {'address': address, 'chain': chain, 'icon': ''}
+                    token_result = scanner.analyze_token(token_info)
+
+                    if 'error' not in token_result:
+                        results = {
+                            "success": True,
+                            "results": [token_result],
+                            "total_analyzed": 1,
+                            "safe_count": 1 if token_result.get('is_safe') else 0,
+                            "dangerous_count": 0 if token_result.get('is_safe') else 1,
+                            "pump_dump_suspects_count": 1 if token_result.get('is_pump_dump_suspect') else 0
+                        }
+                    else:
+                        results = {
+                            "success": False,
+                            "error": token_result.get('error', 'Erreur lors de l\'analyse'),
+                            "results": []
+                        }
+                else:
+                    results = {
+                        "success": False,
+                        "error": "Format d'URL invalide. Attendu: https://dexscreener.com/{chain}/{address}",
+                        "results": []
+                    }
+            else:
+                # Standard scan of latest tokens
+                results = scanner.scan_tokens(max_tokens=max_tokens)
 
             update_scanner_state(
                 current_scan_results=results,
