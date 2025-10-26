@@ -752,6 +752,7 @@ class TokenScanner:
         website = None
         telegram = None
         discord = None
+        twitter_from_links = None  # Twitter extrait des links
 
         # Debug: log available link types
         if links:
@@ -765,11 +766,29 @@ class TokenScanner:
             if not link_url:
                 continue
 
+            # Twitter/X variants: twitter, x
+            # Aussi détecter les URLs twitter.com ou x.com
+            if link_type in ['twitter', 'x'] or 'twitter.com' in link_url or 'x.com' in link_url:
+                if not twitter_from_links:
+                    twitter_from_links = link_url
+                    print(f"  ✅ Twitter found: {twitter_from_links[:50]}...")
+
             # Website variants: website, homepage, web, site
-            if link_type in ['website', 'homepage', 'web', 'site']:
-                if not website:  # Take first website found
+            # Si type est vide et que ce n'est pas twitter/telegram/discord, c'est probablement un website
+            elif link_type in ['website', 'homepage', 'web', 'site']:
+                if not website:
                     website = link_url
                     print(f"  ✅ Website found: {website[:50]}...")
+
+            # Type vide mais URL présente → probablement un website
+            elif link_type == '' and link_url:
+                # Vérifier que ce n'est pas un lien social connu
+                url_lower = link_url.lower()
+                is_social = any(domain in url_lower for domain in ['twitter.com', 'x.com', 't.me', 'telegram', 'discord.gg', 'discord.com'])
+
+                if not is_social and not website:
+                    website = link_url
+                    print(f"  ✅ Website found (empty type): {website[:50]}...")
 
             # Telegram variants: telegram, tg
             elif link_type in ['telegram', 'tg']:
@@ -789,13 +808,16 @@ class TokenScanner:
 
         self.current_progress += 1
 
+        # Priorité: twitter depuis links > twitter depuis token_info
+        final_twitter = twitter_from_links or token_info.get('twitter')
+
         return {
             "address": address,
             "chain": chain,
             "url": token_info.get('url'),
             "icon": icon,
             "description": token_info.get('description'),
-            "twitter": token_info.get('twitter'),
+            "twitter": final_twitter,
             "website": website,
             "telegram": telegram,
             "discord": discord,
