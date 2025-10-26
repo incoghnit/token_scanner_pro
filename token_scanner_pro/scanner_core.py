@@ -66,12 +66,16 @@ class TokenScanner:
         self.coindesk_token = os.getenv('COINDESK_API_KEY', '')
         self.coinmarketcap_api = "https://pro-api.coinmarketcap.com/v2/cryptocurrency/info"
         self.coinmarketcap_key = os.getenv('COINMARKETCAP_API_KEY', '')
+        self.moralis_api = "https://deep-index.moralis.io/api/v2.2"
+        self.moralis_key = os.getenv('MORALIS_API_KEY', '')
 
         # Validate API keys are present
         if not self.coindesk_token:
             print("⚠️  WARNING: COINDESK_API_KEY not set in environment variables")
         if not self.coinmarketcap_key:
             print("⚠️  WARNING: COINMARKETCAP_API_KEY not set in environment variables")
+        if not self.moralis_key:
+            print("⚠️  WARNING: MORALIS_API_KEY not set in environment variables")
 
         # Cache system (in-memory)
         self._news_cache = None
@@ -898,6 +902,172 @@ class TokenScanner:
 
         except Exception as e:
             print(f"❌ Error searching token: {e}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
+
+    def get_token_price(self, address: str, chain: str = "eth") -> Dict[str, Any]:
+        """
+        Récupère le prix en temps réel d'un token ERC20 via Moralis API
+
+        Args:
+            address: Contract address du token
+            chain: Blockchain (eth, bsc, polygon, avalanche, arbitrum, base, etc.)
+
+        Returns:
+            Dict avec prix, variation, liquidité, logo, spam status
+        """
+        try:
+            if not self.moralis_key:
+                return {"success": False, "error": "MORALIS_API_KEY not configured"}
+
+            print(f"💰 Fetching price for {address[:10]}... on {chain}")
+
+            url = f"{self.moralis_api}/erc20/{address}/price"
+            headers = {
+                "X-API-Key": self.moralis_key,
+                "Accept": "application/json"
+            }
+            params = {
+                "chain": chain,
+                "include": "percent_change"  # Include price change percentages
+            }
+
+            # API call with retry logic
+            def api_call():
+                return requests.get(url, headers=headers, params=params, timeout=10)
+
+            try:
+                response = retry_api_call(api_call, max_retries=2)
+            except Exception as e:
+                return {
+                    "success": False,
+                    "error": f"API call failed after retries: {str(e)}"
+                }
+
+            if response.status_code != 200:
+                return {
+                    "success": False,
+                    "error": f"API returned status {response.status_code}",
+                    "details": response.text[:200]
+                }
+
+            data = response.json()
+
+            # Extract price data
+            return {
+                "success": True,
+                "token_address": address,
+                "chain": chain,
+                "usd_price": data.get("usdPrice"),
+                "usd_price_24h_ago": data.get("usdPrice24HrAgo"),
+                "usd_price_24h_change_percent": data.get("usdPrice24HrPercentChange"),
+                "native_price": data.get("nativePrice", {}).get("value"),
+                "native_price_24h_change_percent": data.get("nativePrice24HrPercentChange"),
+                "exchange_name": data.get("exchangeName"),
+                "exchange_address": data.get("exchangeAddress"),
+                "token_name": data.get("tokenName"),
+                "token_symbol": data.get("tokenSymbol"),
+                "token_logo": data.get("tokenLogo"),
+                "token_decimals": data.get("tokenDecimals"),
+                "verified_contract": data.get("verifiedContract"),
+                "possible_spam": data.get("possibleSpam", False),
+                "pair_address": data.get("pairAddress"),
+                "pair_total_liquidity_usd": data.get("pairTotalLiquidityUsd"),
+                "timestamp": datetime.now().isoformat()
+            }
+
+        except Exception as e:
+            print(f"❌ Error fetching token price: {e}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
+
+    def get_multiple_token_prices(self, tokens: List[Dict[str, str]], chain: str = "eth") -> Dict[str, Any]:
+        """
+        Récupère les prix de plusieurs tokens en une seule requête (max 100)
+
+        Args:
+            tokens: Liste de dicts avec {address, chain} (max 100)
+            chain: Blockchain par défaut si non spécifié dans tokens
+
+        Returns:
+            Dict avec liste des prix
+        """
+        try:
+            if not self.moralis_key:
+                return {"success": False, "error": "MORALIS_API_KEY not configured"}
+
+            if len(tokens) > 100:
+                return {"success": False, "error": "Maximum 100 tokens per request"}
+
+            print(f"💰 Fetching prices for {len(tokens)} tokens on {chain}")
+
+            url = f"{self.moralis_api}/erc20/prices"
+            headers = {
+                "X-API-Key": self.moralis_key,
+                "Accept": "application/json",
+                "Content-Type": "application/json"
+            }
+
+            # Prepare request body
+            body = {
+                "tokens": [
+                    {
+                        "token_address": token.get("address"),
+                        "chain": token.get("chain", chain)
+                    }
+                    for token in tokens
+                ]
+            }
+
+            # API call with retry logic
+            def api_call():
+                return requests.post(url, headers=headers, json=body, timeout=15)
+
+            try:
+                response = retry_api_call(api_call, max_retries=2)
+            except Exception as e:
+                return {
+                    "success": False,
+                    "error": f"API call failed after retries: {str(e)}"
+                }
+
+            if response.status_code != 200:
+                return {
+                    "success": False,
+                    "error": f"API returned status {response.status_code}",
+                    "details": response.text[:200]
+                }
+
+            data = response.json()
+
+            # Parse results
+            results = []
+            for token_data in data:
+                results.append({
+                    "token_address": token_data.get("tokenAddress"),
+                    "chain": token_data.get("chain"),
+                    "usd_price": token_data.get("usdPrice"),
+                    "usd_price_24h_change_percent": token_data.get("usdPrice24HrPercentChange"),
+                    "token_name": token_data.get("tokenName"),
+                    "token_symbol": token_data.get("tokenSymbol"),
+                    "token_logo": token_data.get("tokenLogo"),
+                    "possible_spam": token_data.get("possibleSpam", False),
+                    "pair_total_liquidity_usd": token_data.get("pairTotalLiquidityUsd")
+                })
+
+            return {
+                "success": True,
+                "total_tokens": len(results),
+                "prices": results,
+                "timestamp": datetime.now().isoformat()
+            }
+
+        except Exception as e:
+            print(f"❌ Error fetching multiple token prices: {e}")
             return {
                 "success": False,
                 "error": str(e)

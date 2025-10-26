@@ -1035,6 +1035,72 @@ def search_token():
             "error": str(e)
         }), 500
 
+@app.route('/api/token/price', methods=['GET'])
+def get_token_price():
+    """Récupère le prix en temps réel d'un token via Moralis API"""
+    try:
+        address = request.args.get('address', '').strip()
+        chain = request.args.get('chain', 'eth').strip()
+
+        if not address:
+            return jsonify({
+                "success": False,
+                "error": "Address parameter required"
+            }), 400
+
+        result = scanner.get_token_price(address=address, chain=chain)
+
+        if result["success"]:
+            return jsonify(result), 200
+        else:
+            return jsonify(result), 400
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+@app.route('/api/tokens/prices', methods=['POST'])
+def get_multiple_token_prices():
+    """Récupère les prix de plusieurs tokens en une seule requête (max 100)"""
+    try:
+        data = request.get_json()
+
+        if not data or 'tokens' not in data:
+            return jsonify({
+                "success": False,
+                "error": "Request body must contain 'tokens' array"
+            }), 400
+
+        tokens = data['tokens']
+        chain = data.get('chain', 'eth')
+
+        if not isinstance(tokens, list):
+            return jsonify({
+                "success": False,
+                "error": "'tokens' must be an array"
+            }), 400
+
+        if len(tokens) > 100:
+            return jsonify({
+                "success": False,
+                "error": "Maximum 100 tokens per request"
+            }), 400
+
+        result = scanner.get_multiple_token_prices(tokens=tokens, chain=chain)
+
+        if result["success"]:
+            return jsonify(result), 200
+        else:
+            return jsonify(result), 400
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
 # ==================== DÉMARRAGE ====================
 
 if __name__ == '__main__':

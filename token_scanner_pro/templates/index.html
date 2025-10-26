@@ -833,6 +833,100 @@
             }
         }
 
+        // Refresh token price from Moralis API
+        async function refreshTokenPrice(address, chain, tokenIndex) {
+            const priceDiv = document.getElementById(`price-${address}`);
+            const changeDiv = document.getElementById(`change-${address}`);
+            const refreshBtn = document.getElementById(`refresh-btn-${address}`);
+            const refreshIcon = document.getElementById(`refresh-icon-${address}`);
+
+            if (!priceDiv || !changeDiv || !refreshBtn) {
+                console.error('Price elements not found for', address);
+                return;
+            }
+
+            try {
+                // Animate button - spin animation
+                refreshIcon.style.display = 'inline-block';
+                refreshIcon.style.animation = 'spin 1s linear infinite';
+                refreshBtn.disabled = true;
+                refreshBtn.style.opacity = '0.7';
+
+                console.log(`💰 Refreshing price for ${address.substring(0, 10)}... on ${chain}`);
+
+                // Call Moralis API
+                const response = await fetch(`/api/token/price?address=${address}&chain=${chain}`);
+                const data = await response.json();
+
+                if (data.success && data.usd_price !== null && data.usd_price !== undefined) {
+                    const newPrice = data.usd_price;
+                    const priceChange24h = data.usd_price_24h_change_percent || 0;
+
+                    // Format price
+                    const formatPrice = (p) => {
+                        if (p >= 1) return '$' + p.toFixed(4);
+                        if (p >= 0.0001) return '$' + p.toFixed(6);
+                        return '$' + p.toExponential(2);
+                    };
+
+                    const formatChange = (val) => (val >= 0 ? '+' : '') + val.toFixed(2) + '%';
+                    const colorChange = (val) => val >= 0 ? '#22c55e' : '#ef4444';
+
+                    // Animate price update with flash effect
+                    priceDiv.style.transition = 'all 0.3s ease';
+                    changeDiv.style.transition = 'all 0.3s ease';
+
+                    // Flash effect
+                    priceDiv.style.background = 'rgba(102, 126, 234, 0.3)';
+                    changeDiv.style.background = 'rgba(102, 126, 234, 0.3)';
+
+                    setTimeout(() => {
+                        // Update values
+                        priceDiv.textContent = formatPrice(newPrice);
+                        changeDiv.textContent = formatChange(priceChange24h);
+                        changeDiv.style.color = colorChange(priceChange24h);
+
+                        // Update token data in global array
+                        if (window.currentTokens && window.currentTokens[tokenIndex]) {
+                            if (!window.currentTokens[tokenIndex].market) {
+                                window.currentTokens[tokenIndex].market = {};
+                            }
+                            window.currentTokens[tokenIndex].market.price_usd = newPrice;
+                            window.currentTokens[tokenIndex].market.price_change_24h = priceChange24h;
+                        }
+
+                        // Remove flash after animation
+                        setTimeout(() => {
+                            priceDiv.style.background = 'transparent';
+                            changeDiv.style.background = 'transparent';
+                        }, 300);
+                    }, 100);
+
+                    console.log(`✅ Prix mis à jour: ${formatPrice(newPrice)} (${formatChange(priceChange24h)})`);
+                } else {
+                    console.warn('⚠️ Pas de prix disponible:', data);
+                    // Show error briefly
+                    refreshIcon.textContent = '❌';
+                    setTimeout(() => {
+                        refreshIcon.textContent = '🔄';
+                    }, 2000);
+                }
+
+            } catch (error) {
+                console.error('❌ Error refreshing price:', error);
+                // Show error briefly
+                refreshIcon.textContent = '❌';
+                setTimeout(() => {
+                    refreshIcon.textContent = '🔄';
+                }, 2000);
+            } finally {
+                // Stop animation
+                refreshIcon.style.animation = '';
+                refreshBtn.disabled = false;
+                refreshBtn.style.opacity = '1';
+            }
+        }
+
         // Start scan
         async function startScan() {
             // Reset auto-scan countdown to 5 minutes when manual scan starts
@@ -1255,12 +1349,16 @@
                                         ${token.risk_score}
                                     </div>
                                     ${hasMarketData ? `
-                                        <div style="font-size: 1rem; font-weight: 700; margin-bottom: 0.15rem;">
+                                        <div id="price-${token.address}" style="font-size: 1rem; font-weight: 700; margin-bottom: 0.15rem;">
                                             ${formatPrice(price)}
                                         </div>
-                                        <div style="color: ${colorChange(change24h)}; font-weight: 600; font-size: 0.75rem;">
+                                        <div id="change-${token.address}" style="color: ${colorChange(change24h)}; font-weight: 600; font-size: 0.75rem; margin-bottom: 0.5rem;">
                                             ${formatChange(change24h)}
                                         </div>
+                                        <button onclick="event.stopPropagation(); refreshTokenPrice('${token.address}', '${token.chain}', ${index});" id="refresh-btn-${token.address}" style="background: var(--gradient-primary); border: none; border-radius: 0.5rem; padding: 0.35rem 0.6rem; font-size: 0.7rem; font-weight: 600; color: white; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3); display: flex; align-items: center; gap: 0.25rem; margin: 0 auto;" onmouseenter="this.style.transform='scale(1.05)'; this.style.boxShadow='0 4px 12px rgba(102, 126, 234, 0.5)';" onmouseleave="this.style.transform='scale(1)'; this.style.boxShadow='0 2px 8px rgba(102, 126, 234, 0.3)';">
+                                            <span id="refresh-icon-${token.address}">🔄</span>
+                                            <span>Prix</span>
+                                        </button>
                                     ` : '<div style="color: var(--text-tertiary); font-size: 0.7rem;">No data</div>'}
                                 </div>
                             </div>
