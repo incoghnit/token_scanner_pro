@@ -1421,7 +1421,12 @@
                                         ${token.is_safe ? '<span style="background: rgba(34, 197, 94, 0.2); color: #22c55e; padding: 0.15rem 0.5rem; border-radius: 0.75rem; font-size: 0.7rem; font-weight: 600;">✅ SAFE</span>' : '<span style="background: rgba(239, 68, 68, 0.2); color: #ef4444; padding: 0.15rem 0.5rem; border-radius: 0.75rem; font-size: 0.7rem; font-weight: 600;">⚠️ RISKY</span>'}
                                         ${token.is_pump_dump_suspect ? '<span style="background: rgba(239, 68, 68, 0.2); color: #ef4444; padding: 0.15rem 0.5rem; border-radius: 0.75rem; font-size: 0.7rem; font-weight: 600;">🚨 P&D</span>' : ''}
                                         ${token.creator_security?.is_malicious ? '<span style="background: rgba(220, 38, 38, 0.25); color: #dc2626; padding: 0.15rem 0.5rem; border-radius: 0.75rem; font-size: 0.7rem; font-weight: 700; border: 1px solid #dc2626;">💀 SCAMMER</span>' : ''}
-                                        ${token.rugpull_detection?.is_rugpull_risk ? `<span style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; padding: 0.15rem 0.5rem; border-radius: 0.75rem; font-size: 0.7rem; font-weight: 600;">🎣 RUG-PULL</span>` : ''}
+                                        ${token.rugpull_detection?.is_rugpull_risk ? (() => {
+                                            const level = token.rugpull_detection.rugpull_risk_level?.toUpperCase() || 'RISK';
+                                            const levelColor = level === 'HIGH' ? '#ef4444' : level === 'MEDIUM' ? '#f59e0b' : '#f59e0b';
+                                            return `<span style="background: rgba(245, 158, 11, 0.2); color: ${levelColor}; padding: 0.15rem 0.5rem; border-radius: 0.75rem; font-size: 0.7rem; font-weight: 600;">🎣 ${level}</span>`;
+                                        })() : ''}
+                                        ${token.market?.possible_spam || token.security?.possible_spam ? '<span style="background: rgba(156, 163, 175, 0.2); color: #9ca3af; padding: 0.15rem 0.5rem; border-radius: 0.75rem; font-size: 0.7rem; font-weight: 600;">⚠️ SPAM?</span>' : ''}
                                     </div>
                                 </div>
 
@@ -1519,6 +1524,22 @@
                                             <span style="font-weight: 700; color: ${isMintable ? '#ef4444' : '#22c55e'};">${isMintable ? '❌ YES' : '✅ NO'}</span>
                                         </div>
                                     </div>
+                                    ${(token.security.creator_address || token.creator_address) && (token.security.creator_address !== '0x0000000000000000000000000000000000000000') ? `
+                                        <div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--border-subtle);">
+                                            <div style="font-size: 0.65rem; color: var(--text-tertiary); margin-bottom: 0.25rem;">👤 Creator:</div>
+                                            <div style="font-family: monospace; font-size: 0.65rem; color: var(--text-secondary); word-break: break-all;">
+                                                ${(token.security.creator_address || token.creator_address).substring(0, 16)}...${(token.security.creator_address || token.creator_address).substring((token.security.creator_address || token.creator_address).length - 10)}
+                                            </div>
+                                        </div>
+                                    ` : ''}
+                                    ${(token.security.owner_address) && (token.security.owner_address !== '0x0000000000000000000000000000000000000000') && (token.security.owner_address !== token.security.creator_address) ? `
+                                        <div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--border-subtle);">
+                                            <div style="font-size: 0.65rem; color: var(--text-tertiary); margin-bottom: 0.25rem;">🔑 Owner:</div>
+                                            <div style="font-family: monospace; font-size: 0.65rem; color: var(--text-secondary); word-break: break-all;">
+                                                ${token.security.owner_address.substring(0, 16)}...${token.security.owner_address.substring(token.security.owner_address.length - 10)}
+                                            </div>
+                                        </div>
+                                    ` : ''}
                                 </div>
                             ` : ''}
 
