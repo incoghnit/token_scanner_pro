@@ -1202,6 +1202,42 @@
                                 ` : ''}
                             </div>
                         ` : ''}
+
+                        ${token.creator_security?.is_malicious ? `
+                            <div style="background: linear-gradient(135deg, rgba(220, 38, 38, 0.15) 0%, rgba(220, 38, 38, 0.05) 100%); border: 2px solid #dc2626; border-radius: 0.75rem; padding: 1.25rem;">
+                                <h3 style="font-size: 0.875rem; font-weight: 700; color: #dc2626; margin-bottom: 1rem; text-transform: uppercase;">💀 CRÉATEUR BLACKLISTÉ</h3>
+                                <div style="background: rgba(220, 38, 38, 0.2); border-radius: 0.5rem; padding: 1rem; margin-bottom: 1rem;">
+                                    <div style="font-weight: 700; font-size: 1rem; color: #dc2626; margin-bottom: 0.5rem;">⚠️ SCAMMER RÉCIDIVISTE DÉTECTÉ</div>
+                                    <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.75rem;">Ce token a été créé par une adresse connue pour des activités frauduleuses.</div>
+                                    ${token.creator_address ? `<div style="font-family: monospace; font-size: 0.75rem; color: var(--text-tertiary); word-break: break-all;">Créateur: ${token.creator_address}</div>` : ''}
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.8rem;">
+                                    ${token.creator_security.malicious_address_type ? `<div>Type: <span style="font-weight: 700; color: #dc2626;">${token.creator_security.malicious_address_type}</span></div>` : ''}
+                                    ${token.creator_security.phishing_activities ? `<div>🎣 Phishing: <span style="font-weight: 700;">${token.creator_security.phishing_activities} activités</span></div>` : ''}
+                                    ${token.creator_security.honeypot_related_address ? `<div>🍯 Lié à des honeypots</div>` : ''}
+                                    ${token.creator_security.darkweb_transactions ? `<div>🕵️ Transactions darkweb</div>` : ''}
+                                    ${token.creator_security.stealing_attack ? `<div>💰 Attaques de vol détectées</div>` : ''}
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        ${token.rugpull_detection?.is_rugpull_risk ? `
+                            <div style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(245, 158, 11, 0.05) 100%); border: 2px solid #f59e0b; border-radius: 0.75rem; padding: 1.25rem;">
+                                <h3 style="font-size: 0.875rem; font-weight: 700; color: #f59e0b; margin-bottom: 1rem; text-transform: uppercase;">🎣 RISQUE RUG-PULL</h3>
+                                <div style="text-align: center; margin-bottom: 1rem;">
+                                    <div style="font-size: 2rem; font-weight: 800; color: #f59e0b;">${token.rugpull_detection.rugpull_risk_level?.toUpperCase() || 'DÉTECTÉ'}</div>
+                                    <div style="font-size: 0.8rem; color: var(--text-secondary);">Patterns suspects dans le smart contract</div>
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.8rem;">
+                                    ${token.rugpull_detection.liquidity_removable ? `<div style="color: #ef4444;">💧 Liquidité peut être retirée</div>` : ''}
+                                    ${!token.rugpull_detection.ownership_renounced ? `<div style="color: #f59e0b;">👤 Ownership non renoncé</div>` : ''}
+                                    ${token.rugpull_detection.transfer_pausable ? `<div style="color: #f59e0b;">⏸️ Transfers peuvent être pausés</div>` : ''}
+                                    ${token.rugpull_detection.can_take_back_ownership ? `<div style="color: #ef4444;">🔄 Owner peut reprendre le contrôle</div>` : ''}
+                                    ${token.rugpull_detection.hidden_owner ? `<div style="color: #ef4444;">🕵️ Owner caché détecté</div>` : ''}
+                                    ${token.rugpull_detection.slippage_modifiable ? `<div style="color: #f59e0b;">📊 Slippage modifiable</div>` : ''}
+                                </div>
+                            </div>
+                        ` : ''}
                     </div>
 
                     <!-- All Warnings -->
@@ -1340,6 +1376,8 @@
                                         </span>
                                         ${token.is_safe ? '<span style="background: rgba(34, 197, 94, 0.2); color: #22c55e; padding: 0.15rem 0.5rem; border-radius: 0.75rem; font-size: 0.7rem; font-weight: 600;">✅ SAFE</span>' : '<span style="background: rgba(239, 68, 68, 0.2); color: #ef4444; padding: 0.15rem 0.5rem; border-radius: 0.75rem; font-size: 0.7rem; font-weight: 600;">⚠️ RISKY</span>'}
                                         ${token.is_pump_dump_suspect ? '<span style="background: rgba(239, 68, 68, 0.2); color: #ef4444; padding: 0.15rem 0.5rem; border-radius: 0.75rem; font-size: 0.7rem; font-weight: 600;">🚨 P&D</span>' : ''}
+                                        ${token.creator_security?.is_malicious ? '<span style="background: rgba(220, 38, 38, 0.25); color: #dc2626; padding: 0.15rem 0.5rem; border-radius: 0.75rem; font-size: 0.7rem; font-weight: 700; border: 1px solid #dc2626;">💀 SCAMMER</span>' : ''}
+                                        ${token.rugpull_detection?.is_rugpull_risk ? `<span style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; padding: 0.15rem 0.5rem; border-radius: 0.75rem; font-size: 0.7rem; font-weight: 600;">🎣 RUG-PULL</span>` : ''}
                                     </div>
                                 </div>
 

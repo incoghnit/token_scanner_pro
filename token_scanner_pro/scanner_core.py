@@ -311,6 +311,149 @@ class TokenScanner:
         except Exception as e:
             return {"error": str(e)}
 
+    def _get_chain_id(self, chain: str) -> str:
+        """Helper to convert chain name to chain_id for GoPlus APIs"""
+        chain_ids = {
+            "ethereum": "1",
+            "bsc": "56",
+            "base": "8453",
+            "arbitrum": "42161",
+            "polygon": "137",
+            "avalanche": "43114",
+            "fantom": "250",
+            "optimism": "10",
+            "solana": "solana"
+        }
+        return chain_ids.get(chain.lower(), chain)
+
+    def check_creator_security(self, creator_address: str, chain: str) -> Dict[str, Any]:
+        """
+        🆕 DÉTECTION CRÉATEUR MALVEILLANT
+        Vérifie si le créateur/owner est une adresse blacklistée (scammer, phisher, rug-puller)
+
+        Args:
+            creator_address: Adresse du créateur/owner du token
+            chain: Blockchain name (ethereum, bsc, etc.)
+
+        Returns:
+            Dict avec is_malicious, types de fraudes, nombre d'activités suspectes
+        """
+        try:
+            if not creator_address or creator_address == "0x0000000000000000000000000000000000000000":
+                return {"error": "No valid creator address"}
+
+            chain_id = self._get_chain_id(chain)
+            url = f"{self.goplus_api}/address_security/{creator_address}?chain_id={chain_id}"
+
+            print(f"🔍 Checking creator security: {creator_address[:10]}... on chain {chain}")
+
+            # API call with retry logic
+            def api_call():
+                return requests.get(url, timeout=10)
+
+            try:
+                response = retry_api_call(api_call, max_retries=2)
+            except Exception as e:
+                return {"error": f"API call failed: {str(e)}"}
+
+            if response.status_code != 200:
+                return {"error": f"API returned status {response.status_code}"}
+
+            data = response.json()
+
+            if data.get("code") != 1:
+                return {"error": "Invalid API response"}
+
+            result = data.get("result", {}).get(creator_address.lower(), {})
+
+            # Parse malicious status
+            is_malicious = result.get("is_malicious") == "1"
+
+            return {
+                "is_malicious": is_malicious,
+                "malicious_address_type": result.get("malicious_address_type", ""),
+                "blacklist_type": result.get("blacklist_type", ""),
+                "trust_score": int(result.get("trust_score", 0)) if result.get("trust_score") else 0,
+                "phishing_activities": int(result.get("phishing_activities", 0)) if result.get("phishing_activities") else 0,
+                "honeypot_related_address": result.get("honeypot_related_address") == "1",
+                "fake_kyc": result.get("fake_kyc") == "1",
+                "malicious_behavior": result.get("malicious_behavior", ""),
+                "cybercrime_activities": int(result.get("cybercrime_activities", 0)) if result.get("cybercrime_activities") else 0,
+                "blackmail_activities": int(result.get("blackmail_activities", 0)) if result.get("blackmail_activities") else 0,
+                "stealing_attack": result.get("stealing_attack") == "1",
+                "darkweb_transactions": result.get("darkweb_transactions") == "1",
+                "mixer": result.get("mixer") == "1",
+                "contract_address": result.get("contract_address") == "1"
+            }
+
+        except Exception as e:
+            print(f"❌ Error checking creator security: {e}")
+            return {"error": str(e)}
+
+    def detect_rugpull_risk(self, address: str, chain: str) -> Dict[str, Any]:
+        """
+        🆕 DÉTECTION RUG-PULL (Beta)
+        Analyse spécialisée pour détecter les patterns de rug-pull dans le smart contract
+        Différent de detect_pump_dump() qui analyse les données de marché
+
+        Args:
+            address: Contract address du token
+            chain: Blockchain name
+
+        Returns:
+            Dict avec is_rugpull_risk, risk_level, indicateurs spécifiques
+        """
+        try:
+            chain_id = self._get_chain_id(chain)
+            url = f"{self.goplus_api}/rugpull_detecting/{chain_id}?contract_addresses={address}"
+
+            print(f"🎣 Checking rug-pull risk: {address[:10]}... on chain {chain}")
+
+            # API call with retry logic
+            def api_call():
+                return requests.get(url, timeout=10)
+
+            try:
+                response = retry_api_call(api_call, max_retries=2)
+            except Exception as e:
+                return {"error": f"API call failed: {str(e)}"}
+
+            if response.status_code != 200:
+                return {"error": f"API returned status {response.status_code}"}
+
+            data = response.json()
+
+            if data.get("code") != 1:
+                return {"error": "Invalid API response"}
+
+            result = data.get("result", {}).get(address.lower(), {})
+
+            # Parse rug-pull indicators
+            is_rugpull_risk = result.get("is_rugpull_risk") == "1"
+            risk_level = result.get("rugpull_risk_level", "unknown")  # low, medium, high
+
+            return {
+                "is_rugpull_risk": is_rugpull_risk,
+                "rugpull_risk_level": risk_level,
+                "liquidity_removable": result.get("liquidity_removable") == "1",
+                "ownership_renounced": result.get("ownership_renounced") == "1",
+                "anti_whale_modifiable": result.get("anti_whale_modifiable") == "1",
+                "trading_cooldown": result.get("trading_cooldown") == "1",
+                "transfer_pausable": result.get("transfer_pausable") == "1",
+                "can_take_back_ownership": result.get("can_take_back_ownership") == "1",
+                "hidden_owner": result.get("hidden_owner") == "1",
+                "self_destruct": result.get("self_destruct") == "1",
+                "external_call": result.get("external_call") == "1",
+                "buy_tax": result.get("buy_tax"),
+                "sell_tax": result.get("sell_tax"),
+                "is_proxy": result.get("is_proxy") == "1",
+                "slippage_modifiable": result.get("slippage_modifiable") == "1"
+            }
+
+        except Exception as e:
+            print(f"❌ Error detecting rug-pull: {e}")
+            return {"error": str(e)}
+
     def detect_pump_dump(self, market: Dict, security: Dict, pair_created_at: str) -> Dict[str, Any]:
         """
         🆕 DÉTECTEUR DE PUMP & DUMP
@@ -514,7 +657,56 @@ class TokenScanner:
         security = self.check_security(address, chain)
         time.sleep(0.5)
 
+        # 🆕 NOUVEAU : Vérifier si le créateur est malveillant (scammer récidiviste)
+        creator_security = {}
+        creator_address = security.get("creator_address") or security.get("owner_address")
+        if creator_address and creator_address != "0x0000000000000000000000000000000000000000" and "error" not in security:
+            creator_security = self.check_creator_security(creator_address, chain)
+            time.sleep(0.5)
+            if "error" not in creator_security:
+                print(f"🔍 Creator security: {'BLACKLISTED' if creator_security.get('is_malicious') else 'Clean'}")
+
+        # 🆕 NOUVEAU : Détection spécialisée rug-pull (patterns dans le smart contract)
+        rugpull_data = {}
+        if "error" not in security:
+            rugpull_data = self.detect_rugpull_risk(address, chain)
+            time.sleep(0.5)
+            if "error" not in rugpull_data and rugpull_data.get("is_rugpull_risk"):
+                print(f"🎣 Rug-pull risk detected: {rugpull_data.get('rugpull_risk_level', 'unknown')} level")
+
         risk_score, warnings = self.calculate_risk_score(security, market)
+
+        # 🆕 AJUSTER LE RISK SCORE avec les nouvelles données
+        if creator_security.get("is_malicious"):
+            risk_score = min(100, risk_score + 50)  # +50 points si créateur blacklisté !
+            warnings.append("🚨 CRÉATEUR BLACKLISTÉ - SCAMMER CONNU")
+            if creator_security.get("phishing_activities", 0) > 0:
+                warnings.append(f"🎣 {creator_security['phishing_activities']} activités de phishing détectées")
+            if creator_security.get("honeypot_related_address"):
+                warnings.append("🍯 Adresse liée à des honeypots")
+            if creator_security.get("darkweb_transactions"):
+                warnings.append("🕵️ Transactions darkweb détectées")
+
+        if rugpull_data.get("is_rugpull_risk"):
+            risk_level = rugpull_data.get("rugpull_risk_level", "unknown")
+            if risk_level == "high":
+                risk_score = min(100, risk_score + 40)
+                warnings.append("🚨 RISQUE RUG-PULL ÉLEVÉ")
+            elif risk_level == "medium":
+                risk_score = min(100, risk_score + 25)
+                warnings.append("⚠️ RISQUE RUG-PULL MOYEN")
+            else:
+                risk_score = min(100, risk_score + 15)
+                warnings.append("⚠️ Risque rug-pull détecté")
+
+            if rugpull_data.get("liquidity_removable"):
+                warnings.append("💧 Liquidité peut être retirée par le propriétaire")
+            if not rugpull_data.get("ownership_renounced"):
+                warnings.append("👤 Ownership non renoncé")
+            if rugpull_data.get("transfer_pausable"):
+                warnings.append("⏸️ Transfers peuvent être pausés")
+            if rugpull_data.get("can_take_back_ownership"):
+                warnings.append("🔄 Owner peut reprendre le contrôle")
 
         pair_created_at = market.get("pair_created_at", "N/A")
         pump_dump_analysis = self.detect_pump_dump(market, security, pair_created_at)
@@ -588,8 +780,12 @@ class TokenScanner:
             "social_details": social_details,
             "market": market,
             "security": security,
-            "risk_score": risk_score,
-            "warnings": warnings,
+            # 🆕 NOUVELLES DONNÉES DE SÉCURITÉ AVANCÉE
+            "creator_security": creator_security,
+            "creator_address": creator_address if creator_address else None,
+            "rugpull_detection": rugpull_data,
+            "risk_score": risk_score,  # Ajusté avec créateur + rug-pull
+            "warnings": warnings,  # Inclut warnings créateur + rug-pull
             "is_safe": risk_score < 50,
             "pump_dump_score": pump_dump_analysis["pump_dump_score"],
             "pump_dump_risk": pump_dump_analysis["pump_dump_risk"],
