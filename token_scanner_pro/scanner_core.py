@@ -294,6 +294,22 @@ class TokenScanner:
 
             result = data.get("result", {}).get(address.lower(), {})
 
+            # Parse holders data (top 10 holders with percentages)
+            holders_list = []
+            lp_holders = result.get("lp_holders", [])
+            if lp_holders and isinstance(lp_holders, list):
+                for holder in lp_holders[:10]:  # Top 10 holders
+                    if isinstance(holder, dict):
+                        holders_list.append({
+                            "address": holder.get("address", "Unknown"),
+                            "tag": holder.get("tag", ""),
+                            "is_locked": holder.get("is_locked", 0) == 1,
+                            "is_contract": holder.get("is_contract", 0) == 1,
+                            "balance": holder.get("balance", "0"),
+                            "percent": holder.get("percent", "0"),
+                            "locked_detail": holder.get("locked_detail", [])
+                        })
+
             return {
                 "is_honeypot": result.get("is_honeypot", "unknown") == "1",
                 "is_open_source": result.get("is_open_source", "0") == "1",
@@ -307,6 +323,14 @@ class TokenScanner:
                 "total_supply": result.get("total_supply", "N/A"),
                 "creator_balance": result.get("creator_balance", "0"),
                 "owner_balance": result.get("owner_balance", "0"),
+                "creator_address": result.get("creator_address", None),
+                "owner_address": result.get("owner_address", None),
+                "creator_percent": result.get("creator_percent", "0"),
+                "owner_percent": result.get("owner_percent", "0"),
+                # Top holders avec détails
+                "holders": holders_list,
+                "lp_holder_count": result.get("lp_holder_count", "0"),
+                "lp_total_supply": result.get("lp_total_supply", "0"),
             }
         except Exception as e:
             return {"error": str(e)}

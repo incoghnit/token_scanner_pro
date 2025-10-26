@@ -1250,6 +1250,50 @@
                         </div>
                     ` : ''}
 
+                    <!-- Top Holders Section (Modal Full List) -->
+                    ${hasSecurity && token.security.holders && token.security.holders.length > 0 ? `
+                        <div style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(139, 92, 246, 0.05) 100%); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 1.5rem;">
+                            <h3 style="font-size: 0.875rem; font-weight: 700; color: #8b5cf6; margin-bottom: 1.5rem; text-transform: uppercase; display: flex; align-items: center; gap: 0.5rem;">
+                                👥 Top ${token.security.holders.length} Holders Distribution
+                                <span style="font-size: 0.75rem; font-weight: 600; background: rgba(139, 92, 246, 0.2); padding: 0.25rem 0.75rem; border-radius: 1rem;">${token.security.holder_count || 'N/A'} Total</span>
+                            </h3>
+                            <div style="display: grid; gap: 0.75rem;">
+                                ${token.security.holders.map((holder, idx) => {
+                                    const percent = parseFloat(holder.percent || 0);
+                                    const barColor = percent > 20 ? '#ef4444' : percent > 10 ? '#f59e0b' : '#8b5cf6';
+                                    const tag = holder.tag || (holder.is_locked ? '🔒 Locked' : holder.is_contract ? '📝 Contract' : '');
+                                    const isHighRisk = percent > 20;
+                                    return `
+                                        <div style="background: ${isHighRisk ? 'rgba(239, 68, 68, 0.05)' : 'var(--bg-card)'}; border: 1px solid ${isHighRisk ? 'rgba(239, 68, 68, 0.2)' : 'var(--border-subtle)'}; border-radius: 0.5rem; padding: 1rem;">
+                                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; align-items: center;">
+                                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                                    <span style="font-weight: 700; color: ${barColor}; font-size: 1rem;">#${idx + 1}</span>
+                                                    <span style="font-family: monospace; font-size: 0.85rem; color: var(--text-secondary);">
+                                                        ${holder.address.substring(0, 10)}...${holder.address.substring(holder.address.length - 8)}
+                                                    </span>
+                                                    ${tag ? `<span style="background: ${barColor}22; color: ${barColor}; padding: 0.25rem 0.5rem; border-radius: 0.5rem; font-size: 0.7rem; font-weight: 600;">${tag}</span>` : ''}
+                                                    ${isHighRisk ? '<span style="background: rgba(239, 68, 68, 0.2); color: #ef4444; padding: 0.25rem 0.5rem; border-radius: 0.5rem; font-size: 0.7rem; font-weight: 700;">⚠️ HIGH</span>' : ''}
+                                                </div>
+                                                <span style="font-weight: 800; font-size: 1.1rem; color: ${barColor};">${percent.toFixed(2)}%</span>
+                                            </div>
+                                            <div style="width: 100%; height: 10px; background: rgba(139, 92, 246, 0.1); border-radius: 5px; overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);">
+                                                <div style="width: ${Math.min(percent, 100)}%; height: 100%; background: linear-gradient(90deg, ${barColor} 0%, ${barColor}dd 100%); transition: width 0.5s ease-out; box-shadow: 0 0 10px ${barColor}66;"></div>
+                                            </div>
+                                            ${holder.balance ? `<div style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-tertiary);">Balance: ${parseFloat(holder.balance).toLocaleString('en-US', {maximumFractionDigits: 2})} tokens</div>` : ''}
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                            ${token.security.creator_percent && parseFloat(token.security.creator_percent) > 0 ? `
+                                <div style="margin-top: 1rem; padding: 1rem; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 0.5rem;">
+                                    <div style="font-size: 0.8rem; color: #f59e0b; font-weight: 600;">
+                                        ⚠️ Creator holds ${parseFloat(token.security.creator_percent).toFixed(2)}% of supply
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    ` : ''}
+
                     <!-- Actions -->
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
                         <button onclick="analyzeTokenWithAI(${tokenIndex}, this); event.stopPropagation();" style="padding: 1rem; background: var(--gradient-primary); color: white; border: none; border-radius: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);">
@@ -1445,23 +1489,69 @@
                                 </div>
                             `}
 
-                            <!-- Compact Security + P&D Row -->
-                            <div style="display: grid; grid-template-columns: ${hasSecurity && hasTwitter ? 'repeat(3, 1fr)' : hasSecurity || hasTwitter ? 'repeat(2, 1fr)' : '1fr'}; gap: 0.5rem; margin-bottom: 0.75rem;">
-                                ${hasSecurity ? `
-                                    <div style="background: var(--bg-glass); border-radius: 0.5rem; padding: 0.75rem;">
-                                        <div style="font-size: 0.7rem; color: var(--text-tertiary); margin-bottom: 0.4rem; font-weight: 600;">🔒 SECURITY</div>
-                                        <div style="display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.7rem;">
-                                            <div style="display: flex; justify-content: space-between;">
-                                                <span>Tax:</span>
-                                                <span style="font-weight: 600; color: ${(buyTax + sellTax) > 15 ? '#ef4444' : '#22c55e'};">${buyTax.toFixed(1)}%/${sellTax.toFixed(1)}%</span>
-                                            </div>
-                                            <div style="display: flex; justify-content: space-between;">
-                                                <span>HP:</span>
-                                                <span style="font-weight: 600; color: ${isHoneypot ? '#ef4444' : '#22c55e'};">${isHoneypot ? '❌' : '✅'}</span>
-                                            </div>
+                            <!-- Enhanced Security Info Grid -->
+                            ${hasSecurity ? `
+                                <div style="background: var(--bg-glass); border-radius: 0.5rem; padding: 0.75rem; margin-bottom: 0.75rem;">
+                                    <div style="font-size: 0.75rem; color: var(--text-tertiary); margin-bottom: 0.5rem; font-weight: 700; text-transform: uppercase;">🔒 Security Details</div>
+                                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.4rem; font-size: 0.7rem;">
+                                        <div style="display: flex; justify-content: space-between; padding: 0.25rem 0;">
+                                            <span style="color: var(--text-tertiary);">Buy Tax:</span>
+                                            <span style="font-weight: 700; color: ${buyTax > 10 ? '#ef4444' : buyTax > 5 ? '#f59e0b' : '#22c55e'};">${buyTax.toFixed(1)}%</span>
+                                        </div>
+                                        <div style="display: flex; justify-content: space-between; padding: 0.25rem 0;">
+                                            <span style="color: var(--text-tertiary);">Sell Tax:</span>
+                                            <span style="font-weight: 700; color: ${sellTax > 10 ? '#ef4444' : sellTax > 5 ? '#f59e0b' : '#22c55e'};">${sellTax.toFixed(1)}%</span>
+                                        </div>
+                                        <div style="display: flex; justify-content: space-between; padding: 0.25rem 0;">
+                                            <span style="color: var(--text-tertiary);">Honeypot:</span>
+                                            <span style="font-weight: 700; color: ${isHoneypot ? '#ef4444' : '#22c55e'};">${isHoneypot ? '❌ YES' : '✅ NO'}</span>
+                                        </div>
+                                        <div style="display: flex; justify-content: space-between; padding: 0.25rem 0;">
+                                            <span style="color: var(--text-tertiary);">Holders:</span>
+                                            <span style="font-weight: 700;">${holders !== 'N/A' ? formatNumber(parseInt(holders)) : 'N/A'}</span>
+                                        </div>
+                                        <div style="display: flex; justify-content: space-between; padding: 0.25rem 0;">
+                                            <span style="color: var(--text-tertiary);">Open Source:</span>
+                                            <span style="font-weight: 700; color: ${isOpenSource ? '#22c55e' : '#f59e0b'};">${isOpenSource ? '✅' : '⚠️'}</span>
+                                        </div>
+                                        <div style="display: flex; justify-content: space-between; padding: 0.25rem 0;">
+                                            <span style="color: var(--text-tertiary);">Mintable:</span>
+                                            <span style="font-weight: 700; color: ${isMintable ? '#ef4444' : '#22c55e'};">${isMintable ? '❌ YES' : '✅ NO'}</span>
                                         </div>
                                     </div>
-                                ` : ''}
+                                </div>
+                            ` : ''}
+
+                            <!-- Top Holders Section -->
+                            ${hasSecurity && token.security.holders && token.security.holders.length > 0 ? `
+                                <div style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(139, 92, 246, 0.05) 100%); border: 1px solid rgba(139, 92, 246, 0.2); border-radius: 0.5rem; padding: 0.75rem; margin-bottom: 0.75rem;">
+                                    <div style="font-size: 0.75rem; color: #8b5cf6; margin-bottom: 0.5rem; font-weight: 700; text-transform: uppercase;">👥 Top ${Math.min(5, token.security.holders.length)} Holders</div>
+                                    <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+                                        ${token.security.holders.slice(0, 5).map((holder, idx) => {
+                                            const percent = parseFloat(holder.percent || 0);
+                                            const barColor = percent > 20 ? '#ef4444' : percent > 10 ? '#f59e0b' : '#8b5cf6';
+                                            const tag = holder.tag || (holder.is_locked ? '🔒 Locked' : holder.is_contract ? '📝 Contract' : '');
+                                            return `
+                                                <div style="font-size: 0.65rem;">
+                                                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.15rem; align-items: center;">
+                                                        <span style="color: var(--text-tertiary); font-family: monospace;">
+                                                            #${idx + 1} ${holder.address.substring(0, 6)}...${holder.address.substring(holder.address.length - 4)}
+                                                            ${tag ? `<span style="color: ${barColor}; font-weight: 600; margin-left: 0.25rem;">${tag}</span>` : ''}
+                                                        </span>
+                                                        <span style="font-weight: 700; color: ${barColor};">${percent.toFixed(2)}%</span>
+                                                    </div>
+                                                    <div style="width: 100%; height: 6px; background: rgba(139, 92, 246, 0.1); border-radius: 3px; overflow: hidden;">
+                                                        <div style="width: ${Math.min(percent, 100)}%; height: 100%; background: ${barColor}; transition: width 0.3s;"></div>
+                                                    </div>
+                                                </div>
+                                            `;
+                                        }).join('')}
+                                    </div>
+                                </div>
+                            ` : ''}
+
+                            <!-- Compact Risk Scores Row -->
+                            <div style="display: grid; grid-template-columns: ${hasTwitter ? 'repeat(2, 1fr)' : '1fr'}; gap: 0.5rem; margin-bottom: 0.75rem;">
                                 ${hasTwitter ? `
                                     <div style="background: linear-gradient(135deg, rgba(29, 161, 242, 0.1) 0%, rgba(29, 161, 242, 0.05) 100%); border: 1px solid rgba(29, 161, 242, 0.2); border-radius: 0.5rem; padding: 0.75rem;">
                                         <div style="font-size: 0.7rem; color: #1da1f2; margin-bottom: 0.3rem; font-weight: 600;">🐦 SOCIAL</div>
