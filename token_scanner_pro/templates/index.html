@@ -584,6 +584,38 @@
     {% include 'components_scan_progress.html' %}
 
     <div class="container">
+        <!-- 🔍 Token Search Bar (Above Everything) -->
+        <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 1rem; padding: 1.5rem; margin-bottom: 2rem; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);">
+            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                <span style="font-size: 1.5rem;">🔍</span>
+                <h3 style="font-size: 1.125rem; font-weight: 700; margin: 0;">Rechercher un Token</h3>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr auto; gap: 0.75rem;">
+                <input
+                    type="text"
+                    id="tokenSearchInput"
+                    placeholder="Entrez une adresse de token ou URL DexScreener..."
+                    style="padding: 1rem 1.25rem; background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: 0.75rem; color: var(--text-primary); font-size: 0.95rem; width: 100%; transition: all 0.2s;"
+                    onkeypress="if(event.key === 'Enter') searchSpecificToken()"
+                    onfocus="this.style.borderColor='var(--accent-primary)'; this.style.boxShadow='0 0 0 3px rgba(102, 126, 234, 0.1)'"
+                    onblur="this.style.borderColor='var(--border-subtle)'; this.style.boxShadow='none'"
+                />
+                <button
+                    onclick="searchSpecificToken()"
+                    style="padding: 1rem 2rem; background: var(--gradient-primary); color: white; border: none; border-radius: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s; white-space: nowrap; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);"
+                    onmouseenter="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(102, 126, 234, 0.4)'"
+                    onmouseleave="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(102, 126, 234, 0.3)'"
+                >
+                    🚀 Analyser
+                </button>
+            </div>
+
+            <div style="margin-top: 0.75rem; font-size: 0.8rem; color: var(--text-tertiary);">
+                💡 <strong>Astuce:</strong> Collez une adresse de token ou une URL DexScreener complète (ex: https://dexscreener.com/solana/abc123...)
+            </div>
+        </div>
+
         <!-- Hero Section - Marketing Optimized -->
         <div class="welcome" style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%); border: 1px solid var(--border-subtle); border-radius: 1.5rem; padding: 4rem 2rem; margin-bottom: 3rem; text-align: center; backdrop-filter: blur(20px); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2); position: relative; overflow: hidden;">
 
@@ -1965,6 +1997,64 @@
             } catch (error) {
                 console.error('Error searching token:', error);
                 resultsDiv.innerHTML = `<div class="empty-state" style="text-align: center; padding: 2rem; color: var(--accent-danger);"><div style="font-size: 3rem; margin-bottom: 0.5rem;">❌</div><p>Erreur de recherche</p></div>`;
+            }
+        }
+
+        // ==================== SPECIFIC TOKEN SEARCH ====================
+        async function searchSpecificToken() {
+            const input = document.getElementById('tokenSearchInput');
+            const value = input.value.trim();
+
+            if (!value) {
+                alert('⚠️ Veuillez entrer une adresse de token ou une URL DexScreener');
+                return;
+            }
+
+            // Show loading state
+            document.getElementById('scan-progress').style.display = 'block';
+            document.getElementById('scan-results').style.display = 'none';
+
+            try {
+                let profileUrl = '';
+
+                // Check if it's a full DexScreener URL
+                if (value.includes('dexscreener.com')) {
+                    profileUrl = value;
+                } else {
+                    // It's just an address - need to prompt for chain
+                    const chain = prompt('🔗 Quelle blockchain?\n\nEntrez: solana, ethereum, bsc, base, arbitrum, polygon', 'solana');
+                    if (!chain) {
+                        document.getElementById('scan-progress').style.display = 'none';
+                        return;
+                    }
+                    profileUrl = `https://dexscreener.com/${chain.toLowerCase()}/${value}`;
+                }
+
+                console.log('🔍 Searching token:', profileUrl);
+
+                const response = await fetch('/api/scan/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        max_tokens: 1,
+                        profile_url: profileUrl
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Poll for results
+                    pollScanResults();
+                } else {
+                    document.getElementById('scan-progress').style.display = 'none';
+                    alert('❌ Erreur: ' + (data.error || 'Scan échoué'));
+                }
+
+            } catch (error) {
+                console.error('Error searching token:', error);
+                document.getElementById('scan-progress').style.display = 'none';
+                alert('❌ Erreur lors de la recherche du token');
             }
         }
 
