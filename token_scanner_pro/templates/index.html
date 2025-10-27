@@ -575,6 +575,9 @@
             }
         }
     </style>
+
+    <!-- Reusable Component Styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='components.css') }}">
 </head>
 <body data-page="home">
     <!-- Navigation Component -->
@@ -1183,42 +1186,17 @@
                             <h2 style="font-size: 1.75rem; font-weight: 800; margin-bottom: 0.5rem;">${token.description || 'Token Details'}</h2>
                             <div style="font-family: monospace; font-size: 0.9rem; color: var(--text-tertiary); margin-bottom: 1rem;">${token.address}</div>
                             <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-                                <span style="background: var(--bg-glass); padding: 0.5rem 1rem; border-radius: 1rem; font-weight: 600;">${token.chain.toUpperCase()}</span>
-                                ${token.is_safe ? '<span style="background: rgba(34, 197, 94, 0.2); color: #22c55e; padding: 0.5rem 1rem; border-radius: 1rem; font-weight: 600;">✅ SAFE</span>' : '<span style="background: rgba(239, 68, 68, 0.2); color: #ef4444; padding: 0.5rem 1rem; border-radius: 1rem; font-weight: 600;">⚠️ RISKY</span>'}
-                                <span style="background: var(--gradient-primary); color: white; padding: 0.5rem 1rem; border-radius: 1rem; font-weight: 700;">Risk: ${token.risk_score}/100</span>
+                                ${createChainBadge(token.chain, 'large')}
+                                ${createSafetyBadge(token.is_safe, 'large')}
+                                ${createRiskScoreBadge(token.risk_score, 'large')}
                             </div>
                         </div>
                     </div>
 
                     <!-- Full Details Grid -->
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
-                        ${hasMarketData ? `
-                            <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 0.75rem; padding: 1.25rem;">
-                                <h3 style="font-size: 0.875rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 1rem; text-transform: uppercase;">💹 Market Data</h3>
-                                <div style="display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.9rem;">
-                                    <div style="display: flex; justify-content: space-between;"><span>Price:</span><span style="font-weight: 700;">$${token.market.price_usd?.toFixed(8) || 'N/A'}</span></div>
-                                    <div style="display: flex; justify-content: space-between;"><span>24h Change:</span><span style="font-weight: 700; color: ${token.market.price_change_24h >= 0 ? '#22c55e' : '#ef4444'};">${(token.market.price_change_24h >= 0 ? '+' : '')}${token.market.price_change_24h?.toFixed(2) || '0'}%</span></div>
-                                    <div style="display: flex; justify-content: space-between;"><span>Liquidity:</span><span style="font-weight: 700;">$${(token.market.liquidity_usd / 1000).toFixed(2)}K</span></div>
-                                    <div style="display: flex; justify-content: space-between;"><span>Volume 24h:</span><span style="font-weight: 700;">$${(token.market.volume_24h / 1000).toFixed(2)}K</span></div>
-                                    <div style="display: flex; justify-content: space-between;"><span>Market Cap:</span><span style="font-weight: 700;">$${(token.market.market_cap / 1000).toFixed(2)}K</span></div>
-                                    <div style="display: flex; justify-content: space-between;"><span>Buys/Sells:</span><span style="font-weight: 700;">${token.market.txns_24h_buys || 0}/${token.market.txns_24h_sells || 0}</span></div>
-                                </div>
-                            </div>
-                        ` : ''}
-
-                        ${hasSecurity ? `
-                            <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 0.75rem; padding: 1.25rem;">
-                                <h3 style="font-size: 0.875rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 1rem; text-transform: uppercase;">🔒 Security</h3>
-                                <div style="display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.9rem;">
-                                    <div style="display: flex; justify-content: space-between;"><span>Buy Tax:</span><span style="font-weight: 700; color: ${token.security.buy_tax > 10 ? '#ef4444' : '#22c55e'};">${token.security.buy_tax?.toFixed(1) || 0}%</span></div>
-                                    <div style="display: flex; justify-content: space-between;"><span>Sell Tax:</span><span style="font-weight: 700; color: ${token.security.sell_tax > 10 ? '#ef4444' : '#22c55e'};">${token.security.sell_tax?.toFixed(1) || 0}%</span></div>
-                                    <div style="display: flex; justify-content: space-between;"><span>Honeypot:</span><span style="font-weight: 700; color: ${token.security.is_honeypot ? '#ef4444' : '#22c55e'};">${token.security.is_honeypot ? '❌ Yes' : '✅ No'}</span></div>
-                                    <div style="display: flex; justify-content: space-between;"><span>Mintable:</span><span style="font-weight: 700; color: ${token.security.is_mintable ? '#f59e0b' : '#22c55e'};">${token.security.is_mintable ? '⚠️ Yes' : '✅ No'}</span></div>
-                                    <div style="display: flex; justify-content: space-between;"><span>Open Source:</span><span style="font-weight: 700; color: ${token.security.is_open_source ? '#22c55e' : '#f59e0b'};">${token.security.is_open_source ? '✅ Yes' : '⚠️ No'}</span></div>
-                                    <div style="display: flex; justify-content: space-between;"><span>Holders:</span><span style="font-weight: 700;">${token.security.holder_count || 'N/A'}</span></div>
-                                </div>
-                            </div>
-                        ` : ''}
+                        ${hasMarketData ? createMarketDataCard(token.market) : ''}
+                        ${hasSecurity ? createSecurityCard(token.security) : ''}
 
                         ${token.pump_dump_score ? `
                             <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 0.75rem; padding: 1.25rem;">
@@ -1346,62 +1324,11 @@
                                         ${token.technical_analysis.token_age_hours ? Math.floor(token.technical_analysis.token_age_hours / 24) + ' days old' : 'Established'}
                                     </span>
                                 </h3>
-                                ${(() => {
-                                    const signal = token.technical_analysis.trading_signal?.signal || 'HOLD';
-                                    const confidence = token.technical_analysis.trading_signal?.confidence || 0;
-                                    const colors = {
-                                        'STRONG_BUY': {bg: 'rgba(34, 197, 94, 0.2)', color: '#22c55e', border: '#22c55e'},
-                                        'BUY': {bg: 'rgba(74, 222, 128, 0.15)', color: '#4ade80', border: '#4ade80'},
-                                        'HOLD': {bg: 'rgba(156, 163, 175, 0.2)', color: '#9ca3af', border: '#9ca3af'},
-                                        'SELL': {bg: 'rgba(251, 146, 60, 0.2)', color: '#fb923c', border: '#fb923c'},
-                                        'STRONG_SELL': {bg: 'rgba(239, 68, 68, 0.2)', color: '#ef4444', border: '#ef4444'}
-                                    };
-                                    const style = colors[signal] || colors.HOLD;
-                                    const icon = signal.includes('BUY') ? '🟢' : signal.includes('SELL') ? '🔴' : '⏸️';
-                                    return `
-                                        <div style="background: ${style.bg}; border: 2px solid ${style.border}; border-radius: 0.75rem; padding: 0.75rem 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
-                                            <span style="font-size: 1.25rem;">${icon}</span>
-                                            <div>
-                                                <div style="font-weight: 800; font-size: 1.125rem; color: ${style.color};">${signal.replace('_', ' ')}</div>
-                                                <div style="font-size: 0.75rem; color: var(--text-tertiary); font-weight: 600;">${confidence}% confidence</div>
-                                            </div>
-                                        </div>
-                                    `;
-                                })()}
+                                ${createTradingSignalBadge(token.technical_analysis.trading_signal, 'large')}
                             </div>
 
                             <!-- RSI Gauge -->
-                            ${token.technical_analysis.rsi !== null && token.technical_analysis.rsi !== undefined ? `
-                                <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 1.5rem;">
-                                    <h4 style="font-size: 0.875rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 1rem; text-transform: uppercase;">📈 RSI (Relative Strength Index)</h4>
-                                    <div style="display: flex; align-items: center; gap: 1.5rem;">
-                                        <div style="flex: 1;">
-                                            <div style="position: relative; height: 60px; background: linear-gradient(90deg, #22c55e 0%, #22c55e 30%, #9ca3af 30%, #9ca3af 70%, #ef4444 70%, #ef4444 100%); border-radius: 0.5rem; overflow: hidden;">
-                                                <div style="position: absolute; left: ${token.technical_analysis.rsi}%; top: 50%; transform: translate(-50%, -50%); width: 4px; height: 80%; background: white; box-shadow: 0 0 10px rgba(0,0,0,0.5);"></div>
-                                                <div style="position: absolute; left: ${token.technical_analysis.rsi}%; bottom: -30px; transform: translateX(-50%); background: var(--bg-secondary); border: 2px solid var(--accent-primary); border-radius: 0.5rem; padding: 0.25rem 0.5rem; font-weight: 800; font-size: 1rem; color: var(--accent-primary); white-space: nowrap;">
-                                                    ${token.technical_analysis.rsi.toFixed(1)}
-                                                </div>
-                                            </div>
-                                            <div style="display: flex; justify-content: space-between; margin-top: 40px; font-size: 0.7rem; color: var(--text-tertiary); font-weight: 600;">
-                                                <span>0 (Oversold)</span>
-                                                <span>30</span>
-                                                <span>50</span>
-                                                <span>70</span>
-                                                <span>100 (Overbought)</span>
-                                            </div>
-                                        </div>
-                                        <div style="text-align: center; min-width: 120px;">
-                                            <div style="font-size: 0.75rem; color: var(--text-tertiary); margin-bottom: 0.5rem;">Status</div>
-                                            <div style="font-weight: 700; font-size: 1rem; color: ${token.technical_analysis.rsi < 30 ? '#22c55e' : token.technical_analysis.rsi > 70 ? '#ef4444' : '#9ca3af'};">
-                                                ${token.technical_analysis.rsi < 30 ? '🟢 OVERSOLD' : token.technical_analysis.rsi > 70 ? '🔴 OVERBOUGHT' : '⚪ NEUTRAL'}
-                                            </div>
-                                            <div style="font-size: 0.7rem; color: var(--text-tertiary); margin-top: 0.25rem;">
-                                                ${token.technical_analysis.rsi < 30 ? 'Buy opportunity' : token.technical_analysis.rsi > 70 ? 'Sell signal' : 'No clear signal'}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            ` : ''}
+                            ${createRSIGauge(token.technical_analysis.rsi)}
 
                             <!-- Key Indicators Grid -->
                             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
@@ -1459,42 +1386,7 @@
                             </div>
 
                             <!-- Support/Resistance Levels -->
-                            ${token.technical_analysis.support_resistance ? `
-                                <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 1.5rem;">
-                                    <h4 style="font-size: 0.875rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 1rem; text-transform: uppercase;">📍 Support & Resistance Levels</h4>
-                                    <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 1.5rem; align-items: center;">
-                                        <!-- Support Levels -->
-                                        <div>
-                                            <div style="font-size: 0.75rem; font-weight: 700; color: #22c55e; margin-bottom: 0.75rem; text-align: center;">🟢 SUPPORT</div>
-                                            ${token.technical_analysis.support_resistance.support?.map((s, idx) => `
-                                                <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 0.5rem; padding: 0.5rem; margin-bottom: 0.5rem; text-align: center;">
-                                                    <div style="font-size: 0.65rem; color: var(--text-tertiary); margin-bottom: 0.15rem;">S${idx + 1}</div>
-                                                    <div style="font-family: monospace; font-weight: 700; font-size: 0.85rem; color: #22c55e;">$${s.toFixed(8)}</div>
-                                                </div>
-                                            `).join('') || '<div style="text-align: center; color: var(--text-tertiary); font-size: 0.75rem;">No support detected</div>'}
-                                        </div>
-
-                                        <!-- Current Price -->
-                                        <div style="text-align: center; padding: 1rem; background: var(--gradient-primary); border-radius: 0.75rem;">
-                                            <div style="font-size: 0.7rem; color: rgba(255,255,255,0.7); margin-bottom: 0.25rem;">Current</div>
-                                            <div style="font-family: monospace; font-weight: 800; font-size: 0.9rem; color: white;">
-                                                $${token.technical_analysis.support_resistance.current_price.toFixed(8)}
-                                            </div>
-                                        </div>
-
-                                        <!-- Resistance Levels -->
-                                        <div>
-                                            <div style="font-size: 0.75rem; font-weight: 700; color: #ef4444; margin-bottom: 0.75rem; text-align: center;">🔴 RESISTANCE</div>
-                                            ${token.technical_analysis.support_resistance.resistance?.map((r, idx) => `
-                                                <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 0.5rem; padding: 0.5rem; margin-bottom: 0.5rem; text-align: center;">
-                                                    <div style="font-size: 0.65rem; color: var(--text-tertiary); margin-bottom: 0.15rem;">R${idx + 1}</div>
-                                                    <div style="font-family: monospace; font-weight: 700; font-size: 0.85rem; color: #ef4444;">$${r.toFixed(8)}</div>
-                                                </div>
-                                            `).join('') || '<div style="text-align: center; color: var(--text-tertiary); font-size: 0.75rem;">No resistance detected</div>'}
-                                        </div>
-                                    </div>
-                                </div>
-                            ` : ''}
+                            ${createSupportResistance(token.technical_analysis.support_resistance)}
 
                             <!-- Fibonacci Levels -->
                             ${token.technical_analysis.fibonacci ? `
@@ -1672,31 +1564,7 @@
                                         ${token.address.substring(0, 8)}...${token.address.substring(token.address.length - 6)}
                                     </div>
                                     <div style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
-                                        <span style="background: var(--bg-glass); padding: 0.15rem 0.5rem; border-radius: 0.75rem; font-size: 0.7rem; text-transform: uppercase; font-weight: 600;">
-                                            ${token.chain}
-                                        </span>
-                                        ${token.is_safe ? '<span style="background: rgba(34, 197, 94, 0.2); color: #22c55e; padding: 0.15rem 0.5rem; border-radius: 0.75rem; font-size: 0.7rem; font-weight: 600;">✅ SAFE</span>' : '<span style="background: rgba(239, 68, 68, 0.2); color: #ef4444; padding: 0.15rem 0.5rem; border-radius: 0.75rem; font-size: 0.7rem; font-weight: 600;">⚠️ RISKY</span>'}
-                                        ${token.is_pump_dump_suspect ? '<span style="background: rgba(239, 68, 68, 0.2); color: #ef4444; padding: 0.15rem 0.5rem; border-radius: 0.75rem; font-size: 0.7rem; font-weight: 600;">🚨 P&D</span>' : ''}
-                                        ${token.creator_security?.is_malicious ? '<span style="background: rgba(220, 38, 38, 0.25); color: #dc2626; padding: 0.15rem 0.5rem; border-radius: 0.75rem; font-size: 0.7rem; font-weight: 700; border: 1px solid #dc2626;">💀 SCAMMER</span>' : ''}
-                                        ${token.rugpull_detection?.is_rugpull_risk ? (() => {
-                                            const level = token.rugpull_detection.rugpull_risk_level?.toUpperCase() || 'RISK';
-                                            const levelColor = level === 'HIGH' ? '#ef4444' : level === 'MEDIUM' ? '#f59e0b' : '#f59e0b';
-                                            return `<span style="background: rgba(245, 158, 11, 0.2); color: ${levelColor}; padding: 0.15rem 0.5rem; border-radius: 0.75rem; font-size: 0.7rem; font-weight: 600;">🎣 ${level}</span>`;
-                                        })() : ''}
-                                        ${token.market?.possible_spam || token.security?.possible_spam ? '<span style="background: rgba(156, 163, 175, 0.2); color: #9ca3af; padding: 0.15rem 0.5rem; border-radius: 0.75rem; font-size: 0.7rem; font-weight: 600;">⚠️ SPAM?</span>' : ''}
-                                        ${token.security?.data_warning === 'solana_beta_limited_data' ? '<span style="background: rgba(168, 85, 247, 0.15); color: #a855f7; padding: 0.15rem 0.5rem; border-radius: 0.75rem; font-size: 0.65rem; font-weight: 600; border: 1px solid rgba(168, 85, 247, 0.3);" title="GoPlus Solana API is in Beta - some data may be limited">⚠️ SOLANA BETA</span>' : ''}
-                                        ${token.technical_analysis?.trading_signal ? (() => {
-                                            const signal = token.technical_analysis.trading_signal.signal;
-                                            const colors = {
-                                                'STRONG_BUY': {bg: 'rgba(34, 197, 94, 0.25)', color: '#22c55e', border: '#22c55e', icon: '🟢'},
-                                                'BUY': {bg: 'rgba(74, 222, 128, 0.2)', color: '#4ade80', border: '#4ade80', icon: '🟢'},
-                                                'HOLD': {bg: 'rgba(156, 163, 175, 0.2)', color: '#9ca3af', border: '#9ca3af', icon: '⏸️'},
-                                                'SELL': {bg: 'rgba(251, 146, 60, 0.2)', color: '#fb923c', border: '#fb923c', icon: '🔴'},
-                                                'STRONG_SELL': {bg: 'rgba(239, 68, 68, 0.25)', color: '#ef4444', border: '#ef4444', icon: '🔴'}
-                                            };
-                                            const style = colors[signal] || colors.HOLD;
-                                            return `<span style="background: ${style.bg}; color: ${style.color}; padding: 0.2rem 0.6rem; border-radius: 0.75rem; font-size: 0.7rem; font-weight: 700; border: 1.5px solid ${style.border}; box-shadow: 0 2px 8px ${style.bg}; text-transform: uppercase; letter-spacing: 0.5px;">${style.icon} ${signal.replace('_', ' ')}</span>`;
-                                        })() : ''}
+                                        ${createAllBadges(token)}
                                     </div>
                                 </div>
 
@@ -2305,5 +2173,8 @@
 
     <!-- Auth Modal (Login/Register) -->
     {% include 'components_auth_modal.html' %}
+
+    <!-- Reusable Component Functions -->
+    <script src="{{ url_for('static', filename='components.js') }}"></script>
 </body>
 </html>
