@@ -578,6 +578,9 @@
 
     <!-- Reusable Component Styles -->
     <link rel="stylesheet" href="{{ url_for('static', filename='components.css') }}">
+
+    <!-- Socket.IO for Real-time Token Discovery -->
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 </head>
 <body data-page="home">
     <!-- Navigation Component -->
@@ -713,41 +716,7 @@
 
         <!-- Main Grid -->
         <div class="main-grid">
-            <!-- Scanner Section -->
-            <div class="scanner-section" id="scanner">
-                <div class="section-header">
-                    <h2 class="section-title">🔍 Scanner un Token</h2>
-                </div>
-
-                <div class="scan-config">
-                    <div class="input-group">
-                        <label for="max-tokens">Nombre de tokens à scanner</label>
-                        <select id="max-tokens">
-                            <option value="5">5 tokens</option>
-                            <option value="10" selected>10 tokens</option>
-                            <option value="20">20 tokens</option>
-                            <option value="50">50 tokens</option>
-                        </select>
-                    </div>
-                </div>
-
-                <button class="btn btn-primary" id="start-scan-btn" onclick="startScan()" style="width: 100%; padding: 1rem; font-size: 1rem; font-weight: 700; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 0.75rem; color: white; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); display: flex; align-items: center; justify-content: center; gap: 0.5rem;" onmouseenter="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(102, 126, 234, 0.6)';" onmouseleave="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(102, 126, 234, 0.4)';">
-                    <span style="font-size: 1.25rem;">🚀</span>
-                    <span>Lancer le Scanner IA</span>
-                </button>
-
-                <div id="scan-progress" style="margin-top: 1.5rem; display: none;">
-                    <div class="loading">
-                        <div class="spinner"></div>
-                        <p style="margin-top: 1rem;">Scan en cours...</p>
-                        <p id="scan-status" style="font-size: 0.875rem; color: var(--text-secondary);"></p>
-                    </div>
-                </div>
-
-                <div id="scan-results" style="margin-top: 1.5rem; display: none;">
-                    <!-- Results will be injected here -->
-                </div>
-            </div>
+            <!-- Auto-Discovery: Tokens are loaded automatically every 3 minutes via WebSocket -->
 
             <!-- Crypto News -->
             <div class="activity-feed" style="margin-top: 2rem;">
@@ -765,28 +734,125 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Token Search -->
-            <div class="activity-feed" style="margin-top: 2rem;">
-                <h3 class="section-title" style="margin-bottom: 1rem;">🔍 Rechercher un Token</h3>
-                <div class="search-form" style="display: flex; gap: 0.75rem; margin-bottom: 1rem;">
-                    <input
-                        type="text"
-                        id="token-search-input"
-                        placeholder="Ex: BTC, ETH, bitcoin, ethereum..."
-                        style="flex: 1; padding: 0.75rem; background: var(--bg-glass); border: 1px solid var(--border-subtle); border-radius: 0.5rem; color: var(--text-primary); font-size: 0.9rem;"
-                        onkeypress="if(event.key === 'Enter') searchToken()"
-                    />
-                    <button onclick="searchToken()" class="search-btn" style="padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 0.5rem; font-weight: 600; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); white-space: nowrap;">
-                        Rechercher
-                    </button>
-                </div>
-                <div id="token-search-results"></div>
-            </div>
         </div>
     </div>
 
     <script>
+        // ==================== AUTO-DISCOVERY WEBSOCKET ====================
+        // Connexion WebSocket pour recevoir les tokens en temps réel
+        let socket = null;
+        let discoveryActive = false;
+
+        function initializeDiscovery() {
+            console.log('🔌 Initialisation Discovery Service...');
+
+            // Connexion Socket.IO
+            socket = io(window.location.origin, {
+                transports: ['websocket', 'polling']
+            });
+
+            // Connexion établie
+            socket.on('connect', () => {
+                console.log('✅ Connecté au Discovery Service');
+                discoveryActive = true;
+
+                // Rejoindre la room discovery
+                socket.emit('join_discovery');
+
+                // Charger les tokens existants depuis la BDD
+                loadExistingTokens();
+            });
+
+            // Nouveau token découvert (temps réel)
+            socket.on('new_token', (token) => {
+                console.log('📢 Nouveau token découvert:', token);
+                addTokenToGrid(token);
+            });
+
+            // Scan démarré
+            socket.on('scan_started', (data) => {
+                console.log('🔍 Discovery scan démarré...', data);
+                showDiscoveryStatus('🔍 Recherche de nouveaux tokens en cours...');
+            });
+
+            // Scan terminé
+            socket.on('scan_completed', (data) => {
+                console.log('✅ Discovery scan terminé:', data);
+                showDiscoveryStatus(`✅ ${data.tokens_found || 0} tokens découverts`);
+                setTimeout(() => hideDiscoveryStatus(), 3000);
+            });
+
+            // Erreur
+            socket.on('scan_error', (data) => {
+                console.error('❌ Erreur Discovery:', data.error);
+                showDiscoveryStatus(`❌ Erreur: ${data.error}`);
+            });
+
+            // Déconnexion
+            socket.on('disconnect', (reason) => {
+                console.log('🔌 Déconnecté Discovery Service:', reason);
+                discoveryActive = false;
+            });
+        }
+
+        // Charger les tokens existants depuis la BDD
+        async function loadExistingTokens() {
+            try {
+                const response = await fetch('/api/discovery/recent?limit=50');
+                const data = await response.json();
+
+                if (data.success && data.tokens) {
+                    console.log(`📦 Chargement de ${data.tokens.length} tokens existants`);
+                    data.tokens.forEach(tokenWrapper => {
+                        addTokenToGrid(tokenWrapper.token_data);
+                    });
+                }
+            } catch (error) {
+                console.error('❌ Erreur chargement tokens:', error);
+            }
+        }
+
+        // Afficher un statut Discovery
+        function showDiscoveryStatus(message) {
+            // Créer ou mettre à jour le statut
+            let statusEl = document.getElementById('discovery-status');
+            if (!statusEl) {
+                statusEl = document.createElement('div');
+                statusEl.id = 'discovery-status';
+                statusEl.style.cssText = 'position: fixed; top: 80px; right: 20px; background: var(--bg-card); border: 2px solid var(--accent-primary); border-radius: 0.75rem; padding: 1rem 1.5rem; box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3); z-index: 9999; font-size: 0.9rem; font-weight: 600; color: var(--text-primary);';
+                document.body.appendChild(statusEl);
+            }
+            statusEl.textContent = message;
+            statusEl.style.display = 'block';
+        }
+
+        function hideDiscoveryStatus() {
+            const statusEl = document.getElementById('discovery-status');
+            if (statusEl) {
+                statusEl.style.display = 'none';
+            }
+        }
+
+        // Ajouter un token à la grille
+        function addTokenToGrid(token) {
+            // Utiliser la fonction existante displayTokens si elle existe
+            // Sinon créer une simple carte
+            if (typeof displayTokens === 'function') {
+                // Ajouter au tableau de tokens actuels
+                if (!window.currentTokens) window.currentTokens = [];
+                window.currentTokens.unshift(token);  // Ajouter au début
+                displayTokens([token]);  // Afficher
+            } else {
+                console.log('Token reçu:', token.name || token.symbol);
+            }
+        }
+
+        // Initialiser au chargement de la page
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeDiscovery();
+        });
+
+        // ==================== USER INFO ====================
         // Load user info and update welcome
         async function loadUserInfo() {
             try {
@@ -802,9 +868,14 @@
             }
         }
 
-        // Scroll to scanner
+        // Scroll to search bar
         function scrollToScanner() {
-            document.getElementById('scanner').scrollIntoView({ behavior: 'smooth' });
+            // Scroller vers la barre de recherche en haut
+            const searchBar = document.getElementById('tokenSearchInput');
+            if (searchBar) {
+                searchBar.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                searchBar.focus();
+            }
         }
 
         // Toggle favorite
