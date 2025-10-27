@@ -456,6 +456,16 @@
             .welcome h1 {
                 font-size: 2rem;
             }
+
+            /* Responsive layout 2 colonnes → 1 colonne sur petits écrans */
+            .main-grid > div[style*="grid-template-columns: 400px 1fr"] {
+                grid-template-columns: 1fr !important;
+            }
+
+            /* Désactiver sticky sur mobile */
+            .main-grid [style*="position: sticky"] {
+                position: relative !important;
+            }
         }
 
         @media (max-width: 768px) {
@@ -749,103 +759,108 @@
             }
         </style>
 
-        <!-- Main Grid -->
-        <div class="main-grid">
-            <!-- ==================== SECTION 1: DERNIERS TOKENS DÉCOUVERTS (DYNAMIQUE) ==================== -->
-            <div style="margin-bottom: 3rem;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                    <div>
-                        <h2 class="section-title" style="font-size: 1.5rem; margin-bottom: 0.5rem;">🆕 Derniers Tokens Découverts</h2>
-                        <p style="font-size: 0.9rem; color: var(--text-secondary); margin: 0;">
-                            Mis à jour automatiquement toutes les 3 minutes • Partagé avec tous les utilisateurs
+        <!-- Main Layout: 2 colonnes (Sidebar gauche + Contenu principal droite) -->
+        <div style="display: grid; grid-template-columns: 400px 1fr; gap: 2rem; align-items: start;">
+
+            <!-- ==================== COLONNE GAUCHE: RECHERCHE SPÉCIFIQUE (STICKY) ==================== -->
+            <div style="position: sticky; top: 1rem;">
+                <div style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%); border: 2px solid var(--border-subtle); border-radius: 1.5rem; padding: 2rem; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);">
+                    <div style="margin-bottom: 1.5rem;">
+                        <h2 class="section-title" style="font-size: 1.3rem; margin-bottom: 0.5rem;">🔎 Analyser un Token</h2>
+                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 0;">
+                            Analyse privée par adresse ou URL
                         </p>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 1rem;">
-                        <div id="discovery-badge" style="padding: 0.5rem 1rem; background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 0.5rem; font-size: 0.85rem; color: #22c55e; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
-                            <span style="width: 8px; height: 8px; background: #22c55e; border-radius: 50%; animation: pulse 2s infinite;"></span>
-                            <span id="discovery-badge-text">En attente...</span>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- Grille dynamique des nouveaux tokens -->
-                <div id="discovered-tokens-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem;">
-                    <!-- Loading state -->
-                    <div id="discovered-tokens-loading" style="grid-column: 1 / -1; text-align: center; padding: 4rem 2rem;">
-                        <div class="spinner" style="border: 4px solid var(--bg-glass); border-top: 4px solid var(--accent-primary); border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite; margin: 0 auto;"></div>
-                        <p style="margin-top: 1.5rem; color: var(--text-secondary); font-size: 1rem;">Connexion au service de découverte...</p>
-                        <p style="margin-top: 0.5rem; color: var(--text-tertiary); font-size: 0.85rem;">Les tokens apparaîtront automatiquement</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ==================== SECTION 2: RECHERCHE SPÉCIFIQUE (FIXE) ==================== -->
-            <div style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%); border: 2px solid var(--border-subtle); border-radius: 1.5rem; padding: 2.5rem; margin-bottom: 3rem; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);">
-                <div style="margin-bottom: 2rem;">
-                    <h2 class="section-title" style="font-size: 1.5rem; margin-bottom: 0.5rem;">🔎 Analyser un Token Spécifique</h2>
-                    <p style="font-size: 0.9rem; color: var(--text-secondary); margin: 0;">
-                        Analyse approfondie et privée d'un token par son adresse ou URL DexScreener
-                    </p>
-                </div>
-
-                <!-- Formulaire de recherche spécifique -->
-                <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 1rem; padding: 1.5rem; margin-bottom: 1.5rem;">
-                    <div style="display: grid; grid-template-columns: 1fr auto; gap: 1rem;">
+                    <!-- Formulaire de recherche spécifique -->
+                    <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 1rem; padding: 1.25rem; margin-bottom: 1.25rem;">
                         <input
                             type="text"
                             id="specific-token-input"
-                            placeholder="Entrez une adresse (0x...) ou URL DexScreener complète..."
-                            style="padding: 1rem 1.25rem; background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: 0.75rem; color: var(--text-primary); font-size: 0.95rem; width: 100%; transition: all 0.2s;"
+                            placeholder="0x... ou URL DexScreener"
+                            style="padding: 0.875rem 1rem; background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: 0.75rem; color: var(--text-primary); font-size: 0.9rem; width: 100%; margin-bottom: 0.75rem; transition: all 0.2s;"
                             onkeypress="if(event.key === 'Enter') analyzeSpecificToken()"
                             onfocus="this.style.borderColor='var(--accent-primary)'; this.style.boxShadow='0 0 0 3px rgba(102, 126, 234, 0.1)'"
                             onblur="this.style.borderColor='var(--border-subtle)'; this.style.boxShadow='none'"
                         />
                         <button
                             onclick="analyzeSpecificToken()"
-                            style="padding: 1rem 2.5rem; background: var(--gradient-primary); color: white; border: none; border-radius: 0.75rem; font-weight: 700; font-size: 1rem; cursor: pointer; transition: all 0.2s; white-space: nowrap; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);"
+                            style="width: 100%; padding: 0.875rem; background: var(--gradient-primary); color: white; border: none; border-radius: 0.75rem; font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);"
                             onmouseenter="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(102, 126, 234, 0.6)'"
                             onmouseleave="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(102, 126, 234, 0.4)'"
                         >
                             🚀 Analyser
                         </button>
+                        <div style="margin-top: 0.75rem; font-size: 0.7rem; color: var(--text-tertiary); display: flex; align-items: center; gap: 0.5rem;">
+                            <span>💡</span>
+                            <span>0xabc... ou URL complète</span>
+                        </div>
                     </div>
-                    <div style="margin-top: 1rem; font-size: 0.8rem; color: var(--text-tertiary); display: flex; align-items: center; gap: 0.5rem;">
-                        <span>💡</span>
-                        <span><strong>Exemples:</strong> 0xabc123... ou https://dexscreener.com/ethereum/0xabc123...</span>
+
+                    <!-- Résultats de recherche spécifique (compacts) -->
+                    <div id="specific-token-results" style="display: none;">
+                        <!-- Les résultats apparaîtront ici -->
                     </div>
-                </div>
 
-                <!-- Résultats de recherche spécifique -->
-                <div id="specific-token-results" style="display: none;">
-                    <!-- Les résultats apparaîtront ici -->
-                </div>
-
-                <!-- Progress indicator for specific search -->
-                <div id="specific-token-progress" style="display: none; text-align: center; padding: 3rem 2rem;">
-                    <div class="spinner" style="border: 4px solid var(--bg-glass); border-top: 4px solid var(--accent-primary); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto;"></div>
-                    <p style="margin-top: 1.5rem; color: var(--text-secondary); font-size: 1rem; font-weight: 600;">Analyse en cours...</p>
-                    <p id="specific-token-status" style="margin-top: 0.5rem; color: var(--text-tertiary); font-size: 0.85rem;"></p>
-                </div>
-            </div>
-
-            <!-- Crypto News -->
-            <div class="activity-feed" style="margin-top: 2rem;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                    <h3 class="section-title">📰 Actualités Crypto</h3>
-                    <button onclick="refreshNews()" style="padding: 0.5rem 1rem; background: var(--bg-glass); border: 1px solid var(--border-subtle); border-radius: 0.5rem; color: var(--text-secondary); cursor: pointer; font-size: 0.8rem; transition: all 0.2s;">
-                        <span id="news-refresh-icon">🔄</span> Actualiser
-                    </button>
-                </div>
-                <div id="news-cache-info" style="font-size: 0.75rem; color: var(--text-tertiary); margin-bottom: 0.75rem;"></div>
-                <div id="news-list">
-                    <div class="loading" style="text-align: center; padding: 2rem;">
+                    <!-- Progress indicator for specific search -->
+                    <div id="specific-token-progress" style="display: none; text-align: center; padding: 2rem 1rem;">
                         <div class="spinner" style="border: 3px solid var(--bg-glass); border-top: 3px solid var(--accent-primary); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto;"></div>
-                        <p style="margin-top: 1rem; color: var(--text-secondary);">Chargement des actualités...</p>
+                        <p style="margin-top: 1rem; color: var(--text-secondary); font-size: 0.9rem; font-weight: 600;">Analyse...</p>
+                        <p id="specific-token-status" style="margin-top: 0.5rem; color: var(--text-tertiary); font-size: 0.75rem;"></p>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
+
+            <!-- ==================== COLONNE DROITE: TOKENS DÉCOUVERTS ==================== -->
+            <div>
+                <!-- SECTION: DERNIERS TOKENS DÉCOUVERTS (DYNAMIQUE) -->
+                <div style="margin-bottom: 3rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        <div>
+                            <h2 class="section-title" style="font-size: 1.5rem; margin-bottom: 0.5rem;">🆕 Derniers Tokens Découverts</h2>
+                            <p style="font-size: 0.9rem; color: var(--text-secondary); margin: 0;">
+                                Mis à jour automatiquement toutes les 3 minutes • Partagé avec tous les utilisateurs
+                            </p>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <div id="discovery-badge" style="padding: 0.5rem 1rem; background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 0.5rem; font-size: 0.85rem; color: #22c55e; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
+                                <span style="width: 8px; height: 8px; background: #22c55e; border-radius: 50%; animation: pulse 2s infinite;"></span>
+                                <span id="discovery-badge-text">En attente...</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Grille dynamique des nouveaux tokens -->
+                    <div id="discovered-tokens-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
+                        <!-- Loading state -->
+                        <div id="discovered-tokens-loading" style="grid-column: 1 / -1; text-align: center; padding: 4rem 2rem;">
+                            <div class="spinner" style="border: 4px solid var(--bg-glass); border-top: 4px solid var(--accent-primary); border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+                            <p style="margin-top: 1.5rem; color: var(--text-secondary); font-size: 1rem;">Connexion au service de découverte...</p>
+                            <p style="margin-top: 0.5rem; color: var(--text-tertiary); font-size: 0.85rem;">Les tokens apparaîtront automatiquement</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Crypto News -->
+                <div class="activity-feed" style="margin-top: 2rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h3 class="section-title">📰 Actualités Crypto</h3>
+                        <button onclick="refreshNews()" style="padding: 0.5rem 1rem; background: var(--bg-glass); border: 1px solid var(--border-subtle); border-radius: 0.5rem; color: var(--text-secondary); cursor: pointer; font-size: 0.8rem; transition: all 0.2s;">
+                            <span id="news-refresh-icon">🔄</span> Actualiser
+                        </button>
+                    </div>
+                    <div id="news-cache-info" style="font-size: 0.75rem; color: var(--text-tertiary); margin-bottom: 0.75rem;"></div>
+                    <div id="news-list">
+                        <div class="loading" style="text-align: center; padding: 2rem;">
+                            <div class="spinner" style="border: 3px solid var(--bg-glass); border-top: 3px solid var(--accent-primary); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+                            <p style="margin-top: 1rem; color: var(--text-secondary);">Chargement des actualités...</p>
+                        </div>
+                    </div>
+                </div>
+            </div> <!-- Fin colonne droite -->
+
+        </div> <!-- Fin layout 2 colonnes -->
+    </div> <!-- Fin main container -->
 
     <script>
         // ==================== AUTO-DISCOVERY WEBSOCKET ====================
@@ -921,15 +936,25 @@
                 const response = await fetch('/api/discovery/recent?limit=50');
                 const data = await response.json();
 
+                console.log('📡 Discovery API Response:', data);
+
                 if (data.success && data.tokens && data.tokens.length > 0) {
                     console.log(`📦 Chargement de ${data.tokens.length} tokens existants`);
+                    console.log('🔍 Premier token:', data.tokens[0]);
 
                     // Retirer le loading
                     const loadingEl = document.getElementById('discovered-tokens-loading');
                     if (loadingEl) loadingEl.remove();
 
                     // Afficher chaque token
-                    data.tokens.forEach(tokenWrapper => {
+                    data.tokens.forEach((tokenWrapper, index) => {
+                        // Debug du premier token
+                        if (index === 0) {
+                            console.log('🔍 Token wrapper:', tokenWrapper);
+                            console.log('🔍 Token data:', tokenWrapper.token_data);
+                        }
+
+                        // Le token_data est déjà parsé par le backend
                         addDiscoveredToken(tokenWrapper.token_data, false);  // false = pas d'animation
                     });
                 } else {
