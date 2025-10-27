@@ -1586,105 +1586,11 @@
             }
         }
 
-        // Load tokens from database on page load
+        // Load tokens from database on page load (LEGACY - redirects to new system)
         async function loadTokensFromDatabase() {
-            try {
-                console.log('🔄 Loading tokens from database...');
-                const response = await fetch('/api/scanned-tokens?limit=50');
-                const data = await response.json();
-
-                console.log('📡 API Response:', data);
-
-                if (data.success && data.tokens && data.tokens.length > 0) {
-                    console.log(`📦 Chargement de ${data.tokens.length} tokens depuis la BDD`);
-
-                    // Transform database format to scan results format
-                    const transformedResults = data.tokens.map(token => {
-                        // Parse token_data if it's a string
-                        let tokenData = token.token_data;
-                        if (typeof tokenData === 'string') {
-                            try {
-                                tokenData = JSON.parse(tokenData);
-                            } catch (e) {
-                                console.warn('Failed to parse token_data:', e);
-                                tokenData = {};
-                            }
-                        }
-                        tokenData = tokenData || {};
-
-                        return {
-                            address: token.token_address,
-                            chain: token.token_chain,
-                            risk_score: token.risk_score || 50,
-                            is_safe: token.is_safe !== undefined ? token.is_safe : false,
-                            is_pump_dump_suspect: token.is_pump_dump_suspect || false,
-                            description: tokenData.description || token.token_address?.substring(0, 10) + '...',
-                            icon: tokenData.icon || null,
-                            market: tokenData.market || {},
-                            security: tokenData.security || {},
-                            twitter_data: tokenData.twitter_data || {},
-                            social_score: tokenData.social_score || 0,
-                            pump_dump_score: tokenData.pump_dump_score || 0,
-                            pump_dump_risk: tokenData.pump_dump_risk || 'UNKNOWN',
-                            warnings: tokenData.warnings || [],
-                            ...tokenData  // Merge all remaining token data
-                        };
-                    });
-
-                    // Count safe/dangerous tokens
-                    const safeCount = transformedResults.filter(t => t.is_safe).length;
-                    const dangerousCount = transformedResults.length - safeCount;
-                    const pumpDumpCount = transformedResults.filter(t => t.is_pump_dump_suspect).length;
-
-                    // Display using existing function
-                    displayScanResults({
-                        success: true,
-                        results: transformedResults,
-                        total_analyzed: transformedResults.length,
-                        safe_count: safeCount,
-                        dangerous_count: dangerousCount,
-                        pump_dump_suspects_count: pumpDumpCount
-                    });
-
-                    // Show info message
-                    const scanResults = document.getElementById('scan-results');
-                    const firstChild = scanResults.firstElementChild;
-                    if (firstChild) {
-                        firstChild.innerHTML = `
-                            <h3 style="font-size: 1.75rem; font-weight: 900; margin-bottom: 0.5rem;">💾 Tokens Chargés depuis la Base de Données</h3>
-                            <p style="color: var(--text-secondary); font-size: 1.125rem;">
-                                ${data.tokens.length} token(s) disponible(s) •
-                                <span style="color: #22c55e; font-weight: 600;">${safeCount} sûrs</span> •
-                                <span style="color: #ef4444; font-weight: 600;">${dangerousCount} risqués</span> •
-                                <span style="color: #f59e0b; font-weight: 600;">${pumpDumpCount} P&D suspects</span>
-                            </p>
-                            <p style="color: var(--text-tertiary); font-size: 0.875rem; margin-top: 0.5rem;">
-                                📊 Cache: ${data.total}/${data.max_capacity} tokens stockés
-                            </p>
-                        `;
-                    }
-                } else {
-                    console.log('📭 Aucun token en cache, lancez un scan pour commencer');
-
-                    // Show empty state with call to action
-                    const scanResults = document.getElementById('scan-results');
-                    scanResults.style.display = 'block';
-                    scanResults.innerHTML = `
-                        <div style="text-align: center; padding: 4rem 2rem; background: var(--bg-card); border: 2px dashed var(--border-subtle); border-radius: 1rem;">
-                            <div style="font-size: 4rem; margin-bottom: 1rem; opacity: 0.5;">🔍</div>
-                            <h3 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 0.75rem; color: var(--text-primary);">Aucun Token Scanné</h3>
-                            <p style="color: var(--text-secondary); font-size: 1rem; margin-bottom: 2rem; max-width: 500px; margin-left: auto; margin-right: auto;">
-                                La base de données est vide. Lancez votre premier scan pour découvrir les derniers tokens crypto et commencer l'analyse !
-                            </p>
-                            <button onclick="scrollToScanner()" style="padding: 1rem 2rem; background: var(--gradient-primary); color: white; border: none; border-radius: 0.75rem; font-weight: 700; font-size: 1rem; cursor: pointer; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); transition: all 0.3s;">
-                                🚀 Lancer un Scan
-                            </button>
-                        </div>
-                    `;
-                }
-            } catch (error) {
-                console.error('Erreur chargement tokens:', error);
-            }
+            console.log('🔄 loadTokensFromDatabase() called (redirecting to loadExistingTokens)...');
+            // Redirect to new Discovery system
+            await loadExistingTokens();
         }
 
         // Store current tokens globally for AI analysis
