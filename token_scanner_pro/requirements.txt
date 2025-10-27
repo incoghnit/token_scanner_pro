@@ -2,6 +2,9 @@
 # Flask Framework & Extensions
 flask==3.0.0
 flask-cors==4.0.0
+flask-socketio==5.3.5  # WebSocket support for real-time updates
+python-socketio==5.10.0  # SocketIO server
+python-engineio==4.8.0  # Engine.IO server
 werkzeug==3.0.1
 
 # HTTP Requests

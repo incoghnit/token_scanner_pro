@@ -10,8 +10,10 @@ from flask import Flask, render_template, jsonify, request, session
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask_socketio import SocketIO, emit, join_room, leave_room
 from scanner_core import TokenScanner
 from database import Database
+from token_discovery_service import TokenDiscoveryService
 import json
 from datetime import datetime
 import threading
@@ -124,6 +126,18 @@ app.config['ANTHROPIC_API_KEY'] = os.getenv('ANTHROPIC_API_KEY')
 app.config['FLASK_ENV'] = os.getenv('FLASK_ENV', 'development')
 app.config['FLASK_DEBUG'] = os.getenv('FLASK_DEBUG', 'false').lower() == 'true'
 
+# ==================== WEBSOCKET CONFIGURATION ====================
+# SocketIO pour communications temps réel
+socketio = SocketIO(
+    app,
+    cors_allowed_origins=allowed_origins,
+    async_mode='threading',
+    logger=False,
+    engineio_logger=False,
+    ping_timeout=60,
+    ping_interval=25
+)
+
 # ==================== APPLICATION STATE ====================
 # NOTE: In production with multiple workers, use Redis or MongoDB for shared state
 # This implementation uses thread locks for single-server deployments
@@ -135,6 +149,23 @@ db = Database()
 
 # Scanner instance for news & search APIs (separate from scan state)
 scanner = TokenScanner()
+
+# ==================== TOKEN DISCOVERY SERVICE ====================
+# Service centralisé de découverte de tokens (1 scan partagé entre tous les users)
+nitter_url = os.getenv('NITTER_URL', 'http://localhost:8080')
+token_discovery = TokenDiscoveryService(database=db, socketio=socketio, nitter_url=nitter_url)
+
+# Auto-start discovery si configuré
+if os.getenv('AUTO_START_DISCOVERY', 'false').lower() == 'true':
+    discovery_interval = int(os.getenv('DISCOVERY_INTERVAL', 300))  # 5 minutes par défaut
+    discovery_max_tokens = int(os.getenv('DISCOVERY_MAX_TOKENS', 20))
+    token_discovery.start_auto_discovery(
+        interval_seconds=discovery_interval,
+        max_tokens=discovery_max_tokens
+    )
+    print(f"✅ Token Discovery Service démarré automatiquement (intervalle: {discovery_interval}s)")
+else:
+    print("ℹ️  Token Discovery Service initialisé (mode manuel)")
 
 # Scanner state with thread safety
 _scanner_lock = thread_module.Lock()
@@ -732,6 +763,225 @@ def get_scanned_tokens_stats():
             "error": str(e)
         }), 500
 
+# ==================== ROUTES API TOKEN DISCOVERY (CENTRALISÉ) ====================
+
+@app.route('/api/discovery/trigger', methods=['POST'])
+def trigger_discovery():
+    """
+    Déclenche un scan centralisé de tokens
+    Un seul scan partagé entre tous les utilisateurs connectés
+
+    Body (optionnel): {
+        "max_tokens": 20,
+        "chain": "ethereum",
+        "profile_url": "https://dexscreener.com/..."
+    }
+    """
+    try:
+        data = request.get_json() or {}
+        max_tokens = data.get('max_tokens', 20)
+        chain = data.get('chain')
+        profile_url = data.get('profile_url')
+
+        # Limiter le nombre de tokens pour éviter les abus
+        max_tokens = min(max_tokens, 50)
+
+        result = token_discovery.trigger_scan(
+            max_tokens=max_tokens,
+            chain=chain,
+            profile_url=profile_url
+        )
+
+        return jsonify(result)
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@app.route('/api/discovery/status', methods=['GET'])
+def get_discovery_status():
+    """Récupère le statut du service de découverte"""
+    try:
+        status = token_discovery.get_status()
+        return jsonify({
+            "success": True,
+            "status": status
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@app.route('/api/discovery/stats', methods=['GET'])
+def get_discovery_stats():
+    """Récupère les statistiques du service de découverte"""
+    try:
+        stats = token_discovery.get_stats()
+        return jsonify({
+            "success": True,
+            "stats": stats
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@app.route('/api/discovery/recent', methods=['GET'])
+def get_recent_discovered_tokens():
+    """Récupère les tokens récemment découverts"""
+    try:
+        limit = min(int(request.args.get('limit', 50)), 200)
+        chain = request.args.get('chain')
+
+        tokens = token_discovery.get_recent_tokens(limit=limit, chain=chain)
+
+        return jsonify({
+            "success": True,
+            "tokens": tokens,
+            "count": len(tokens)
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@app.route('/api/discovery/auto/start', methods=['POST'])
+def start_auto_discovery():
+    """
+    Démarre l'auto-discovery périodique (Admin only)
+
+    Body (optionnel): {
+        "interval_seconds": 300,
+        "max_tokens": 20
+    }
+    """
+    # Check admin permission
+    user_id = session.get('user_id')
+    if not user_id or not db.is_admin(user_id):
+        return jsonify({
+            "success": False,
+            "error": "Admin access required"
+        }), 403
+
+    try:
+        data = request.get_json() or {}
+        interval = int(data.get('interval_seconds', 300))
+        max_tokens = int(data.get('max_tokens', 20))
+
+        # Validation
+        if interval < 60:
+            return jsonify({
+                "success": False,
+                "error": "Intervalle minimum: 60 secondes"
+            }), 400
+
+        success = token_discovery.start_auto_discovery(
+            interval_seconds=interval,
+            max_tokens=max_tokens
+        )
+
+        if success:
+            return jsonify({
+                "success": True,
+                "message": f"Auto-discovery démarré (intervalle: {interval}s)"
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "error": "Auto-discovery déjà actif"
+            }), 400
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@app.route('/api/discovery/auto/stop', methods=['POST'])
+def stop_auto_discovery():
+    """Arrête l'auto-discovery (Admin only)"""
+    # Check admin permission
+    user_id = session.get('user_id')
+    if not user_id or not db.is_admin(user_id):
+        return jsonify({
+            "success": False,
+            "error": "Admin access required"
+        }), 403
+
+    try:
+        success = token_discovery.stop_auto_discovery()
+
+        if success:
+            return jsonify({
+                "success": True,
+                "message": "Auto-discovery arrêté"
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "error": "Auto-discovery déjà arrêté"
+            }), 400
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+# ==================== WEBSOCKET EVENTS ====================
+
+@socketio.on('connect')
+def handle_connect():
+    """Gère la connexion d'un client WebSocket"""
+    print(f"🔌 Client connecté: {request.sid}")
+    emit('connected', {
+        "message": "Connecté au Token Discovery Service",
+        "timestamp": datetime.now().isoformat()
+    })
+
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    """Gère la déconnexion d'un client WebSocket"""
+    print(f"🔌 Client déconnecté: {request.sid}")
+
+
+@socketio.on('join_discovery')
+def handle_join_discovery():
+    """Permet à un client de rejoindre la room de découverte"""
+    join_room('discovery')
+    print(f"👥 Client {request.sid} a rejoint la room discovery")
+    emit('joined_discovery', {
+        "message": "Vous recevrez les nouveaux tokens en temps réel",
+        "timestamp": datetime.now().isoformat()
+    })
+
+
+@socketio.on('leave_discovery')
+def handle_leave_discovery():
+    """Permet à un client de quitter la room de découverte"""
+    leave_room('discovery')
+    print(f"👥 Client {request.sid} a quitté la room discovery")
+
+
+@socketio.on('request_status')
+def handle_request_status():
+    """Envoie le statut actuel du service au client"""
+    status = token_discovery.get_status()
+    emit('discovery_status', status)
+
+
 # ==================== ROUTES API FAVORIS ====================
 
 @app.route('/api/favorites', methods=['GET'])
@@ -1155,18 +1405,21 @@ if __name__ == '__main__':
 
     print(f"""
     ╔═══════════════════════════════════════════════════════════╗
-    ║   TOKEN SCANNER PRO - UX PREMIUM + AUTO-SCAN             ║
+    ║   TOKEN SCANNER PRO - UX PREMIUM + DISCOVERY SERVICE     ║
     ║                                                           ║
     ║   🌐 Accès local:    http://localhost:5000               ║
     ║   🌐 Accès réseau:   http://{local_ip}:5000              ║
+    ║   🔌 WebSocket:      ws://localhost:5000                 ║
     ║                                                           ║
     ║   ✅ Système d'authentification activé                    ║
+    ║   ✅ Token Discovery Service (centralisé)                 ║
+    ║   ✅ WebSocket temps réel activé                          ║
     ║   ✅ Auto-scan + Cache MongoDB activé                     ║
     ║   ✅ Favoris + Historique activés                         ║
     ║   ✅ Routes API complètes                                 ║
     ╚═══════════════════════════════════════════════════════════╝
     """)
-    
+
     # SECURITY: Never use debug=True in production
     # Use FLASK_DEBUG=true in .env for development only
     debug_mode = os.getenv('FLASK_DEBUG', 'false').lower() == 'true'
@@ -1174,9 +1427,11 @@ if __name__ == '__main__':
     if debug_mode:
         print("⚠️  WARNING: Running in DEBUG mode - NOT for production!")
 
-    app.run(
+    # Utiliser socketio.run() au lieu de app.run() pour WebSocket
+    socketio.run(
+        app,
         host='0.0.0.0',
         port=5000,
         debug=debug_mode,
-        threaded=True
+        allow_unsafe_werkzeug=True  # Pour dev uniquement, désactiver en prod
     )
