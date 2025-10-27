@@ -1,7 +1,7 @@
 """
 Module de scanning de tokens crypto
 Optimisé pour utilisation avec interface web
-Version améliorée avec récupération des icons + DÉTECTION PUMP & DUMP
+Version améliorée avec récupération des icons + DÉTECTION PUMP & DUMP + ANALYSE TECHNIQUE
 """
 
 import requests
@@ -11,7 +11,8 @@ import re
 import os
 from html import unescape
 from datetime import datetime
-from typing import Dict, Any, List, Optional, Callable
+from typing import Dict, Any, List, Optional, Callable, Tuple
+from technical_analysis import TechnicalAnalysis
 
 def retry_api_call(func: Callable, max_retries: int = 3, initial_delay: float = 2.0, backoff_factor: float = 2.0) -> Any:
     """
@@ -68,6 +69,8 @@ class TokenScanner:
         self.coinmarketcap_key = os.getenv('COINMARKETCAP_API_KEY', '')
         self.moralis_api = "https://deep-index.moralis.io/api/v2.2"
         self.moralis_key = os.getenv('MORALIS_API_KEY', '')
+        self.birdeye_api = "https://public-api.birdeye.so"
+        self.birdeye_key = os.getenv('BIRDEYE_API_KEY', '')
 
         # Validate API keys are present
         if not self.coindesk_token:
@@ -76,6 +79,8 @@ class TokenScanner:
             print("⚠️  WARNING: COINMARKETCAP_API_KEY not set in environment variables")
         if not self.moralis_key:
             print("⚠️  WARNING: MORALIS_API_KEY not set in environment variables")
+        if not self.birdeye_key:
+            print("⚠️  WARNING: BIRDEYE_API_KEY not set in environment variables")
 
         # Cache system (in-memory)
         self._news_cache = None
@@ -834,6 +839,58 @@ class TokenScanner:
         # Priorité: twitter depuis links > twitter depuis token_info
         final_twitter = twitter_from_links or token_info.get('twitter')
 
+        # 🆕 NOUVEAU : ANALYSE TECHNIQUE pour tokens établis (> 48h)
+        technical_analysis = None
+        analysis_type = "recent_token_scan"  # Default: recent token
+
+        pair_created_at = market.get("pair_created_at", "N/A")
+        if pair_created_at != "N/A":
+            try:
+                age_hours = (datetime.now().timestamp() - int(pair_created_at)/1000) / 3600
+
+                # If token is > 48 hours old → Technical Analysis
+                if age_hours >= 48:
+                    print(f"📊 Token is {age_hours:.1f}h old → Running technical analysis...")
+                    analysis_type = "established_token_analysis"
+
+                    # Fetch OHLCV data
+                    ohlcv_result = self.get_ohlcv_data(address, chain, timeframe="1H", limit=200)
+
+                    if ohlcv_result.get("success"):
+                        ohlcv = ohlcv_result["ohlcv"]
+                        ta = TechnicalAnalysis()
+
+                        # Calculate all technical indicators
+                        rsi = ta.calculate_rsi(ohlcv["closes"])
+                        macd = ta.calculate_macd(ohlcv["closes"])
+                        bollinger = ta.calculate_bollinger_bands(ohlcv["closes"])
+                        emas = ta.calculate_emas(ohlcv["closes"])
+                        support_resistance = ta.find_support_resistance(ohlcv["highs"], ohlcv["lows"], ohlcv["closes"])
+                        fibonacci = ta.calculate_fibonacci_levels(ohlcv["highs"], ohlcv["lows"])
+                        trend = ta.analyze_trend(ohlcv["closes"], ohlcv["highs"], ohlcv["lows"])
+                        trading_signal = ta.generate_trading_signal(rsi, macd, bollinger, trend)
+
+                        technical_analysis = {
+                            "rsi": rsi,
+                            "macd": macd,
+                            "bollinger_bands": bollinger,
+                            "emas": emas,
+                            "support_resistance": support_resistance,
+                            "fibonacci": fibonacci,
+                            "trend": trend,
+                            "trading_signal": trading_signal,
+                            "token_age_hours": round(age_hours, 2)
+                        }
+
+                        print(f"✅ Technical analysis complete: {trading_signal['signal']} ({trading_signal['confidence']}% confidence)")
+                    else:
+                        print(f"⚠️  Technical analysis skipped: {ohlcv_result.get('error', 'No OHLCV data')}")
+                else:
+                    print(f"ℹ️  Token is only {age_hours:.1f}h old → Fraud detection mode")
+
+            except Exception as e:
+                print(f"⚠️  Could not determine token age: {e}")
+
         return {
             "address": address,
             "chain": chain,
@@ -861,6 +918,9 @@ class TokenScanner:
             "pump_dump_warnings": pump_dump_analysis["pump_dump_warnings"],
             "pump_dump_indicators": pump_dump_analysis["pump_dump_indicators"],
             "is_pump_dump_suspect": pump_dump_analysis["is_pump_dump_suspect"],
+            # 🆕 ANALYSE TECHNIQUE (tokens établis seulement)
+            "analysis_type": analysis_type,
+            "technical_analysis": technical_analysis,
             "timestamp": datetime.now().isoformat()
         }
 
@@ -1171,6 +1231,130 @@ class TokenScanner:
                 "success": False,
                 "error": str(e)
             }
+
+    def get_ohlcv_data(self, address: str, chain: str, timeframe: str = "1H", limit: int = 200) -> Dict[str, Any]:
+        """
+        🆕 Fetch OHLCV (Open/High/Low/Close/Volume) historical data
+        Used for technical analysis (RSI, MACD, Bollinger, etc.)
+
+        Args:
+            address: Token contract address
+            chain: Blockchain (solana, ethereum, bsc, etc.)
+            timeframe: Candle timeframe (1m, 5m, 15m, 1H, 4H, 1D)
+            limit: Number of candles to fetch (max 1000)
+
+        Returns:
+            Dict with OHLCV data arrays or error
+        """
+        try:
+            # Try Birdeye API first (best for Solana, also supports EVM)
+            if self.birdeye_key:
+                print(f"📊 Fetching OHLCV data from Birdeye ({timeframe}, {limit} candles)...")
+
+                # Birdeye supports Solana natively
+                if chain.lower() == "solana":
+                    url = f"{self.birdeye_api}/defi/ohlcv"
+                    params = {
+                        "address": address,
+                        "type": timeframe.upper(),
+                        "time_from": int((datetime.now().timestamp() - (limit * self._timeframe_to_seconds(timeframe)))),
+                        "time_to": int(datetime.now().timestamp())
+                    }
+                    headers = {
+                        "X-API-KEY": self.birdeye_key,
+                        "Accept": "application/json"
+                    }
+
+                    def api_call():
+                        return requests.get(url, params=params, headers=headers, timeout=15)
+
+                    try:
+                        response = retry_api_call(api_call, max_retries=2)
+
+                        if response.status_code == 200:
+                            data = response.json()
+
+                            if data.get("success") and data.get("data", {}).get("items"):
+                                items = data["data"]["items"]
+
+                                # Parse Birdeye format
+                                ohlcv = {
+                                    "timestamps": [item["unixTime"] for item in items],
+                                    "opens": [float(item["o"]) for item in items],
+                                    "highs": [float(item["h"]) for item in items],
+                                    "lows": [float(item["l"]) for item in items],
+                                    "closes": [float(item["c"]) for item in items],
+                                    "volumes": [float(item["v"]) for item in items]
+                                }
+
+                                print(f"✅ Fetched {len(ohlcv['closes'])} candles from Birdeye")
+
+                                return {
+                                    "success": True,
+                                    "source": "birdeye",
+                                    "ohlcv": ohlcv,
+                                    "timeframe": timeframe,
+                                    "count": len(ohlcv["closes"])
+                                }
+
+                    except Exception as e:
+                        print(f"⚠️  Birdeye API failed: {e}, trying fallback...")
+
+            # Fallback: Try DexScreener API (free, no key needed)
+            print(f"📊 Fetching OHLCV from DexScreener fallback...")
+            url = f"{self.dexscreener_api}/tokens/{address}"
+
+            def api_call():
+                return requests.get(url, timeout=10)
+
+            try:
+                response = retry_api_call(api_call, max_retries=2)
+
+                if response.status_code == 200:
+                    data = response.json()
+
+                    if "pairs" in data and data["pairs"]:
+                        # DexScreener doesn't provide full OHLCV, but we can get current price data
+                        main_pair = max(data["pairs"], key=lambda x: float(x.get("liquidity", {}).get("usd", 0) or 0))
+
+                        # Limited data from DexScreener (only current values)
+                        current_price = float(main_pair.get("priceUsd", 0))
+
+                        return {
+                            "success": False,
+                            "error": "OHLCV historical data requires Birdeye API key",
+                            "fallback_data": {
+                                "current_price": current_price,
+                                "message": "Configure BIRDEYE_API_KEY for full technical analysis"
+                            }
+                        }
+
+            except Exception as e:
+                print(f"⚠️  DexScreener fallback failed: {e}")
+
+            return {
+                "success": False,
+                "error": "No OHLCV data available - Configure BIRDEYE_API_KEY for technical analysis"
+            }
+
+        except Exception as e:
+            print(f"❌ Error fetching OHLCV data: {e}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
+
+    def _timeframe_to_seconds(self, timeframe: str) -> int:
+        """Convert timeframe string to seconds"""
+        timeframe = timeframe.upper()
+        if "M" in timeframe and "D" not in timeframe and "H" not in timeframe:
+            return int(timeframe.replace("M", "")) * 60
+        elif "H" in timeframe:
+            return int(timeframe.replace("H", "")) * 3600
+        elif "D" in timeframe:
+            return int(timeframe.replace("D", "")) * 86400
+        else:
+            return 3600  # Default 1 hour
 
     def get_token_price(self, address: str, chain: str = "eth") -> Dict[str, Any]:
         """
