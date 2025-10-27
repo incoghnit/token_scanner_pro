@@ -107,15 +107,16 @@ class TokenDiscoveryService:
 
     # ==================== SCAN MANUEL ====================
 
-    def trigger_scan(self, max_tokens: int = 20, chain: Optional[str] = None,
-                     profile_url: Optional[str] = None) -> Dict[str, Any]:
+    def trigger_scan(self, max_tokens: int = 20, chain: Optional[str] = None) -> Dict[str, Any]:
         """
-        Déclenche un scan manuel de tokens
+        Déclenche un scan manuel des DERNIERS tokens du marché (découverte)
+
+        ⚠️ IMPORTANT: Ce scan est PARTAGÉ entre tous les utilisateurs connectés.
+        Pour scanner un token spécifique (adresse/URL), utilisez /api/scan/start à la place.
 
         Args:
             max_tokens: Nombre maximum de tokens à scanner
             chain: Blockchain spécifique (None = toutes)
-            profile_url: URL DexScreener spécifique à analyser
 
         Returns:
             Dict avec les résultats du scan
@@ -136,26 +137,21 @@ class TokenDiscoveryService:
             # Notifier les callbacks de démarrage
             self._trigger_callbacks(self._on_scan_start_callbacks, {
                 "max_tokens": max_tokens,
-                "chain": chain,
-                "profile_url": profile_url
+                "chain": chain
             })
 
             # Broadcaster le début du scan
             if self.socketio:
                 self.socketio.emit('scan_started', {
                     "timestamp": datetime.now().isoformat(),
-                    "max_tokens": max_tokens
+                    "max_tokens": max_tokens,
+                    "scan_type": "discovery"  # Indiquer que c'est une découverte
                 }, namespace='/')
 
-            print(f"🔍 Scan centralisé démarré - Max tokens: {max_tokens}")
+            print(f"🔍 Discovery scan démarré - Max tokens: {max_tokens}")
 
-            # Effectuer le scan
-            if profile_url:
-                # Scan d'un token spécifique
-                results = self._scan_specific_token(profile_url)
-            else:
-                # Scan des derniers tokens
-                results = self.scanner.scan_tokens(max_tokens=max_tokens)
+            # Effectuer le scan des derniers tokens (DISCOVERY uniquement)
+            results = self.scanner.scan_tokens(max_tokens=max_tokens)
 
             # Traiter les résultats
             if results.get('success') and results.get('results'):
@@ -233,41 +229,6 @@ class TokenDiscoveryService:
             with self._lock:
                 self._scan_in_progress = False
 
-    def _scan_specific_token(self, profile_url: str) -> Dict[str, Any]:
-        """Scan un token spécifique depuis une URL DexScreener"""
-        import re
-
-        # Extraire chain et address de l'URL
-        match = re.search(r'dexscreener\.com/([^/]+)/(.+?)(?:\?|$)', profile_url)
-        if not match:
-            return {
-                "success": False,
-                "error": "Format d'URL invalide. Attendu: https://dexscreener.com/{chain}/{address}"
-            }
-
-        chain = match.group(1)
-        address = match.group(2).split('?')[0]
-
-        print(f"🔍 Scanning token spécifique: {chain}/{address}")
-
-        # Analyser le token
-        token_info = {'address': address, 'chain': chain, 'icon': ''}
-        token_result = self.scanner.analyze_token(token_info)
-
-        if 'error' not in token_result:
-            return {
-                "success": True,
-                "results": [token_result],
-                "total_analyzed": 1,
-                "safe_count": 1 if token_result.get('is_safe') else 0,
-                "dangerous_count": 0 if token_result.get('is_safe') else 1
-            }
-        else:
-            return {
-                "success": False,
-                "error": token_result.get('error', 'Erreur lors de l\'analyse'),
-                "results": []
-            }
 
     # ==================== AUTO-DISCOVERY ====================
 

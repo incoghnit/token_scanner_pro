@@ -768,28 +768,32 @@ def get_scanned_tokens_stats():
 @app.route('/api/discovery/trigger', methods=['POST'])
 def trigger_discovery():
     """
-    Déclenche un scan centralisé de tokens
-    Un seul scan partagé entre tous les utilisateurs connectés
+    Déclenche un scan centralisé des DERNIERS tokens du marché (découverte)
+
+    ⚠️ IMPORTANT: Ce scan est PARTAGÉ entre tous les utilisateurs connectés.
+
+    Pour scanner un TOKEN SPÉCIFIQUE (adresse/URL), utilisez plutôt:
+    - Route: POST /api/scan/start
+    - Avec: { "profile_url": "https://dexscreener.com/..." }
+
+    Ce scan est PRIVÉ et non partagé entre users.
 
     Body (optionnel): {
         "max_tokens": 20,
-        "chain": "ethereum",
-        "profile_url": "https://dexscreener.com/..."
+        "chain": "ethereum"
     }
     """
     try:
         data = request.get_json() or {}
         max_tokens = data.get('max_tokens', 20)
         chain = data.get('chain')
-        profile_url = data.get('profile_url')
 
         # Limiter le nombre de tokens pour éviter les abus
         max_tokens = min(max_tokens, 50)
 
         result = token_discovery.trigger_scan(
             max_tokens=max_tokens,
-            chain=chain,
-            profile_url=profile_url
+            chain=chain
         )
 
         return jsonify(result)

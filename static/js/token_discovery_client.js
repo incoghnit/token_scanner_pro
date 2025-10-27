@@ -234,7 +234,16 @@ class TokenDiscoveryClient {
     // ==================== ACTIONS ====================
 
     /**
-     * Déclenche un scan manuel
+     * Déclenche un scan manuel des DERNIERS tokens (découverte)
+     *
+     * ⚠️ IMPORTANT: Ce scan est PARTAGÉ entre tous les utilisateurs.
+     *
+     * Pour scanner UN TOKEN SPÉCIFIQUE (adresse/URL), utilisez plutôt
+     * la route /api/scan/start qui est PRIVÉE et non partagée.
+     *
+     * @param {Object} options - Options du scan
+     * @param {number} options.maxTokens - Nombre de tokens (défaut: 20)
+     * @param {string} options.chain - Blockchain spécifique (optionnel)
      */
     triggerScan(options = {}) {
         if (!this.connected) {
@@ -244,9 +253,8 @@ class TokenDiscoveryClient {
 
         const maxTokens = options.maxTokens || 20;
         const chain = options.chain || null;
-        const profileUrl = options.profileUrl || null;
 
-        console.log('🔍 Déclenchement d\'un scan...', { maxTokens, chain, profileUrl });
+        console.log('🔍 Déclenchement d\'un scan Discovery...', { maxTokens, chain });
 
         return fetch('/api/discovery/trigger', {
             method: 'POST',
@@ -255,14 +263,13 @@ class TokenDiscoveryClient {
             },
             body: JSON.stringify({
                 max_tokens: maxTokens,
-                chain: chain,
-                profile_url: profileUrl
+                chain: chain
             })
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                console.log('✅ Scan déclenché avec succès');
+                console.log('✅ Discovery scan déclenché avec succès');
                 return data;
             } else {
                 throw new Error(data.error || 'Scan failed');
