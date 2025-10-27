@@ -398,6 +398,41 @@
             100% { transform: rotate(360deg); }
         }
 
+        @keyframes fadeInScale {
+            0% {
+                opacity: 0;
+                transform: scale(0.9) translateY(10px);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        @keyframes fadeInOut {
+            0% {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            10%, 90% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
         .empty-state {
             text-align: center;
             padding: 3rem 1rem;
@@ -716,7 +751,82 @@
 
         <!-- Main Grid -->
         <div class="main-grid">
-            <!-- Auto-Discovery: Tokens are loaded automatically every 3 minutes via WebSocket -->
+            <!-- ==================== SECTION 1: DERNIERS TOKENS DÉCOUVERTS (DYNAMIQUE) ==================== -->
+            <div style="margin-bottom: 3rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <div>
+                        <h2 class="section-title" style="font-size: 1.5rem; margin-bottom: 0.5rem;">🆕 Derniers Tokens Découverts</h2>
+                        <p style="font-size: 0.9rem; color: var(--text-secondary); margin: 0;">
+                            Mis à jour automatiquement toutes les 3 minutes • Partagé avec tous les utilisateurs
+                        </p>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <div id="discovery-badge" style="padding: 0.5rem 1rem; background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 0.5rem; font-size: 0.85rem; color: #22c55e; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="width: 8px; height: 8px; background: #22c55e; border-radius: 50%; animation: pulse 2s infinite;"></span>
+                            <span id="discovery-badge-text">En attente...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Grille dynamique des nouveaux tokens -->
+                <div id="discovered-tokens-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem;">
+                    <!-- Loading state -->
+                    <div id="discovered-tokens-loading" style="grid-column: 1 / -1; text-align: center; padding: 4rem 2rem;">
+                        <div class="spinner" style="border: 4px solid var(--bg-glass); border-top: 4px solid var(--accent-primary); border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+                        <p style="margin-top: 1.5rem; color: var(--text-secondary); font-size: 1rem;">Connexion au service de découverte...</p>
+                        <p style="margin-top: 0.5rem; color: var(--text-tertiary); font-size: 0.85rem;">Les tokens apparaîtront automatiquement</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==================== SECTION 2: RECHERCHE SPÉCIFIQUE (FIXE) ==================== -->
+            <div style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%); border: 2px solid var(--border-subtle); border-radius: 1.5rem; padding: 2.5rem; margin-bottom: 3rem; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);">
+                <div style="margin-bottom: 2rem;">
+                    <h2 class="section-title" style="font-size: 1.5rem; margin-bottom: 0.5rem;">🔎 Analyser un Token Spécifique</h2>
+                    <p style="font-size: 0.9rem; color: var(--text-secondary); margin: 0;">
+                        Analyse approfondie et privée d'un token par son adresse ou URL DexScreener
+                    </p>
+                </div>
+
+                <!-- Formulaire de recherche spécifique -->
+                <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 1rem; padding: 1.5rem; margin-bottom: 1.5rem;">
+                    <div style="display: grid; grid-template-columns: 1fr auto; gap: 1rem;">
+                        <input
+                            type="text"
+                            id="specific-token-input"
+                            placeholder="Entrez une adresse (0x...) ou URL DexScreener complète..."
+                            style="padding: 1rem 1.25rem; background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: 0.75rem; color: var(--text-primary); font-size: 0.95rem; width: 100%; transition: all 0.2s;"
+                            onkeypress="if(event.key === 'Enter') analyzeSpecificToken()"
+                            onfocus="this.style.borderColor='var(--accent-primary)'; this.style.boxShadow='0 0 0 3px rgba(102, 126, 234, 0.1)'"
+                            onblur="this.style.borderColor='var(--border-subtle)'; this.style.boxShadow='none'"
+                        />
+                        <button
+                            onclick="analyzeSpecificToken()"
+                            style="padding: 1rem 2.5rem; background: var(--gradient-primary); color: white; border: none; border-radius: 0.75rem; font-weight: 700; font-size: 1rem; cursor: pointer; transition: all 0.2s; white-space: nowrap; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);"
+                            onmouseenter="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(102, 126, 234, 0.6)'"
+                            onmouseleave="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(102, 126, 234, 0.4)'"
+                        >
+                            🚀 Analyser
+                        </button>
+                    </div>
+                    <div style="margin-top: 1rem; font-size: 0.8rem; color: var(--text-tertiary); display: flex; align-items: center; gap: 0.5rem;">
+                        <span>💡</span>
+                        <span><strong>Exemples:</strong> 0xabc123... ou https://dexscreener.com/ethereum/0xabc123...</span>
+                    </div>
+                </div>
+
+                <!-- Résultats de recherche spécifique -->
+                <div id="specific-token-results" style="display: none;">
+                    <!-- Les résultats apparaîtront ici -->
+                </div>
+
+                <!-- Progress indicator for specific search -->
+                <div id="specific-token-progress" style="display: none; text-align: center; padding: 3rem 2rem;">
+                    <div class="spinner" style="border: 4px solid var(--bg-glass); border-top: 4px solid var(--accent-primary); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+                    <p style="margin-top: 1.5rem; color: var(--text-secondary); font-size: 1rem; font-weight: 600;">Analyse en cours...</p>
+                    <p id="specific-token-status" style="margin-top: 0.5rem; color: var(--text-tertiary); font-size: 0.85rem;"></p>
+                </div>
+            </div>
 
             <!-- Crypto News -->
             <div class="activity-feed" style="margin-top: 2rem;">
@@ -756,6 +866,9 @@
                 console.log('✅ Connecté au Discovery Service');
                 discoveryActive = true;
 
+                // Mettre à jour le badge
+                updateDiscoveryBadge('Connecté', 'success');
+
                 // Rejoindre la room discovery
                 socket.emit('join_discovery');
 
@@ -766,25 +879,31 @@
             // Nouveau token découvert (temps réel)
             socket.on('new_token', (token) => {
                 console.log('📢 Nouveau token découvert:', token);
-                addTokenToGrid(token);
+                addDiscoveredToken(token);
             });
 
             // Scan démarré
             socket.on('scan_started', (data) => {
                 console.log('🔍 Discovery scan démarré...', data);
+                updateDiscoveryBadge('Scan en cours...', 'scanning');
                 showDiscoveryStatus('🔍 Recherche de nouveaux tokens en cours...');
             });
 
             // Scan terminé
             socket.on('scan_completed', (data) => {
                 console.log('✅ Discovery scan terminé:', data);
+                updateDiscoveryBadge(`${data.tokens_found || 0} nouveaux`, 'success');
                 showDiscoveryStatus(`✅ ${data.tokens_found || 0} tokens découverts`);
-                setTimeout(() => hideDiscoveryStatus(), 3000);
+                setTimeout(() => {
+                    hideDiscoveryStatus();
+                    updateDiscoveryBadge('Connecté', 'success');
+                }, 3000);
             });
 
             // Erreur
             socket.on('scan_error', (data) => {
                 console.error('❌ Erreur Discovery:', data.error);
+                updateDiscoveryBadge('Erreur', 'error');
                 showDiscoveryStatus(`❌ Erreur: ${data.error}`);
             });
 
@@ -792,6 +911,7 @@
             socket.on('disconnect', (reason) => {
                 console.log('🔌 Déconnecté Discovery Service:', reason);
                 discoveryActive = false;
+                updateDiscoveryBadge('Déconnecté', 'error');
             });
         }
 
@@ -801,20 +921,60 @@
                 const response = await fetch('/api/discovery/recent?limit=50');
                 const data = await response.json();
 
-                if (data.success && data.tokens) {
+                if (data.success && data.tokens && data.tokens.length > 0) {
                     console.log(`📦 Chargement de ${data.tokens.length} tokens existants`);
+
+                    // Retirer le loading
+                    const loadingEl = document.getElementById('discovered-tokens-loading');
+                    if (loadingEl) loadingEl.remove();
+
+                    // Afficher chaque token
                     data.tokens.forEach(tokenWrapper => {
-                        addTokenToGrid(tokenWrapper.token_data);
+                        addDiscoveredToken(tokenWrapper.token_data, false);  // false = pas d'animation
                     });
+                } else {
+                    // Aucun token existant
+                    const loadingEl = document.getElementById('discovered-tokens-loading');
+                    if (loadingEl) {
+                        loadingEl.innerHTML = '<p style="color: var(--text-secondary); font-size: 1rem;">Aucun token découvert pour le moment. Les nouveaux tokens apparaîtront automatiquement toutes les 3 minutes.</p>';
+                    }
                 }
             } catch (error) {
                 console.error('❌ Erreur chargement tokens:', error);
+                const loadingEl = document.getElementById('discovered-tokens-loading');
+                if (loadingEl) {
+                    loadingEl.innerHTML = '<p style="color: var(--accent-danger); font-size: 1rem;">❌ Erreur de chargement. Rechargez la page.</p>';
+                }
+            }
+        }
+
+        // Mettre à jour le badge de statut Discovery
+        function updateDiscoveryBadge(text, status) {
+            const badgeText = document.getElementById('discovery-badge-text');
+            const badge = document.getElementById('discovery-badge');
+
+            if (!badgeText || !badge) return;
+
+            badgeText.textContent = text;
+
+            // Changer la couleur selon le statut
+            if (status === 'success') {
+                badge.style.background = 'rgba(34, 197, 94, 0.1)';
+                badge.style.borderColor = 'rgba(34, 197, 94, 0.3)';
+                badge.style.color = '#22c55e';
+            } else if (status === 'scanning') {
+                badge.style.background = 'rgba(102, 126, 234, 0.1)';
+                badge.style.borderColor = 'rgba(102, 126, 234, 0.3)';
+                badge.style.color = '#667eea';
+            } else if (status === 'error') {
+                badge.style.background = 'rgba(239, 68, 68, 0.1)';
+                badge.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+                badge.style.color = '#ef4444';
             }
         }
 
         // Afficher un statut Discovery
         function showDiscoveryStatus(message) {
-            // Créer ou mettre à jour le statut
             let statusEl = document.getElementById('discovery-status');
             if (!statusEl) {
                 statusEl = document.createElement('div');
@@ -833,24 +993,345 @@
             }
         }
 
-        // Ajouter un token à la grille
-        function addTokenToGrid(token) {
-            // Utiliser la fonction existante displayTokens si elle existe
-            // Sinon créer une simple carte
-            if (typeof displayTokens === 'function') {
-                // Ajouter au tableau de tokens actuels
-                if (!window.currentTokens) window.currentTokens = [];
-                window.currentTokens.unshift(token);  // Ajouter au début
-                displayTokens([token]);  // Afficher
-            } else {
-                console.log('Token reçu:', token.name || token.symbol);
-            }
+        // Ajouter un token découvert à la grille dynamique
+        function addDiscoveredToken(token, animate = true) {
+            const grid = document.getElementById('discovered-tokens-grid');
+            if (!grid) return;
+
+            // Retirer le loading la première fois
+            const loadingEl = document.getElementById('discovered-tokens-loading');
+            if (loadingEl) loadingEl.remove();
+
+            // Créer la carte token (version simplifiée pour la grille)
+            const tokenCard = document.createElement('div');
+            tokenCard.className = 'token-card-discovered';
+            tokenCard.style.cssText = `
+                background: var(--bg-card);
+                border: 1px solid var(--border-subtle);
+                border-radius: 1rem;
+                padding: 1.5rem;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                ${animate ? 'animation: fadeInScale 0.5s ease-out;' : ''}
+            `;
+
+            // Contenu de la carte
+            tokenCard.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                    ${token.icon ? `<img src="${token.icon}" alt="${token.symbol}" style="width: 48px; height: 48px; border-radius: 50%;" onerror="this.style.display='none'">` : '<div style="width: 48px; height: 48px; border-radius: 50%; background: var(--gradient-primary);"></div>'}
+                    <div style="flex: 1;">
+                        <h3 style="margin: 0; font-size: 1.1rem; font-weight: 700; color: var(--text-primary);">${token.name || 'Unknown'}</h3>
+                        <p style="margin: 0; font-size: 0.9rem; color: var(--text-secondary);">${token.symbol || '?'}</p>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem;">
+                    <span style="padding: 0.25rem 0.75rem; background: rgba(102, 126, 234, 0.1); color: #667eea; border-radius: 0.5rem; font-size: 0.75rem; font-weight: 600;">${token.chain || 'Unknown'}</span>
+                    ${token.is_safe ? '<span style="padding: 0.25rem 0.75rem; background: rgba(34, 197, 94, 0.1); color: #22c55e; border-radius: 0.5rem; font-size: 0.75rem; font-weight: 600;">✅ Safe</span>' : '<span style="padding: 0.25rem 0.75rem; background: rgba(239, 68, 68, 0.1); color: #ef4444; border-radius: 0.5rem; font-size: 0.75rem; font-weight: 600;">⚠️ Risky</span>'}
+                </div>
+
+                <div style="padding-top: 1rem; border-top: 1px solid var(--border-subtle);">
+                    <button onclick="viewTokenDetails('${token.address}', '${token.chain}')" style="width: 100%; padding: 0.75rem; background: var(--gradient-primary); color: white; border: none; border-radius: 0.5rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                        Voir les détails
+                    </button>
+                </div>
+            `;
+
+            // Hover effect
+            tokenCard.onmouseenter = () => {
+                tokenCard.style.transform = 'translateY(-4px)';
+                tokenCard.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.2)';
+                tokenCard.style.borderColor = 'var(--accent-primary)';
+            };
+            tokenCard.onmouseleave = () => {
+                tokenCard.style.transform = 'translateY(0)';
+                tokenCard.style.boxShadow = 'none';
+                tokenCard.style.borderColor = 'var(--border-subtle)';
+            };
+
+            // Ajouter au début de la grille
+            grid.insertBefore(tokenCard, grid.firstChild);
         }
 
         // Initialiser au chargement de la page
         document.addEventListener('DOMContentLoaded', () => {
             initializeDiscovery();
         });
+
+        // ==================== ANALYSE SPÉCIFIQUE ====================
+        /**
+         * Analyse un token spécifique par adresse ou URL DexScreener
+         * ⚠️ Cette fonction utilise /api/scan/start qui est PRIVÉE et NON partagée
+         */
+        async function analyzeSpecificToken() {
+            const input = document.getElementById('specific-token-input');
+            const progressDiv = document.getElementById('specific-token-progress');
+            const resultsDiv = document.getElementById('specific-token-results');
+            const statusText = document.getElementById('specific-token-status');
+
+            if (!input || !progressDiv || !resultsDiv || !statusText) {
+                console.error('❌ Éléments UI manquants');
+                return;
+            }
+
+            const value = input.value.trim();
+            if (!value) {
+                alert('⚠️ Veuillez entrer une adresse ou URL DexScreener');
+                input.focus();
+                return;
+            }
+
+            console.log('🔍 Analyse spécifique:', value);
+
+            // Construire l'URL de profil
+            let profileUrl = value;
+            if (!value.startsWith('http')) {
+                // Si c'est juste une adresse, construire l'URL
+                // Format: https://dexscreener.com/ethereum/ADDRESS
+                profileUrl = `https://dexscreener.com/ethereum/${value}`;
+            }
+
+            // Afficher le progress
+            resultsDiv.style.display = 'none';
+            progressDiv.style.display = 'block';
+            statusText.textContent = 'Connexion au scanner...';
+
+            try {
+                // Lancer le scan privé
+                const scanResponse = await fetch('/api/scan/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        profile_url: profileUrl,
+                        max_tokens: 1,
+                        nitter_url: 'http://localhost:8080'  // Nitter local
+                    })
+                });
+
+                const scanData = await scanResponse.json();
+
+                if (!scanData.success) {
+                    throw new Error(scanData.error || 'Échec du scan');
+                }
+
+                statusText.textContent = 'Analyse en cours...';
+
+                // Polling pour obtenir les résultats
+                const maxAttempts = 60;  // 60 secondes max
+                let attempts = 0;
+                let scanComplete = false;
+                let tokenResult = null;
+
+                while (attempts < maxAttempts && !scanComplete) {
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+
+                    // Vérifier la progression
+                    const progressResponse = await fetch('/api/scan/progress');
+                    const progressData = await progressResponse.json();
+
+                    if (progressData.status === 'completed') {
+                        // Récupérer les résultats
+                        const resultsResponse = await fetch('/api/scan/results');
+                        const resultsData = await resultsResponse.json();
+
+                        if (resultsData.success && resultsData.results && resultsData.results.length > 0) {
+                            tokenResult = resultsData.results[0];
+                            scanComplete = true;
+                        }
+                    } else if (progressData.status === 'error') {
+                        throw new Error(progressData.error || 'Erreur pendant le scan');
+                    } else if (progressData.status === 'scanning') {
+                        statusText.textContent = `Analyse en cours... ${progressData.scanned}/${progressData.total} tokens`;
+                    }
+
+                    attempts++;
+                }
+
+                if (!scanComplete) {
+                    throw new Error('Timeout: Le scan a pris trop de temps');
+                }
+
+                // Masquer le progress
+                progressDiv.style.display = 'none';
+
+                // Afficher les résultats
+                displaySpecificTokenResult(tokenResult);
+
+            } catch (error) {
+                console.error('❌ Erreur analyse spécifique:', error);
+                progressDiv.style.display = 'none';
+                resultsDiv.style.display = 'block';
+                resultsDiv.innerHTML = `
+                    <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 1rem; padding: 2rem; text-align: center;">
+                        <span style="font-size: 3rem;">⚠️</span>
+                        <h3 style="margin: 1rem 0 0.5rem 0; color: #ef4444;">Erreur d'analyse</h3>
+                        <p style="color: var(--text-secondary); margin: 0;">${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        /**
+         * Affiche le résultat d'une analyse spécifique
+         */
+        function displaySpecificTokenResult(token) {
+            const resultsDiv = document.getElementById('specific-token-results');
+            if (!resultsDiv) return;
+
+            resultsDiv.style.display = 'block';
+
+            // Calculer le score global
+            const globalScore = calculateGlobalScore(token);
+
+            resultsDiv.innerHTML = `
+                <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 1rem; padding: 2rem; margin-bottom: 1rem;">
+                    <!-- En-tête du token -->
+                    <div style="display: flex; align-items: center; gap: 1.5rem; margin-bottom: 2rem; padding-bottom: 2rem; border-bottom: 1px solid var(--border-subtle);">
+                        ${token.icon ? `<img src="${token.icon}" alt="${token.symbol}" style="width: 80px; height: 80px; border-radius: 50%; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);">` : '<div style="width: 80px; height: 80px; border-radius: 50%; background: var(--gradient-primary);"></div>'}
+                        <div style="flex: 1;">
+                            <h2 style="margin: 0 0 0.5rem 0; font-size: 1.75rem; font-weight: 700; color: var(--text-primary);">${token.name || 'Unknown Token'}</h2>
+                            <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                                <span style="font-size: 1.1rem; color: var(--text-secondary); font-weight: 600;">${token.symbol || '?'}</span>
+                                <span style="padding: 0.35rem 1rem; background: rgba(102, 126, 234, 0.1); color: #667eea; border-radius: 0.5rem; font-size: 0.85rem; font-weight: 600;">${token.chain || 'Unknown'}</span>
+                                ${token.is_safe ? '<span style="padding: 0.35rem 1rem; background: rgba(34, 197, 94, 0.1); color: #22c55e; border-radius: 0.5rem; font-size: 0.85rem; font-weight: 600;">✅ Safe</span>' : '<span style="padding: 0.35rem 1rem; background: rgba(239, 68, 68, 0.1); color: #ef4444; border-radius: 0.5rem; font-size: 0.85rem; font-weight: 600;">⚠️ Risky</span>'}
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 2.5rem; font-weight: 700; background: var(--gradient-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">${globalScore}/100</div>
+                            <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.25rem;">Score Global</div>
+                        </div>
+                    </div>
+
+                    <!-- Stats principales -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+                        ${token.price ? `
+                        <div style="background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: 0.75rem; padding: 1.25rem;">
+                            <div style="font-size: 0.8rem; color: var(--text-tertiary); margin-bottom: 0.5rem;">💰 Prix</div>
+                            <div style="font-size: 1.25rem; font-weight: 700; color: var(--text-primary);">$${parseFloat(token.price).toFixed(8)}</div>
+                        </div>
+                        ` : ''}
+                        ${token.market_cap ? `
+                        <div style="background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: 0.75rem; padding: 1.25rem;">
+                            <div style="font-size: 0.8rem; color: var(--text-tertiary); margin-bottom: 0.5rem;">📊 Market Cap</div>
+                            <div style="font-size: 1.25rem; font-weight: 700; color: var(--text-primary);">$${formatNumber(token.market_cap)}</div>
+                        </div>
+                        ` : ''}
+                        ${token.liquidity ? `
+                        <div style="background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: 0.75rem; padding: 1.25rem;">
+                            <div style="font-size: 0.8rem; color: var(--text-tertiary); margin-bottom: 0.5rem;">💧 Liquidité</div>
+                            <div style="font-size: 1.25rem; font-weight: 700; color: var(--text-primary);">$${formatNumber(token.liquidity)}</div>
+                        </div>
+                        ` : ''}
+                        ${token.volume_24h ? `
+                        <div style="background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: 0.75rem; padding: 1.25rem;">
+                            <div style="font-size: 0.8rem; color: var(--text-tertiary); margin-bottom: 0.5rem;">📈 Volume 24h</div>
+                            <div style="font-size: 1.25rem; font-weight: 700; color: var(--text-primary);">$${formatNumber(token.volume_24h)}</div>
+                        </div>
+                        ` : ''}
+                    </div>
+
+                    <!-- Analysis détaillée -->
+                    ${token.analysis ? `
+                    <div style="background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 1.5rem;">
+                        <h3 style="margin: 0 0 1rem 0; font-size: 1.1rem; font-weight: 700; color: var(--text-primary);">🤖 Analyse Claude AI</h3>
+                        <div style="color: var(--text-secondary); line-height: 1.6; white-space: pre-wrap;">${token.analysis}</div>
+                    </div>
+                    ` : ''}
+
+                    <!-- Liens -->
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                        ${token.url ? `<a href="${token.url}" target="_blank" style="padding: 0.75rem 1.5rem; background: var(--gradient-primary); color: white; border-radius: 0.5rem; text-decoration: none; font-weight: 600; transition: all 0.2s;">🔗 DexScreener</a>` : ''}
+                        ${token.address ? `<button onclick="copyToClipboard('${token.address}')" style="padding: 0.75rem 1.5rem; background: var(--bg-glass); border: 1px solid var(--border-subtle); border-radius: 0.5rem; color: var(--text-primary); cursor: pointer; font-weight: 600; transition: all 0.2s;">📋 Copier l'adresse</button>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        /**
+         * Voir les détails d'un token découvert
+         * Utilisé depuis les cartes de tokens dans la grille dynamique
+         */
+        async function viewTokenDetails(address, chain) {
+            console.log('👁️ Affichage détails:', address, chain);
+
+            // Scroller vers la section de recherche spécifique
+            const specificSection = document.getElementById('specific-token-results');
+            if (specificSection) {
+                specificSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            // Pré-remplir l'input avec l'adresse
+            const input = document.getElementById('specific-token-input');
+            if (input) {
+                input.value = address;
+            }
+
+            // Lancer l'analyse
+            await analyzeSpecificToken();
+        }
+
+        /**
+         * Copier dans le presse-papier
+         */
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                console.log('✅ Copié dans le presse-papier:', text);
+                // Afficher une notification temporaire
+                const notification = document.createElement('div');
+                notification.textContent = '✅ Adresse copiée !';
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: rgba(34, 197, 94, 0.9);
+                    color: white;
+                    padding: 1rem 1.5rem;
+                    border-radius: 0.5rem;
+                    font-weight: 600;
+                    z-index: 10000;
+                    animation: fadeInOut 2s ease-in-out;
+                `;
+                document.body.appendChild(notification);
+                setTimeout(() => notification.remove(), 2000);
+            }).catch(err => {
+                console.error('❌ Erreur copie:', err);
+                alert('Erreur lors de la copie');
+            });
+        }
+
+        /**
+         * Calculer le score global d'un token
+         */
+        function calculateGlobalScore(token) {
+            let score = 50;  // Score de base
+
+            // Sécurité (+30 points)
+            if (token.is_safe) score += 30;
+
+            // Liquidité (+10 points si > 50k)
+            if (token.liquidity && parseFloat(token.liquidity) > 50000) score += 10;
+
+            // Volume (+10 points si > 10k)
+            if (token.volume_24h && parseFloat(token.volume_24h) > 10000) score += 10;
+
+            // Market cap présent (+5 points)
+            if (token.market_cap) score += 5;
+
+            // Holders (+5 points si présent)
+            if (token.holders) score += 5;
+
+            return Math.min(100, score);
+        }
+
+        /**
+         * Formater les grands nombres
+         */
+        function formatNumber(num) {
+            const n = parseFloat(num);
+            if (n >= 1000000) return (n / 1000000).toFixed(2) + 'M';
+            if (n >= 1000) return (n / 1000).toFixed(2) + 'K';
+            return n.toFixed(2);
+        }
 
         // ==================== USER INFO ====================
         // Load user info and update welcome
