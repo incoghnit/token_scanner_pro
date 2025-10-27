@@ -911,6 +911,45 @@ class Database:
         except sqlite3.Error:
             return False
 
+    def cleanup_tokens_older_than(self, hours: int = 24) -> int:
+        """
+        Supprime les tokens scannés plus vieux que X heures
+
+        Args:
+            hours: Nombre d'heures (défaut: 24)
+
+        Returns:
+            Nombre de tokens supprimés
+
+        Example:
+            # Supprimer tokens > 24h
+            deleted = db.cleanup_tokens_older_than(24)
+            print(f"{deleted} tokens supprimés")
+        """
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+
+            # Calculer le timestamp limite (maintenant - X heures)
+            # SQLite: datetime('now', '-24 hours')
+            cursor.execute('''
+                DELETE FROM scanned_tokens
+                WHERE scanned_at < datetime('now', '-' || ? || ' hours')
+            ''', (hours,))
+
+            deleted_count = cursor.rowcount
+            conn.commit()
+            conn.close()
+
+            if deleted_count > 0:
+                print(f"🗑️  Nettoyage auto: {deleted_count} tokens de plus de {hours}h supprimés")
+
+            return deleted_count
+
+        except sqlite3.Error as e:
+            print(f"❌ Erreur cleanup_tokens_older_than: {e}")
+            return 0
+
     # ==================== FIN GESTION TOKENS SCANNÉS ====================
 
     def get_admin_logs(self, limit=50):

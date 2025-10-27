@@ -66,6 +66,13 @@ class TokenDiscoveryService:
         self._auto_discovery_interval = 300  # 5 minutes par défaut
         self._stop_auto_discovery = threading.Event()
 
+        # Auto-cleanup configuration (nettoyage tokens > 24h)
+        self._auto_cleanup_active = False
+        self._auto_cleanup_thread = None
+        self._cleanup_interval_hours = 24  # Nettoyer toutes les 24h
+        self._cleanup_age_hours = 24  # Supprimer tokens > 24h
+        self._stop_auto_cleanup = threading.Event()
+
         # Callbacks pour événements
         self._on_scan_start_callbacks: List[Callable] = []
         self._on_scan_complete_callbacks: List[Callable] = []
@@ -157,17 +164,23 @@ class TokenDiscoveryService:
             if results.get('success') and results.get('results'):
                 tokens = results['results']
 
-                # Stocker dans la BDD
+                # ✅ ÉTAPE 1: Stocker dans la BDD (source unique de vérité)
                 stored_count = self.db.add_scanned_tokens_batch(tokens)
                 print(f"💾 {stored_count}/{len(tokens)} tokens stockés dans la BDD")
 
-                # Broadcaster chaque nouveau token
-                if self.socketio:
-                    for token in tokens:
-                        self.socketio.emit('new_token', token, namespace='/')
+                # ✅ ÉTAPE 2: Récupérer depuis la BDD (garantit cohérence)
+                # On récupère les N derniers tokens (ceux qu'on vient de stocker)
+                tokens_from_db = self.db.get_scanned_tokens(limit=stored_count, offset=0)
 
-                        # Notifier les callbacks
-                        self._trigger_callbacks(self._on_new_token_callbacks, token)
+                # ✅ ÉTAPE 3: Broadcaster depuis la BDD (pas depuis Python)
+                if self.socketio:
+                    for token_wrapper in tokens_from_db:
+                        # Broadcaster la version BDD (toujours cohérente)
+                        token_data = token_wrapper.get('token_data', {})
+                        self.socketio.emit('new_token', token_data, namespace='/')
+
+                        # Notifier les callbacks avec version BDD
+                        self._trigger_callbacks(self._on_new_token_callbacks, token_data)
 
                 # Mettre à jour l'état
                 with self._lock:
@@ -298,6 +311,94 @@ class TokenDiscoveryService:
 
         print("🔄 Auto-discovery loop terminée")
 
+    # ==================== AUTO-CLEANUP (NETTOYAGE AUTOMATIQUE) ====================
+
+    def start_auto_cleanup(self, cleanup_interval_hours: int = 24, cleanup_age_hours: int = 24):
+        """
+        Démarre le nettoyage automatique des vieux tokens
+
+        Args:
+            cleanup_interval_hours: Intervalle entre chaque nettoyage (défaut: 24h)
+            cleanup_age_hours: Âge des tokens à supprimer (défaut: 24h)
+
+        Example:
+            # Nettoyer toutes les 24h, supprimer tokens > 24h
+            discovery.start_auto_cleanup(cleanup_interval_hours=24, cleanup_age_hours=24)
+
+            # Nettoyer toutes les 12h, supprimer tokens > 48h
+            discovery.start_auto_cleanup(cleanup_interval_hours=12, cleanup_age_hours=48)
+        """
+        with self._lock:
+            if self._auto_cleanup_active:
+                print("⚠️  Auto-cleanup déjà actif")
+                return False
+
+            self._cleanup_interval_hours = cleanup_interval_hours
+            self._cleanup_age_hours = cleanup_age_hours
+            self._auto_cleanup_active = True
+            self._stop_auto_cleanup.clear()
+
+        # Lancer le thread de cleanup
+        self._auto_cleanup_thread = threading.Thread(
+            target=self._auto_cleanup_loop,
+            daemon=True
+        )
+        self._auto_cleanup_thread.start()
+
+        print(f"✅ Auto-cleanup démarré (intervalle: {cleanup_interval_hours}h, age: {cleanup_age_hours}h)")
+        return True
+
+    def stop_auto_cleanup(self):
+        """Arrête le nettoyage automatique"""
+        with self._lock:
+            if not self._auto_cleanup_active:
+                print("⚠️  Auto-cleanup déjà arrêté")
+                return False
+
+            self._auto_cleanup_active = False
+            self._stop_auto_cleanup.set()
+
+        # Attendre que le thread se termine
+        if self._auto_cleanup_thread:
+            self._auto_cleanup_thread.join(timeout=5)
+
+        print("✅ Auto-cleanup arrêté")
+        return True
+
+    def _auto_cleanup_loop(self):
+        """Boucle principale du nettoyage automatique"""
+        print(f"🗑️  Auto-cleanup loop démarrée")
+
+        # Premier nettoyage immédiat
+        try:
+            deleted = self.db.cleanup_tokens_older_than(hours=self._cleanup_age_hours)
+            if deleted > 0:
+                print(f"🗑️  Premier nettoyage: {deleted} tokens supprimés")
+        except Exception as e:
+            print(f"❌ Erreur premier nettoyage: {e}")
+
+        # Boucle de nettoyage périodique
+        interval_seconds = self._cleanup_interval_hours * 3600  # Convertir heures en secondes
+
+        while not self._stop_auto_cleanup.is_set():
+            try:
+                # Attendre l'intervalle (ou jusqu'au signal d'arrêt)
+                print(f"⏳ Auto-cleanup: attente de {self._cleanup_interval_hours}h ({interval_seconds}s)...")
+                self._stop_auto_cleanup.wait(timeout=interval_seconds)
+
+                # Si on n'a pas été arrêté, faire le nettoyage
+                if not self._stop_auto_cleanup.is_set():
+                    print(f"🗑️  Auto-cleanup: démarrage nettoyage...")
+                    deleted = self.db.cleanup_tokens_older_than(hours=self._cleanup_age_hours)
+                    print(f"✅ Auto-cleanup: {deleted} tokens supprimés")
+
+            except Exception as e:
+                print(f"❌ Erreur dans auto-cleanup loop: {e}")
+                # Attendre un peu avant de réessayer
+                time.sleep(3600)  # 1 heure
+
+        print("🗑️  Auto-cleanup loop terminée")
+
     # ==================== CALLBACKS ====================
 
     def on_scan_start(self, callback: Callable):
@@ -373,6 +474,10 @@ class TokenDiscoveryService:
         # Arrêter l'auto-discovery si actif
         if self.is_auto_discovery_active:
             self.stop_auto_discovery()
+
+        # Arrêter l'auto-cleanup si actif
+        if self._auto_cleanup_active:
+            self.stop_auto_cleanup()
 
         print("✅ Token Discovery Service arrêté")
 

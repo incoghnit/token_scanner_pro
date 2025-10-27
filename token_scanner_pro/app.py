@@ -167,6 +167,18 @@ if os.getenv('AUTO_START_DISCOVERY', 'false').lower() == 'true':
 else:
     print("ℹ️  Token Discovery Service initialisé (mode manuel)")
 
+# Auto-start cleanup (nettoyage tokens > 24h)
+if os.getenv('AUTO_START_CLEANUP', 'true').lower() == 'true':
+    cleanup_interval_hours = int(os.getenv('CLEANUP_INTERVAL_HOURS', 24))  # Nettoyer toutes les 24h
+    cleanup_age_hours = int(os.getenv('CLEANUP_AGE_HOURS', 24))  # Supprimer tokens > 24h
+    token_discovery.start_auto_cleanup(
+        cleanup_interval_hours=cleanup_interval_hours,
+        cleanup_age_hours=cleanup_age_hours
+    )
+    print(f"✅ Auto-cleanup activé (intervalle: {cleanup_interval_hours}h, âge: {cleanup_age_hours}h)")
+else:
+    print("ℹ️  Auto-cleanup désactivé")
+
 # Scanner state with thread safety
 _scanner_lock = thread_module.Lock()
 _scanner_state = {
