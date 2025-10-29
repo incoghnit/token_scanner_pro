@@ -83,8 +83,8 @@ class AutoScannerService:
         
         try:
             # 1. Scanner les nouveaux tokens
-            print(f"📡 Récupération des {self.tokens_per_scan} derniers tokens...")
-            scan_results = self.scanner.scan_tokens(max_tokens=self.tokens_per_scan)
+            print(f"📡 Récupération des {self.tokens_per_scan} derniers tokens SOLANA...")
+            scan_results = self.scanner.scan_tokens(max_tokens=self.tokens_per_scan, chain_filter="solana")
             
             if not scan_results.get('success'):
                 print(f"❌ Échec du scan: {scan_results.get('error')}")

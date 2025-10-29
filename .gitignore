@@ -1,0 +1,99 @@
+# ==================== ENVIRONMENT ====================
+.env
+.env.local
+.env.*.local
+
+# ==================== PYTHON ====================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual Environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# ==================== DATABASE ====================
+# SQLite databases
+*.db
+*.sqlite
+*.sqlite3
+token_scanner.db
+
+# MongoDB data
+data/
+mongodb_data/
+
+# ==================== LOGS ====================
+*.log
+logs/
+
+# ==================== IDE ====================
+# VSCode
+.vscode/
+*.code-workspace
+
+# PyCharm
+.idea/
+*.iml
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# ==================== OS ====================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# ==================== TESTING ====================
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# ==================== BUILD ====================
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# ==================== SECURITY ====================
+# Never commit these!
+*.key
+*.pem
+*.crt
+credentials.json
+secrets.json
+
+# ==================== TEMPORARY FILES ====================
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# ==================== PROJECT SPECIFIC ====================
+# Cache files
+cache/
+*.cache
+
+# User uploaded files
+uploads/
+
+# Backup files
+*.bak
+*.backup

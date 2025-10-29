@@ -334,7 +334,7 @@ def analyze_token():
             'stop_loss': signal.suggested_stop_loss,
             'take_profit': signal.suggested_take_profit,
             'position_size': signal.position_size_percentage,
-            'reasoning': signal.reasoning
+            'reasons': signal.reasons
         }
     })
 

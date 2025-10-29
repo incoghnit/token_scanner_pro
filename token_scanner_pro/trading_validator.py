@@ -31,8 +31,8 @@ class TradingValidator:
             )
         
         self.client = anthropic.Anthropic(api_key=self.api_key)
-        self.model = "claude-sonnet-4-5-20250929"  # Dernier modèle Sonnet
-        
+        self.model = os.getenv('CLAUDE_MODEL', 'claude-sonnet-4-5-20250929')
+
         print("🤖 Trading Validator initialisé avec Claude API")
         print(f"   Modèle: {self.model}")
     

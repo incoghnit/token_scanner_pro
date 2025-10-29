@@ -1,0 +1,263 @@
+<!-- Modal Authentication (Login / Register) -->
+<div id="auth-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); z-index: 10000; overflow-y: auto;">
+    <div style="max-width: 450px; margin: 4rem auto; background: var(--bg-card); border-radius: 1rem; padding: 0; position: relative;">
+        <!-- Close Button -->
+        <button onclick="closeAuthModal()" style="position: absolute; top: 1rem; right: 1rem; background: var(--bg-glass); border: 1px solid var(--border-subtle); border-radius: 0.5rem; padding: 0.5rem 1rem; color: var(--text-primary); cursor: pointer; font-size: 1.5rem; z-index: 10;">
+            ✕
+        </button>
+
+        <!-- Login Form -->
+        <div id="login-form-container">
+            <!-- Header -->
+            <div style="background: var(--gradient-primary); padding: 2rem; border-radius: 1rem 1rem 0 0; text-align: center;">
+                <h2 style="font-size: 2rem; font-weight: 900; margin-bottom: 0.5rem; color: white;">Connexion</h2>
+                <p style="color: rgba(255,255,255,0.8); font-size: 0.875rem;">Accédez à votre compte Token Scanner Pro</p>
+            </div>
+
+            <!-- Content -->
+            <div style="padding: 2rem;">
+                <form id="login-form" onsubmit="handleLogin(event)">
+                    <!-- Email -->
+                    <div style="margin-bottom: 1.5rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-primary);">Email</label>
+                        <input type="email" id="login-email" required
+                            style="width: 100%; padding: 0.75rem; background: var(--bg-glass); border: 1px solid var(--border-subtle); border-radius: 0.5rem; color: var(--text-primary); font-size: 1rem;"
+                            placeholder="admin@admin.fr">
+                    </div>
+
+                    <!-- Password -->
+                    <div style="margin-bottom: 1.5rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-primary);">Mot de passe</label>
+                        <input type="password" id="login-password" required
+                            style="width: 100%; padding: 0.75rem; background: var(--bg-glass); border: 1px solid var(--border-subtle); border-radius: 0.5rem; color: var(--text-primary); font-size: 1rem;"
+                            placeholder="••••••••">
+                    </div>
+
+                    <!-- Error Message -->
+                    <div id="login-error" style="display: none; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 0.5rem; padding: 0.75rem; margin-bottom: 1rem; color: #ef4444;"></div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" id="login-submit-btn"
+                        style="width: 100%; padding: 1rem; background: var(--gradient-primary); color: white; border: none; border-radius: 0.75rem; font-weight: 700; cursor: pointer; font-size: 1rem; margin-bottom: 1rem;">
+                        Se connecter
+                    </button>
+
+                    <!-- Switch to Register -->
+                    <div style="text-align: center; color: var(--text-secondary); font-size: 0.875rem;">
+                        Pas encore de compte ?
+                        <a href="#" onclick="showRegisterForm(); return false;" style="color: var(--accent-primary); text-decoration: none; font-weight: 600;">S'inscrire</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Register Form -->
+        <div id="register-form-container" style="display: none;">
+            <!-- Header -->
+            <div style="background: var(--gradient-primary); padding: 2rem; border-radius: 1rem 1rem 0 0; text-align: center;">
+                <h2 style="font-size: 2rem; font-weight: 900; margin-bottom: 0.5rem; color: white;">Inscription</h2>
+                <p style="color: rgba(255,255,255,0.8); font-size: 0.875rem;">Créez votre compte Token Scanner Pro</p>
+            </div>
+
+            <!-- Content -->
+            <div style="padding: 2rem;">
+                <form id="register-form" onsubmit="handleRegister(event)">
+                    <!-- Username -->
+                    <div style="margin-bottom: 1.5rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-primary);">Nom d'utilisateur</label>
+                        <input type="text" id="register-username" required
+                            style="width: 100%; padding: 0.75rem; background: var(--bg-glass); border: 1px solid var(--border-subtle); border-radius: 0.5rem; color: var(--text-primary); font-size: 1rem;"
+                            placeholder="JohnDoe">
+                    </div>
+
+                    <!-- Email -->
+                    <div style="margin-bottom: 1.5rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-primary);">Email</label>
+                        <input type="email" id="register-email" required
+                            style="width: 100%; padding: 0.75rem; background: var(--bg-glass); border: 1px solid var(--border-subtle); border-radius: 0.5rem; color: var(--text-primary); font-size: 1rem;"
+                            placeholder="john@example.com">
+                    </div>
+
+                    <!-- Password -->
+                    <div style="margin-bottom: 1.5rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-primary);">Mot de passe</label>
+                        <input type="password" id="register-password" required minlength="6"
+                            style="width: 100%; padding: 0.75rem; background: var(--bg-glass); border: 1px solid var(--border-subtle); border-radius: 0.5rem; color: var(--text-primary); font-size: 1rem;"
+                            placeholder="••••••••">
+                        <div style="font-size: 0.75rem; color: var(--text-tertiary); margin-top: 0.25rem;">Minimum 6 caractères</div>
+                    </div>
+
+                    <!-- Error Message -->
+                    <div id="register-error" style="display: none; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 0.5rem; padding: 0.75rem; margin-bottom: 1rem; color: #ef4444;"></div>
+
+                    <!-- Success Message -->
+                    <div id="register-success" style="display: none; background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 0.5rem; padding: 0.75rem; margin-bottom: 1rem; color: #22c55e;"></div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" id="register-submit-btn"
+                        style="width: 100%; padding: 1rem; background: var(--gradient-primary); color: white; border: none; border-radius: 0.75rem; font-weight: 700; cursor: pointer; font-size: 1rem; margin-bottom: 1rem;">
+                        Créer mon compte
+                    </button>
+
+                    <!-- Switch to Login -->
+                    <div style="text-align: center; color: var(--text-secondary); font-size: 0.875rem;">
+                        Déjà un compte ?
+                        <a href="#" onclick="showLoginForm(); return false;" style="color: var(--accent-primary); text-decoration: none; font-weight: 600;">Se connecter</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ==================== AUTH MODAL FUNCTIONS ====================
+
+function showLoginModal() {
+    document.getElementById('auth-modal').style.display = 'block';
+    showLoginForm();
+}
+
+function showRegisterModal() {
+    document.getElementById('auth-modal').style.display = 'block';
+    showRegisterForm();
+}
+
+function closeAuthModal() {
+    document.getElementById('auth-modal').style.display = 'none';
+    // Reset forms
+    document.getElementById('login-form').reset();
+    document.getElementById('register-form').reset();
+    // Hide error messages
+    document.getElementById('login-error').style.display = 'none';
+    document.getElementById('register-error').style.display = 'none';
+    document.getElementById('register-success').style.display = 'none';
+}
+
+function showLoginForm() {
+    document.getElementById('login-form-container').style.display = 'block';
+    document.getElementById('register-form-container').style.display = 'none';
+    document.getElementById('login-error').style.display = 'none';
+}
+
+function showRegisterForm() {
+    document.getElementById('login-form-container').style.display = 'none';
+    document.getElementById('register-form-container').style.display = 'block';
+    document.getElementById('register-error').style.display = 'none';
+    document.getElementById('register-success').style.display = 'none';
+}
+
+// Close modal when clicking outside
+document.getElementById('auth-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'auth-modal') {
+        closeAuthModal();
+    }
+});
+
+// ==================== LOGIN HANDLER ====================
+
+async function handleLogin(event) {
+    event.preventDefault();
+
+    const email = document.getElementById('login-email').value;
+    const password = document.getElementById('login-password').value;
+    const submitBtn = document.getElementById('login-submit-btn');
+    const errorDiv = document.getElementById('login-error');
+
+    // Show loading state
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Connexion en cours...';
+    errorDiv.style.display = 'none';
+
+    try {
+        const response = await fetch('/api/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email, password })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Success! Close modal and reload page
+            closeAuthModal();
+            window.location.reload();
+        } else {
+            // Show error
+            errorDiv.textContent = data.error || 'Erreur de connexion';
+            errorDiv.style.display = 'block';
+        }
+    } catch (error) {
+        errorDiv.textContent = 'Erreur de connexion au serveur';
+        errorDiv.style.display = 'block';
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Se connecter';
+    }
+}
+
+// ==================== REGISTER HANDLER ====================
+
+async function handleRegister(event) {
+    event.preventDefault();
+
+    const username = document.getElementById('register-username').value;
+    const email = document.getElementById('register-email').value;
+    const password = document.getElementById('register-password').value;
+    const submitBtn = document.getElementById('register-submit-btn');
+    const errorDiv = document.getElementById('register-error');
+    const successDiv = document.getElementById('register-success');
+
+    // Show loading state
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Création en cours...';
+    errorDiv.style.display = 'none';
+    successDiv.style.display = 'none';
+
+    try {
+        const response = await fetch('/api/register', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ username, email, password })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Success! Show message and auto-login
+            successDiv.textContent = 'Compte créé avec succès ! Connexion...';
+            successDiv.style.display = 'block';
+
+            // Auto-login after 1 second
+            setTimeout(async () => {
+                const loginResponse = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                if (loginResponse.ok) {
+                    closeAuthModal();
+                    window.location.reload();
+                }
+            }, 1000);
+        } else {
+            // Show error
+            errorDiv.textContent = data.error || 'Erreur lors de l\'inscription';
+            errorDiv.style.display = 'block';
+        }
+    } catch (error) {
+        errorDiv.textContent = 'Erreur de connexion au serveur';
+        errorDiv.style.display = 'block';
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Créer mon compte';
+    }
+}
+</script>
