@@ -44,6 +44,7 @@ python-dateutil==2.8.2
 
 # JSON & Data Validation
 jsonschema==4.20.0
+pydantic==2.5.3  # Modern data validation
 
 # Async Support
 aiohttp==3.9.1
@@ -51,6 +52,9 @@ aiohttp==3.9.1
 # Rate Limiting
 ratelimit==2.2.1
 Flask-Limiter==3.5.0  # Production-grade rate limiting for Flask
+
+# Caching & Session Storage
+redis==5.0.1  # Redis client for caching and session storage
 
 # ==================== DEVELOPMENT & TESTING (OPTIONAL) ====================
 # Testing
@@ -64,6 +68,9 @@ pylint==3.0.3
 
 # Environment Variables
 python-dotenv==1.0.0
+
+# Logging
+python-json-logger==2.0.7  # Structured JSON logging
 
 # ==================== DEPLOYMENT (OPTIONAL) ====================
 # Production Server
