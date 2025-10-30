@@ -44,9 +44,13 @@ class MongoDBManager:
         self.users = self.db['users']
         self.favorites = self.db['favorites']
         self.tokens_cache = self.db['tokens_cache']  # 🆕 Cache 24h
+        self.scanned_tokens = self.db['scanned_tokens']  # Cache global tokens scannés
         self.scan_history = self.db['scan_history']
         self.positions = self.db['positions']
         self.alerts = self.db['alerts']
+
+        # Configuration rotation tokens (FIFO)
+        self.MAX_SCANNED_TOKENS = 200
         
         # Créer les indexes
         self._create_indexes()
@@ -84,12 +88,21 @@ class MongoDBManager:
             self.tokens_cache.create_index([('risk_score', ASCENDING)])
             self.tokens_cache.create_index([('is_safe', ASCENDING)])
             
+            # Scanned Tokens (cache global avec rotation FIFO)
+            self.scanned_tokens.create_index([
+                ('token_address', ASCENDING),
+                ('token_chain', ASCENDING)
+            ], unique=True)
+            self.scanned_tokens.create_index([('scanned_at', DESCENDING)])
+            self.scanned_tokens.create_index([('is_safe', ASCENDING)])
+            self.scanned_tokens.create_index([('risk_score', ASCENDING)])
+
             # Scan History
             self.scan_history.create_index([
                 ('user_id', ASCENDING),
                 ('scan_date', DESCENDING)
             ])
-            
+
             # Positions
             self.positions.create_index([
                 ('user_id', ASCENDING),
@@ -152,6 +165,23 @@ class MongoDBManager:
             return user
         return None
     
+    def get_user_by_id(self, user_id: str) -> Optional[Dict]:
+        """Récupère un utilisateur par son ID"""
+        try:
+            from bson.objectid import ObjectId
+            user = self.users.find_one({'_id': ObjectId(user_id)})
+            if user:
+                user['id'] = str(user['_id'])
+                user['is_admin'] = user.get('role') == 'admin'
+            return user
+        except Exception as e:
+            print(f"Erreur get_user_by_id: {e}")
+            return None
+
+    def authenticate_user(self, email: str, password: str) -> Optional[Dict]:
+        """Authentifie un utilisateur (alias pour verify_password)"""
+        return self.verify_password(email, password)
+
     def is_admin(self, user_id: str) -> bool:
         """Vérifie si l'utilisateur est admin"""
         try:
@@ -408,15 +438,24 @@ class MongoDBManager:
             query = self.users.find().skip(offset)
             if limit:
                 query = query.limit(limit)
-            
+
             users = list(query.sort('created_at', DESCENDING))
             for user in users:
                 user['id'] = str(user['_id'])
-            
+                user['is_admin'] = user.get('role') == 'admin'
+
             return users
         except Exception as e:
             print(f"Erreur get_all_users: {e}")
             return []
+
+    def get_users_count(self) -> int:
+        """Retourne le nombre total d'utilisateurs"""
+        try:
+            return self.users.count_documents({})
+        except Exception as e:
+            print(f"Erreur get_users_count: {e}")
+            return 0
     
     def get_global_stats(self) -> Dict[str, int]:
         """Statistiques globales de la plateforme"""
@@ -436,6 +475,150 @@ class MongoDBManager:
             print(f"Erreur get_global_stats: {e}")
             return {}
     
+    # ==================== SCANNED TOKENS (Cache global avec rotation FIFO) ====================
+
+    def add_scanned_token(self, token_address: str, token_chain: str,
+                         token_data: Dict, risk_score: int = 0,
+                         is_safe: bool = False, is_pump_dump_suspect: bool = False) -> bool:
+        """Ajoute un token scanné au cache global"""
+        try:
+            token_doc = {
+                'token_address': token_address,
+                'token_chain': token_chain,
+                'token_data': token_data,
+                'risk_score': risk_score,
+                'is_safe': is_safe,
+                'is_pump_dump_suspect': is_pump_dump_suspect,
+                'scanned_at': datetime.utcnow()
+            }
+
+            # Upsert pour éviter doublons
+            self.scanned_tokens.update_one(
+                {
+                    'token_address': token_address,
+                    'token_chain': token_chain
+                },
+                {'$set': token_doc},
+                upsert=True
+            )
+
+            # Rotation FIFO : garder max MAX_SCANNED_TOKENS
+            total = self.scanned_tokens.count_documents({})
+            if total > self.MAX_SCANNED_TOKENS:
+                to_delete = total - self.MAX_SCANNED_TOKENS
+                # Supprimer les plus vieux
+                oldest_tokens = list(
+                    self.scanned_tokens.find()
+                    .sort('scanned_at', ASCENDING)
+                    .limit(to_delete)
+                )
+                for old_token in oldest_tokens:
+                    self.scanned_tokens.delete_one({'_id': old_token['_id']})
+
+            return True
+        except Exception as e:
+            print(f"Erreur add_scanned_token: {e}")
+            return False
+
+    def add_scanned_tokens_batch(self, tokens_list: List[Dict]) -> int:
+        """Ajoute plusieurs tokens en batch"""
+        count = 0
+        for token in tokens_list:
+            result = self.add_scanned_token(
+                token_address=token.get('address'),
+                token_chain=token.get('chain', 'solana'),
+                token_data=token,
+                risk_score=token.get('risk_score', 0),
+                is_safe=token.get('is_safe', False),
+                is_pump_dump_suspect=token.get('is_pump_dump_suspect', False)
+            )
+            if result:
+                count += 1
+        return count
+
+    def get_scanned_tokens(self, limit: int = 50, offset: int = 0,
+                          chain: str = None, safe_only: bool = False) -> List[Dict]:
+        """Récupère les tokens scannés (les plus récents en premier)"""
+        try:
+            query = {}
+
+            if chain:
+                query['token_chain'] = chain
+            if safe_only:
+                query['is_safe'] = True
+
+            tokens = list(
+                self.scanned_tokens.find(query)
+                .sort('scanned_at', DESCENDING)
+                .skip(offset)
+                .limit(limit)
+            )
+
+            result = []
+            for token in tokens:
+                result.append({
+                    'id': str(token['_id']),
+                    'token_address': token['token_address'],
+                    'token_chain': token['token_chain'],
+                    'token_data': token['token_data'],
+                    'risk_score': token.get('risk_score', 0),
+                    'is_safe': token.get('is_safe', False),
+                    'is_pump_dump_suspect': token.get('is_pump_dump_suspect', False),
+                    'scanned_at': token['scanned_at'].isoformat()
+                })
+
+            return result
+        except Exception as e:
+            print(f"Erreur get_scanned_tokens: {e}")
+            return []
+
+    def get_scanned_token(self, address: str, chain: str = 'solana') -> Optional[Dict]:
+        """Récupère un token scanné spécifique"""
+        try:
+            token = self.scanned_tokens.find_one({
+                'token_address': address,
+                'token_chain': chain
+            })
+
+            if token:
+                return {
+                    'id': str(token['_id']),
+                    'token_address': token['token_address'],
+                    'token_chain': token['token_chain'],
+                    'token_data': token['token_data'],
+                    'risk_score': token.get('risk_score', 0),
+                    'is_safe': token.get('is_safe', False),
+                    'is_pump_dump_suspect': token.get('is_pump_dump_suspect', False),
+                    'scanned_at': token['scanned_at'].isoformat()
+                }
+            return None
+        except Exception as e:
+            print(f"Erreur get_scanned_token: {e}")
+            return None
+
+    def get_scanned_tokens_count(self, chain: str = None) -> int:
+        """Compte le nombre de tokens scannés"""
+        try:
+            query = {}
+            if chain:
+                query['token_chain'] = chain
+            return self.scanned_tokens.count_documents(query)
+        except Exception as e:
+            print(f"Erreur get_scanned_tokens_count: {e}")
+            return 0
+
+    def cleanup_tokens_older_than(self, hours: int = 24) -> int:
+        """Supprime les tokens scannés plus vieux que X heures"""
+        try:
+            cutoff_date = datetime.utcnow() - timedelta(hours=hours)
+            result = self.scanned_tokens.delete_many({
+                'scanned_at': {'$lt': cutoff_date}
+            })
+            return result.deleted_count
+        except Exception as e:
+            print(f"Erreur cleanup_tokens_older_than: {e}")
+            return 0
+
     def close(self):
         """Ferme la connexion MongoDB"""
         try:

@@ -12,7 +12,7 @@ from typing import List, Dict, Any
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from database import Database
+from mongodb_manager import MongoDBManager
 from scanner_core import TokenScanner
 
 class AlertSystem:
@@ -28,7 +28,7 @@ class AlertSystem:
         1. Activez la validation en 2 étapes
         2. Générez un mot de passe d'application sur https://myaccount.google.com/apppasswords
         """
-        self.db = Database()
+        self.db = MongoDBManager()
         self.scanner = TokenScanner()
         
         # Configuration SMTP

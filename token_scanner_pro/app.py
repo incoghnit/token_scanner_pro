@@ -12,7 +12,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from scanner_core import TokenScanner
-from database import Database
+from mongodb_manager import MongoDBManager
 from token_discovery_service import TokenDiscoveryService
 import json
 from datetime import datetime
@@ -25,6 +25,10 @@ from dotenv import load_dotenv
 
 # Charger les variables d'environnement depuis .env
 load_dotenv()
+
+# ==================== GLOBAL CONFIGURATION ====================
+# Constante globale pour éviter duplications
+NITTER_URL = os.getenv('NITTER_URL', 'http://localhost:8080')
 
 # ==================== INPUT VALIDATION HELPERS ====================
 
@@ -144,16 +148,15 @@ socketio = SocketIO(
 
 import threading as thread_module
 
-# Database instance (thread-safe)
-db = Database()
+# Database instance (thread-safe) - MongoDB uniquement
+db = MongoDBManager()
 
-# Scanner instance for news & search APIs (separate from scan state)
-scanner = TokenScanner()
+# Scanner instance for news & search APIs (separate from scan state) - Instance UNIQUE
+scanner = TokenScanner(nitter_url=NITTER_URL)
 
 # ==================== TOKEN DISCOVERY SERVICE ====================
 # Service centralisé de découverte de tokens (1 scan partagé entre tous les users)
-nitter_url = os.getenv('NITTER_URL', 'http://localhost:8080')
-token_discovery = TokenDiscoveryService(database=db, socketio=socketio, nitter_url=nitter_url)
+token_discovery = TokenDiscoveryService(database=db, socketio=socketio, nitter_url=NITTER_URL)
 
 # Auto-start discovery si configuré
 if os.getenv('AUTO_START_DISCOVERY', 'false').lower() == 'true':
@@ -224,9 +227,8 @@ try:
     )
     scheduler = SchedulerService()
 
-    # Initialiser les modules du scanner avec Nitter URL depuis .env
-    nitter_url = os.getenv('NITTER_URL', 'http://localhost:8080')
-    auto_scanner.initialize_modules(nitter_url=nitter_url)
+    # Initialiser les modules du scanner avec Nitter URL
+    auto_scanner.initialize_modules(nitter_url=NITTER_URL)
 
     # Enregistrer les routes auto-scan
     register_auto_scan_routes(app, auto_scanner, scheduler, mongodb_manager)
@@ -524,7 +526,7 @@ def start_scan():
     
     data = request.json or {}
     max_tokens = data.get('max_tokens', 10)
-    nitter_url = data.get('nitter_url', os.getenv('NITTER_URL', 'http://localhost:8080'))
+    nitter_url = data.get('nitter_url', NITTER_URL)
     profile_url = data.get('profile_url', '').strip()
 
     user_id = session.get('user_id')
@@ -540,7 +542,10 @@ def start_scan():
     def run_scan():
         try:
             set_scanner_state('scan_in_progress', True)
-            scanner = TokenScanner(nitter_url=nitter_url)
+            # Réutiliser l'instance globale du scanner (éviter duplication)
+            # Reconfigurer si nitter_url personnalisé fourni
+            if nitter_url != NITTER_URL:
+                scanner.nitter_instance = nitter_url
             set_scanner_state('scanner', scanner)
 
             # Handle profile_url if provided

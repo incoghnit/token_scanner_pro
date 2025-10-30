@@ -25,7 +25,7 @@ import time
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, List, Callable
 from scanner_core import TokenScanner
-from database import Database
+from mongodb_manager import MongoDBManager
 
 
 class TokenDiscoveryService:
@@ -40,12 +40,12 @@ class TokenDiscoveryService:
         results = discovery.trigger_scan(max_tokens=20)
     """
 
-    def __init__(self, database: Database, socketio=None, nitter_url: str = None):
+    def __init__(self, database: MongoDBManager, socketio=None, nitter_url: str = None):
         """
         Initialise le service de découverte
 
         Args:
-            database: Instance de Database pour stocker les tokens
+            database: Instance de MongoDBManager pour stocker les tokens
             socketio: Instance Flask-SocketIO pour broadcaster (optionnel)
             nitter_url: URL de l'instance Nitter pour scraping Twitter
         """
