@@ -13,6 +13,50 @@ from logger import logger
 import sys
 
 
+def create_index_safe(collection, keys, **kwargs):
+    """
+    Create an index safely, handling existing indexes with different names.
+
+    Args:
+        collection: MongoDB collection
+        keys: Index keys (string or list of tuples)
+        **kwargs: Additional index options (unique, name, expireAfterSeconds, etc.)
+
+    Returns:
+        bool: True if index was created or already exists, False otherwise
+    """
+    try:
+        index_name = kwargs.get('name', 'unnamed_index')
+
+        # Get existing indexes
+        existing_indexes = list(collection.list_indexes())
+        existing_names = [idx['name'] for idx in existing_indexes]
+
+        # Check if index with this name already exists
+        if index_name in existing_names:
+            logger.info(f"⏭️  Index '{index_name}' already exists - skipping")
+            return True
+
+        # Try to create the index
+        collection.create_index(keys, **kwargs)
+        return True
+
+    except Exception as e:
+        error_msg = str(e)
+
+        # Handle "Index already exists with a different name" error
+        if "Index already exists with a different name" in error_msg or "IndexOptionsConflict" in error_msg:
+            # Extract the existing index name from error message
+            if "different name:" in error_msg:
+                existing_name = error_msg.split("different name:")[1].split(",")[0].strip()
+                logger.warning(f"⚠️  Index on same field already exists as '{existing_name}' - using existing index")
+                return True
+
+        # For other errors, re-raise
+        logger.error(f"❌ Failed to create index '{index_name}': {e}")
+        return False
+
+
 def create_indexes():
     """Create all necessary MongoDB indexes"""
 
@@ -20,163 +64,239 @@ def create_indexes():
         db = MongoDBManager()
         logger.info("📊 Creating MongoDB indexes...")
 
+        created_count = 0
+        skipped_count = 0
+        failed_count = 0
+
         # ==================== USERS COLLECTION ====================
         # Index on email (unique)
-        db.users.create_index("email", unique=True, name="idx_email_unique")
-        logger.info("✅ Created index: users.email (unique)")
+        if create_index_safe(db.users, "email", unique=True, name="idx_email_unique"):
+            logger.info("✅ Created index: users.email (unique)")
+            created_count += 1
+        else:
+            failed_count += 1
 
         # Index on username (unique)
-        db.users.create_index("username", unique=True, name="idx_username_unique")
-        logger.info("✅ Created index: users.username (unique)")
+        if create_index_safe(db.users, "username", unique=True, name="idx_username_unique"):
+            logger.info("✅ Created index: users.username (unique)")
+            created_count += 1
+        else:
+            failed_count += 1
 
         # Index on role (for admin queries)
-        db.users.create_index("role", name="idx_role")
-        logger.info("✅ Created index: users.role")
+        if create_index_safe(db.users, "role", name="idx_role"):
+            logger.info("✅ Created index: users.role")
+            created_count += 1
+        else:
+            failed_count += 1
 
         # Index on created_at (for sorting)
-        db.users.create_index([("created_at", -1)], name="idx_created_at_desc")
-        logger.info("✅ Created index: users.created_at (desc)")
+        if create_index_safe(db.users, [("created_at", -1)], name="idx_created_at_desc"):
+            logger.info("✅ Created index: users.created_at (desc)")
+            created_count += 1
+        else:
+            failed_count += 1
 
         # ==================== FAVORITES COLLECTION ====================
         # Compound index on user_id + token_address (for quick lookups)
-        db.favorites.create_index(
-            [("user_id", 1), ("token_address", 1)],
-            unique=True,
-            name="idx_user_token_unique"
-        )
-        logger.info("✅ Created index: favorites.user_id + token_address (unique)")
+        if create_index_safe(db.favorites, [("user_id", 1), ("token_address", 1)], unique=True, name="idx_user_token_unique"):
+            logger.info("✅ Created index: favorites.user_id + token_address (unique)")
+            created_count += 1
+        else:
+            failed_count += 1
 
         # Index on user_id (for user's favorites list)
-        db.favorites.create_index("user_id", name="idx_user_id")
-        logger.info("✅ Created index: favorites.user_id")
+        if create_index_safe(db.favorites, "user_id", name="idx_user_id"):
+            logger.info("✅ Created index: favorites.user_id")
+            created_count += 1
+        else:
+            failed_count += 1
 
         # Index on chain (for filtering)
-        db.favorites.create_index("chain", name="idx_chain")
-        logger.info("✅ Created index: favorites.chain")
+        if create_index_safe(db.favorites, "chain", name="idx_chain"):
+            logger.info("✅ Created index: favorites.chain")
+            created_count += 1
+        else:
+            failed_count += 1
 
         # Index on added_at (for sorting)
-        db.favorites.create_index([("added_at", -1)], name="idx_added_at_desc")
-        logger.info("✅ Created index: favorites.added_at (desc)")
+        if create_index_safe(db.favorites, [("added_at", -1)], name="idx_added_at_desc"):
+            logger.info("✅ Created index: favorites.added_at (desc)")
+            created_count += 1
+        else:
+            failed_count += 1
 
         # ==================== SCANNED_TOKENS COLLECTION ====================
         # Compound index on address + chain (unique)
-        db.scanned_tokens.create_index(
-            [("address", 1), ("chain", 1)],
-            unique=True,
-            name="idx_address_chain_unique"
-        )
-        logger.info("✅ Created index: scanned_tokens.address + chain (unique)")
+        if create_index_safe(db.scanned_tokens, [("address", 1), ("chain", 1)], unique=True, name="idx_address_chain_unique"):
+            logger.info("✅ Created index: scanned_tokens.address + chain (unique)")
+            created_count += 1
+        else:
+            failed_count += 1
 
         # Index on scanned_at (for FIFO rotation and recent queries)
-        db.scanned_tokens.create_index([("scanned_at", -1)], name="idx_scanned_at_desc")
-        logger.info("✅ Created index: scanned_tokens.scanned_at (desc)")
+        if create_index_safe(db.scanned_tokens, [("scanned_at", -1)], name="idx_scanned_at_desc"):
+            logger.info("✅ Created index: scanned_tokens.scanned_at (desc)")
+            created_count += 1
+        else:
+            failed_count += 1
 
         # Index on chain (for filtering)
-        db.scanned_tokens.create_index("chain", name="idx_chain_scanned")
-        logger.info("✅ Created index: scanned_tokens.chain")
+        if create_index_safe(db.scanned_tokens, "chain", name="idx_chain_scanned"):
+            logger.info("✅ Created index: scanned_tokens.chain")
+            created_count += 1
+        else:
+            failed_count += 1
 
         # Index on is_safe (for filtering safe tokens)
-        db.scanned_tokens.create_index("is_safe", name="idx_is_safe")
-        logger.info("✅ Created index: scanned_tokens.is_safe")
+        if create_index_safe(db.scanned_tokens, "is_safe", name="idx_is_safe"):
+            logger.info("✅ Created index: scanned_tokens.is_safe")
+            created_count += 1
+        else:
+            failed_count += 1
 
         # Index on risk_score (for sorting by risk)
-        db.scanned_tokens.create_index([("risk_score", 1)], name="idx_risk_score_asc")
-        logger.info("✅ Created index: scanned_tokens.risk_score (asc)")
+        if create_index_safe(db.scanned_tokens, [("risk_score", 1)], name="idx_risk_score_asc"):
+            logger.info("✅ Created index: scanned_tokens.risk_score (asc)")
+            created_count += 1
+        else:
+            failed_count += 1
 
         # Index on is_pump_dump_suspect (for filtering)
-        db.scanned_tokens.create_index("is_pump_dump_suspect", name="idx_pump_dump")
-        logger.info("✅ Created index: scanned_tokens.is_pump_dump_suspect")
+        if create_index_safe(db.scanned_tokens, "is_pump_dump_suspect", name="idx_pump_dump"):
+            logger.info("✅ Created index: scanned_tokens.is_pump_dump_suspect")
+            created_count += 1
+        else:
+            failed_count += 1
 
         # TTL Index: Auto-delete tokens older than 48 hours
-        db.scanned_tokens.create_index(
-            "scanned_at",
-            expireAfterSeconds=172800,  # 48 hours = 172800 seconds
-            name="idx_ttl_48h"
-        )
-        logger.info("✅ Created TTL index: scanned_tokens.scanned_at (48h auto-delete)")
+        if create_index_safe(db.scanned_tokens, "scanned_at", expireAfterSeconds=172800, name="idx_ttl_48h"):
+            logger.info("✅ Created TTL index: scanned_tokens.scanned_at (48h auto-delete)")
+            created_count += 1
+        else:
+            failed_count += 1
 
         # ==================== SCAN_HISTORY COLLECTION ====================
         # Index on user_id (for user's scan history)
-        db.scan_history.create_index("user_id", name="idx_user_id_history")
-        logger.info("✅ Created index: scan_history.user_id")
+        if create_index_safe(db.scan_history, "user_id", name="idx_user_id_history"):
+            logger.info("✅ Created index: scan_history.user_id")
+            created_count += 1
+        else:
+            failed_count += 1
 
         # Index on scan_date (for recent scans)
-        db.scan_history.create_index([("scan_date", -1)], name="idx_scan_date_desc")
-        logger.info("✅ Created index: scan_history.scan_date (desc)")
+        if create_index_safe(db.scan_history, [("scan_date", -1)], name="idx_scan_date_desc"):
+            logger.info("✅ Created index: scan_history.scan_date (desc)")
+            created_count += 1
+        else:
+            failed_count += 1
 
         # Compound index on user_id + scan_date (for user's recent scans)
-        db.scan_history.create_index(
-            [("user_id", 1), ("scan_date", -1)],
-            name="idx_user_scan_date"
-        )
-        logger.info("✅ Created index: scan_history.user_id + scan_date")
+        if create_index_safe(db.scan_history, [("user_id", 1), ("scan_date", -1)], name="idx_user_scan_date"):
+            logger.info("✅ Created index: scan_history.user_id + scan_date")
+            created_count += 1
+        else:
+            failed_count += 1
 
         # ==================== ALERTS COLLECTION ====================
         # Index on user_id (for user's alerts)
-        db.alerts.create_index("user_id", name="idx_user_id_alerts")
-        logger.info("✅ Created index: alerts.user_id")
+        if create_index_safe(db.alerts, "user_id", name="idx_user_id_alerts"):
+            logger.info("✅ Created index: alerts.user_id")
+            created_count += 1
+        else:
+            failed_count += 1
 
         # Index on is_active (for active alerts only)
-        db.alerts.create_index("is_active", name="idx_is_active")
-        logger.info("✅ Created index: alerts.is_active")
+        if create_index_safe(db.alerts, "is_active", name="idx_is_active"):
+            logger.info("✅ Created index: alerts.is_active")
+            created_count += 1
+        else:
+            failed_count += 1
 
         # Compound index on user_id + is_active (for user's active alerts)
-        db.alerts.create_index(
-            [("user_id", 1), ("is_active", 1)],
-            name="idx_user_active_alerts"
-        )
-        logger.info("✅ Created index: alerts.user_id + is_active")
+        if create_index_safe(db.alerts, [("user_id", 1), ("is_active", 1)], name="idx_user_active_alerts"):
+            logger.info("✅ Created index: alerts.user_id + is_active")
+            created_count += 1
+        else:
+            failed_count += 1
 
         # Index on token_address (for alerts on specific token)
-        db.alerts.create_index("token_address", name="idx_token_address_alerts")
-        logger.info("✅ Created index: alerts.token_address")
+        if create_index_safe(db.alerts, "token_address", name="idx_token_address_alerts"):
+            logger.info("✅ Created index: alerts.token_address")
+            created_count += 1
+        else:
+            failed_count += 1
 
         # Index on created_at (for sorting)
-        db.alerts.create_index([("created_at", -1)], name="idx_created_at_alerts_desc")
-        logger.info("✅ Created index: alerts.created_at (desc)")
+        if create_index_safe(db.alerts, [("created_at", -1)], name="idx_created_at_alerts_desc"):
+            logger.info("✅ Created index: alerts.created_at (desc)")
+            created_count += 1
+        else:
+            failed_count += 1
 
         # ==================== POSITIONS COLLECTION ====================
         # Compound index on user_id + token_address (unique)
-        db.positions.create_index(
-            [("user_id", 1), ("token_address", 1)],
-            unique=True,
-            name="idx_user_token_position_unique"
-        )
-        logger.info("✅ Created index: positions.user_id + token_address (unique)")
+        if create_index_safe(db.positions, [("user_id", 1), ("token_address", 1)], unique=True, name="idx_user_token_position_unique"):
+            logger.info("✅ Created index: positions.user_id + token_address (unique)")
+            created_count += 1
+        else:
+            failed_count += 1
 
         # Index on user_id (for user's positions)
-        db.positions.create_index("user_id", name="idx_user_id_positions")
-        logger.info("✅ Created index: positions.user_id")
+        if create_index_safe(db.positions, "user_id", name="idx_user_id_positions"):
+            logger.info("✅ Created index: positions.user_id")
+            created_count += 1
+        else:
+            failed_count += 1
 
         # Index on is_open (for open positions)
-        db.positions.create_index("is_open", name="idx_is_open")
-        logger.info("✅ Created index: positions.is_open")
+        if create_index_safe(db.positions, "is_open", name="idx_is_open"):
+            logger.info("✅ Created index: positions.is_open")
+            created_count += 1
+        else:
+            failed_count += 1
 
         # Index on entry_date (for sorting)
-        db.positions.create_index([("entry_date", -1)], name="idx_entry_date_desc")
-        logger.info("✅ Created index: positions.entry_date (desc)")
+        if create_index_safe(db.positions, [("entry_date", -1)], name="idx_entry_date_desc"):
+            logger.info("✅ Created index: positions.entry_date (desc)")
+            created_count += 1
+        else:
+            failed_count += 1
 
         # ==================== TOKENS_CACHE COLLECTION ====================
         # Index on token_address (for lookups)
-        db.tokens_cache.create_index("token_address", name="idx_token_address_cache")
-        logger.info("✅ Created index: tokens_cache.token_address")
+        if create_index_safe(db.tokens_cache, "token_address", name="idx_token_address_cache"):
+            logger.info("✅ Created index: tokens_cache.token_address")
+            created_count += 1
+        else:
+            failed_count += 1
 
         # Index on cached_at (for cache expiration)
-        db.tokens_cache.create_index([("cached_at", -1)], name="idx_cached_at_desc")
-        logger.info("✅ Created index: tokens_cache.cached_at (desc)")
+        if create_index_safe(db.tokens_cache, [("cached_at", -1)], name="idx_cached_at_desc"):
+            logger.info("✅ Created index: tokens_cache.cached_at (desc)")
+            created_count += 1
+        else:
+            failed_count += 1
 
         # TTL Index: Auto-delete cached data older than 1 hour
-        db.tokens_cache.create_index(
-            "cached_at",
-            expireAfterSeconds=3600,  # 1 hour = 3600 seconds
-            name="idx_ttl_1h_cache"
-        )
-        logger.info("✅ Created TTL index: tokens_cache.cached_at (1h auto-delete)")
+        if create_index_safe(db.tokens_cache, "cached_at", expireAfterSeconds=3600, name="idx_ttl_1h_cache"):
+            logger.info("✅ Created TTL index: tokens_cache.cached_at (1h auto-delete)")
+            created_count += 1
+        else:
+            failed_count += 1
 
         # ==================== SUMMARY ====================
         logger.info("=" * 60)
-        logger.info("✅ All indexes created successfully!")
+        logger.info(f"📊 Index Creation Summary:")
+        logger.info(f"   • Created: {created_count}")
+        logger.info(f"   • Skipped (already exist): {skipped_count}")
+        logger.info(f"   • Failed: {failed_count}")
         logger.info("=" * 60)
+
+        if failed_count == 0:
+            logger.info("✅ All indexes created or already exist!")
+        else:
+            logger.warning(f"⚠️  {failed_count} index(es) failed to create - check logs above")
 
         # List all indexes for verification
         logger.info("\n📋 Indexes Summary:\n")
@@ -193,10 +313,11 @@ def create_indexes():
             for idx in indexes:
                 logger.info(f"  • {idx['name']}: {idx.get('key', {})}")
 
-        return True
+        # Return True if all indexes were created or already exist, False if any failed
+        return failed_count == 0
 
     except Exception as e:
-        logger.error(f"❌ Error creating indexes: {e}", exc_info=True)
+        logger.error(f"❌ Critical error creating indexes: {e}", exc_info=True)
         return False
 
 
