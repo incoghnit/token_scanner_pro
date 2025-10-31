@@ -112,9 +112,9 @@ def create_indexes():
         else:
             failed_count += 1
 
-        # Index on chain (for filtering)
-        if create_index_safe(db.favorites, "chain", name="idx_chain"):
-            logger.info("✅ Created index: favorites.chain")
+        # Index on token_chain (for filtering)
+        if create_index_safe(db.favorites, "token_chain", name="idx_chain"):
+            logger.info("✅ Created index: favorites.token_chain")
             created_count += 1
         else:
             failed_count += 1
@@ -127,9 +127,9 @@ def create_indexes():
             failed_count += 1
 
         # ==================== SCANNED_TOKENS COLLECTION ====================
-        # Compound index on address + chain (unique)
-        if create_index_safe(db.scanned_tokens, [("address", 1), ("chain", 1)], unique=True, name="idx_address_chain_unique"):
-            logger.info("✅ Created index: scanned_tokens.address + chain (unique)")
+        # Compound index on token_address + token_chain (unique)
+        if create_index_safe(db.scanned_tokens, [("token_address", 1), ("token_chain", 1)], unique=True, name="idx_address_chain_unique"):
+            logger.info("✅ Created index: scanned_tokens.token_address + token_chain (unique)")
             created_count += 1
         else:
             failed_count += 1
@@ -141,9 +141,9 @@ def create_indexes():
         else:
             failed_count += 1
 
-        # Index on chain (for filtering)
-        if create_index_safe(db.scanned_tokens, "chain", name="idx_chain_scanned"):
-            logger.info("✅ Created index: scanned_tokens.chain")
+        # Index on token_chain (for filtering)
+        if create_index_safe(db.scanned_tokens, "token_chain", name="idx_chain_scanned"):
+            logger.info("✅ Created index: scanned_tokens.token_chain")
             created_count += 1
         else:
             failed_count += 1
