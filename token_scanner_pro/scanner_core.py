@@ -257,6 +257,11 @@ class TokenScanner:
             pairs = data["pairs"]
             main_pair = max(pairs, key=lambda x: float(x.get("liquidity", {}).get("usd", 0) or 0))
 
+            # Extract token name and symbol from baseToken
+            base_token = main_pair.get("baseToken", {})
+            token_name = base_token.get("name", "")
+            token_symbol = base_token.get("symbol", "")
+
             return {
                 "price_usd": float(main_pair.get("priceUsd", 0)),
                 "price_change_24h": float(main_pair.get("priceChange", {}).get("h24", 0) or 0),
@@ -269,6 +274,9 @@ class TokenScanner:
                 "txns_24h_buys": main_pair.get("txns", {}).get("h24", {}).get("buys", 0),
                 "txns_24h_sells": main_pair.get("txns", {}).get("h24", {}).get("sells", 0),
                 "pair_created_at": main_pair.get("pairCreatedAt", "N/A"),
+                # Token info from baseToken
+                "token_name": token_name,
+                "token_symbol": token_symbol,
             }
         except Exception as e:
             return {"error": str(e)}
@@ -896,6 +904,9 @@ class TokenScanner:
             "chain": chain,
             "url": token_info.get('url'),
             "icon": icon,
+            # Token identity (frontend expects these fields)
+            "name": market.get("token_name") or token_info.get('description', "Unknown"),
+            "symbol": market.get("token_symbol", ""),
             "description": token_info.get('description'),
             "twitter": final_twitter,
             "website": website,
