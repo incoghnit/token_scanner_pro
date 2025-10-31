@@ -230,8 +230,8 @@ try:
     # Initialiser les modules du scanner avec Nitter URL
     auto_scanner.initialize_modules(nitter_url=NITTER_URL)
 
-    # Enregistrer les routes auto-scan
-    register_auto_scan_routes(app, auto_scanner, scheduler, mongodb_manager)
+    # Enregistrer les routes auto-scan avec rate limiter
+    register_auto_scan_routes(app, auto_scanner, scheduler, mongodb_manager, limiter)
 
     # Auto-start scanner si configuré
     if os.getenv('AUTO_START_SCANNER', 'false').lower() == 'true':

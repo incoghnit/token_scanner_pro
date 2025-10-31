@@ -15,6 +15,7 @@ auto_scan_api = Blueprint('auto_scan', __name__, url_prefix='/api/auto-scan')
 auto_scanner = None
 scheduler = None
 mongodb = None
+limiter = None  # Flask-Limiter instance (injected from app.py)
 
 
 def login_required(f):
@@ -55,15 +56,21 @@ def admin_required(f):
 
 @auto_scan_api.route('/status', methods=['GET'])
 def get_status():
-    """Récupère le statut du service de scan automatique"""
+    """
+    Récupère le statut du service de scan automatique
+
+    NOTE: Cette route est exemptée du rate limiting car elle est
+    pollée fréquemment par le frontend (toutes les 2s) pour afficher
+    le statut en temps réel.
+    """
     if not auto_scanner:
         return jsonify({
             'success': False,
             'error': 'Service non initialisé'
         }), 503
-    
+
     status = auto_scanner.get_status()
-    
+
     return jsonify({
         'success': True,
         'status': status,
@@ -362,23 +369,33 @@ def search_and_cache():
 
 # ==================== INITIALISATION ====================
 
-def register_auto_scan_routes(app, scanner_service, scheduler_service, mongodb_manager):
+def register_auto_scan_routes(app, scanner_service, scheduler_service, mongodb_manager, rate_limiter=None):
     """
     Enregistre les routes et initialise les services
-    
+
     Args:
         app: Instance Flask
         scanner_service: Instance AutoScannerService
         scheduler_service: Instance SchedulerService
         mongodb_manager: Instance MongoDBManager
+        rate_limiter: Instance Flask-Limiter (optionnel)
     """
-    global auto_scanner, scheduler, mongodb
-    
+    global auto_scanner, scheduler, mongodb, limiter
+
     auto_scanner = scanner_service
     scheduler = scheduler_service
     mongodb = mongodb_manager
-    
+    limiter = rate_limiter
+
     # Enregistrer le blueprint
     app.register_blueprint(auto_scan_api)
-    
+
+    # Exempter la route /status du rate limiting (pollée toutes les 2s)
+    if limiter:
+        # Exempter /api/auto-scan/status (très fréquent, lecture seule, pas dangereux)
+        limiter.exempt(get_status)
+        # Exempter /api/auto-scan/cache/stats (lecture seule, stats publiques)
+        limiter.exempt(get_cache_stats)
+        print("✅ Routes auto-scan exemptées du rate limiting: /status, /cache/stats")
+
     print("✅ Routes auto-scan enregistrées")
