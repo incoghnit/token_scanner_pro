@@ -1641,7 +1641,9 @@
                     document.getElementById('scan-status').textContent = data.message || 'Analyse en cours...';
                     setTimeout(pollScanResults, 2000);
                 } else {
-                    // Scan complete
+                    // Scan complete - close progress dialog immediately
+                    document.getElementById('scan-progress').style.display = 'none';
+
                     const resultsResponse = await fetch('/api/scan/results');
                     const resultsData = await resultsResponse.json();
 
@@ -1650,7 +1652,14 @@
                     const btn = document.getElementById('start-scan-btn');
                     btn.disabled = false;
                     btn.innerHTML = '<span style="font-size: 1.25rem;">🚀</span><span>Lancer le Scanner IA</span>';
-                    document.getElementById('scan-progress').style.display = 'none';
+
+                    // If scanning a single token, auto-open the details modal
+                    if (resultsData.results && resultsData.results.length === 1) {
+                        console.log('✨ Single token scan - auto-opening details modal');
+                        setTimeout(() => {
+                            showTokenDetailsModal(resultsData.results[0]);
+                        }, 500);
+                    }
                 }
             } catch (error) {
                 console.error('Error polling:', error);
