@@ -557,10 +557,32 @@ def start_scan():
                     chain = match.group(1)
                     address = match.group(2).split('?')[0]  # Remove query params
                     print(f"🔍 Scanning specific token: {chain}/{address}")
+                    print(f"📍 DexScreener URL: {profile_url}")
 
                     # Analyze single token
-                    token_info = {'address': address, 'chain': chain, 'icon': ''}
+                    # Note: Token name and liquidity will be fetched from DexScreener market data API
+                    token_info = {
+                        'address': address,
+                        'chain': chain,
+                        'url': profile_url,  # Include URL for frontend linking
+                        'icon': '',
+                        'description': '',  # Will be populated from market data if available
+                        'twitter': None,
+                        'links': []
+                    }
+
+                    print(f"🔎 Fetching market data and security info...")
                     token_result = scanner.analyze_token(token_info)
+
+                    # Debug: Check if market data was successfully retrieved
+                    if 'error' not in token_result:
+                        print(f"✅ Token analyzed: {token_result.get('name', 'Unknown')} ({token_result.get('symbol', 'N/A')})")
+                        print(f"💧 Liquidity: ${token_result.get('market', {}).get('liquidity_usd', 0):,.2f}")
+                        print(f"📊 Analysis type: {token_result.get('analysis_type', 'N/A')}")
+                        if token_result.get('technical_analysis'):
+                            print(f"📈 Technical analysis included: RSI, Fibonacci, etc.")
+                    else:
+                        print(f"⚠️  Error analyzing token: {token_result.get('error', 'Unknown error')}")
 
                     if 'error' not in token_result:
                         results = {

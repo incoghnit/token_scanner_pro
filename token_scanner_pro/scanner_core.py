@@ -247,11 +247,13 @@ class TokenScanner:
             response = requests.get(url, timeout=10)
 
             if response.status_code != 200:
+                print(f"⚠️  DexScreener API returned status {response.status_code}")
                 return {"error": "API non disponible"}
 
             data = response.json()
 
             if "pairs" not in data or not data["pairs"]:
+                print(f"⚠️  No trading pairs found for token {address[:8]}...")
                 return {"error": "Aucune paire trouvée"}
 
             pairs = data["pairs"]
@@ -262,6 +264,15 @@ class TokenScanner:
             token_name = base_token.get("name", "")
             token_symbol = base_token.get("symbol", "")
 
+            # Debug: Log if token name/symbol are missing
+            if not token_name:
+                print(f"⚠️  Warning: Token name not found in baseToken for {address[:8]}...")
+            if not token_symbol:
+                print(f"⚠️  Warning: Token symbol not found in baseToken for {address[:8]}...")
+
+            liquidity = float(main_pair.get("liquidity", {}).get("usd", 0) or 0)
+            print(f"💰 Market data retrieved: {token_name or 'Unknown'} ({token_symbol or 'N/A'}) - Liquidity: ${liquidity:,.2f}")
+
             return {
                 "price_usd": float(main_pair.get("priceUsd", 0)),
                 "price_change_24h": float(main_pair.get("priceChange", {}).get("h24", 0) or 0),
@@ -269,7 +280,7 @@ class TokenScanner:
                 "price_change_1h": float(main_pair.get("priceChange", {}).get("h1", 0) or 0),
                 "volume_24h": float(main_pair.get("volume", {}).get("h24", 0) or 0),
                 "volume_6h": float(main_pair.get("volume", {}).get("h6", 0) or 0),
-                "liquidity_usd": float(main_pair.get("liquidity", {}).get("usd", 0) or 0),
+                "liquidity_usd": liquidity,
                 "market_cap": float(main_pair.get("marketCap", 0) or 0),
                 "txns_24h_buys": main_pair.get("txns", {}).get("h24", {}).get("buys", 0),
                 "txns_24h_sells": main_pair.get("txns", {}).get("h24", {}).get("sells", 0),
@@ -279,6 +290,7 @@ class TokenScanner:
                 "token_symbol": token_symbol,
             }
         except Exception as e:
+            print(f"❌ Error fetching market data: {e}")
             return {"error": str(e)}
 
     def check_security(self, address: str, chain: str) -> Dict[str, Any]:
